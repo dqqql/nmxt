@@ -51,7 +51,7 @@ function PageTwo(){return <div className="sheet pageTwo"><header className="top"
 function App(){
  const [tab,setTab]=useState('p1');
  const [scale,setScale]=useState(1);
- useEffect(()=>{const fit=()=>{const pageW=1122.52; const pageH=793.7; const nav=52; const sx=(window.innerWidth-28)/pageW; const sy=(window.innerHeight-nav-20)/pageH; setScale(Math.max(1, Math.max(sx, sy)));}; fit(); window.addEventListener('resize',fit); return()=>window.removeEventListener('resize',fit)},[]);
+ useEffect(()=>{const fit=()=>{const pageW=1122.52, pageH=793.7, nav=52, margin=44; const sx=(window.innerWidth-margin*2)/pageW; const sy=(window.innerHeight-nav-margin*2)/pageH; setScale(Math.min(sx, sy));}; fit(); window.addEventListener('resize',fit); return()=>window.removeEventListener('resize',fit)},[]);
  return <><nav className="tabs"><button onClick={()=>setTab('p1')} className={tab==='p1'?'on':''}>第一页</button><button onClick={()=>setTab('p2')} className={tab==='p2'?'on':''}>第二页</button><button onClick={()=>window.print()}>导出 PDF / 打印</button></nav><div className="stage" style={{'--scale':scale}}>{tab==='p1'?<PageOne/>:<PageTwo/>}</div></>
 }
 
