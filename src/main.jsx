@@ -1,58 +1,494 @@
-import React, {useEffect, useState} from 'react';
+import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Download, Info, Settings } from 'lucide-react';
 import './style.css';
 
-const box = (n, cls='') => Array.from({length:n},(_,i)=><span key={i} className={`tick ${cls}`}/>);
-const EditLine = ({label, wide=false}) => <label className={`lineField ${wide?'wide':''}`}><b>{label}</b><input /></label>;
-const TextBox = ({title, hint, className=''}) => <section className={`panel textbox ${className}`}><h3>{title}</h3><textarea placeholder={hint||''}/></section>;
-const ThinCard = ({title, main, sub, tone='mid'}) => <div className={`causeCard ${tone}`}><div className="causeTitle">{title}</div><div className="causeBlank"/><div className="causeMain">{main}</div>{sub && <div className="causeSub">{sub}</div>}</div>;
-const causeCards = [
-  ['逆命伍','解锁\n逆命禁咒','', 'dark'], ['逆命肆','双 3 大失败','', 'dark2'], ['逆命叁','历练点补充\n+1','一仙阶天赋','dark3'], ['逆命贰','双 2 大失败','一天阶天赋','dark3'], ['逆命壹','历练点补充\n+1','一地阶天赋','dark4'], ['平平无奇','平凡的开始','一凡阶天赋\n或\n一人阶天赋 + 一凡阶天道','neutral'], ['天命壹','福缘点上限\n+1','一地阶天赋\n+\n一地阶天道','light1'], ['天命贰','双 5 大成功','一天阶天赋\n+\n一天阶天道','light2'], ['天命叁','福缘点上限\n+1','一仙阶天赋\n+\n一仙阶天道','light3'], ['天命肆','双 4 大成功','', 'light4'], ['天命伍','解锁\n天命神通','', 'light5']
+const fateCards = [
+  ['逆命伍', '解锁\n逆命禁咒', '', 'dark'],
+  ['逆命肆', '双 3\n大失败', '', 'dark2'],
+  ['逆命叁', '历练点\n补充 +1', '一仙阶天赋', 'dark3'],
+  ['逆命贰', '双 2\n大失败', '一天阶天赋', 'dark3'],
+  ['逆命壹', '历练点\n补充 +1', '一地阶天赋', 'dark4'],
+  ['平平无奇', '平凡的\n开始', '一凡阶天赋\n或一人阶天道', 'neutral'],
+  ['天命壹', '福缘点\n上限 +1', '一地阶天赋\n+ 一地阶天道', 'light1'],
+  ['天命贰', '双 5\n大成功', '一天阶天赋\n+ 一天阶天道', 'light2'],
+  ['天命叁', '福缘点\n上限 +1', '一仙阶天赋\n+ 一仙阶天道', 'light3'],
+  ['天命肆', '双 4\n大成功', '', 'light4'],
+  ['天命伍', '解锁\n天命神通', '', 'light5'],
 ];
-const CauseTrack = () => <div className="causeWrap"><div className="causeBar"><span>逆命因果</span><strong>因果值</strong><span>天命因果</span></div><div className="causeCards">{causeCards.map(([t,m,s,tone])=><ThinCard key={t} title={t} main={m} sub={s} tone={tone}/>)}</div></div>;
-const AttributeBlock = ({title, caption}) => <section className="smallAttr panel"><h3>{title}</h3><textarea/><small>{caption}</small></section>;
-const DamageTrack = ({title}) => <div className="damage"><b>{title}</b><span>无伤害</span><i>轻伤</i><span>1 血量格</span><i>中伤</i><span>2 血量格</span><i>重伤</i><span>3 血量格</span></div>;
-const Dots = ({title, count=10, shape='circle'}) => <div className="resource"><b>{title}</b><div className={shape}>{box(count)}</div></div>;
 
-function PageOne(){
- return <div className="sheet pageOne">
-   <header className="top"><div className="logo">逆命仙途</div><h1>角色卡 - 基础信息</h1></header>
-   <main className="grid">
-    <aside className="leftCol">
-      <div className="bio panel"><EditLine label="名称"/><EditLine label="种族"/><EditLine label="出身" wide/><EditLine label="归属" wide/><div className="row"><EditLine label="境界"/><label className="inlineCheck"><b>境界乘值</b>{box(5)}</label></div><div className="row"><EditLine label="境界能力"/><label className="inlineCheck"><b>真元</b>{box(1)}<span className="ghostTicks">{box(5,'ghost')}</span></label></div></div>
-      <TextBox title="道心" className="short"/><TextBox title="身份" className="short"/>
-      <div className="attrs"><AttributeBlock title="仙躯" caption="领域、血脉、妖体"/><AttributeBlock title="身法" caption="移动、见识、阻拦"/><AttributeBlock title="神魂" caption="收集、干扰、分析"/><AttributeBlock title="灵蕴" caption="交涉、法术、魅力"/></div>
-      <div className="sourceRow"><TextBox title="道源" hint="修仙者的力量源泉"/><TextBox title="法门" hint="修仙者使用力量的方式"/><TextBox title="大道" hint="修仙者们性格与倾向产生的特殊风格"/></div>
-      <div className="effectRow"><TextBox title="道源能力"/><TextBox title="出身效果"/></div>
-      <div className="effectRow compact"><TextBox title="道源效果" hint="道源附益"/><TextBox title="大道效果"/></div>
-      <div className="items panel"><Dots title="灵石" count={12}/><Dots title="颗" count={12}/><Dots title="袋" count={10} shape="bag"/><Dots title="包" count={8} shape="square"/><Dots title="中品" count={10} shape="crystal"/><Dots title="上品" count={10} shape="cross"/></div>
-    </aside>
-    <section className="portraitCol">
-      <div className="portrait panel"><span>立绘</span></div>
-      <div className="luck panel"><h3>福缘点上限</h3><div>{box(2)}<span className="ghostTicks">{box(4,'ghost')}</span></div><small>消耗 1 点：重掷 1-2 个骰子 / 优先决定位 +2 / 为故事开拓一笔</small></div>
-      <div className="luck panel"><h3>历练点补充</h3><div>{box(2,'ghost')}</div><small>GM 会使用团结点为故事带来转折与挑战</small></div>
-    </section>
-    <section className="rightCol">
-      <CauseTrack />
-      <section className="talent panel"><h2>天赋 / 天道</h2>{[0,1,2,3].map(i=><div key={i} className="talentCell"><label>名称<input/></label><label>品阶<input/></label><label>效果<textarea/></label></div>)}</section>
-      <section className="bottomRight">
-        <div className="meters panel"><label>正常血量{box(6)}<span className="ghostTicks">{box(4,'ghost')}</span></label><label>险境血量{box(6)}<span className="ghostTicks">{box(4,'ghost')}</span></label><label>灵气{box(7)}<span className="ghostTicks">{box(5,'ghost')}</span></label><label>储物格{box(6)}<span className="ghostTicks">{box(5,'ghost')}</span></label><label>损伤{box(3)}<em>受到 1 次重伤时扣除 1 格；扣除完后，血量格上限以剩余地点为准</em></label><label>调息{box(1)}<em>全力动作恢复一半灵气，并回气场资源</em></label><h3>肉体伤害阈值</h3><DamageTrack title=""/><h3>神魂伤害阈值</h3><DamageTrack title=""/></div>
-        <div className="combat panel"><h3>冲突开始时</h3><p>冲突场景中你的回合，1 轻巧动作</p><p>战斗动作　2 轻巧 / 1 全力动作</p><p>轮次开始时恢复  妖损次数 {box(1)}</p><div className="skill"><b>普通攻击</b><textarea defaultValue={'轻巧动作，对近距离 1 名目标\n造成【核心属性】点伤害'}/></div><div className="skill"><b>法门增益一</b><textarea defaultValue={'法门对等式的附益'}/></div><div className="skill"><b>法门增益二</b><textarea/></div></div>
-      </section>
-    </section>
-   </main>
-  </div>
+const talents = [
+  { title: '仙躯', hint: '领域、血脉、妖体' },
+  { title: '身法', hint: '移动、见识、阻拦' },
+  { title: '神魂', hint: '收集、干扰、分析' },
+  { title: '灵蕴', hint: '交涉、法术、魅力' },
+];
+
+const spellGroups = [
+  { title: '神通', rows: 4 },
+  { title: '秘法', rows: 3 },
+  { title: '功法', rows: 3 },
+  { title: '灵宝', rows: 3 },
+];
+
+const resourceGroups = [
+  { label: '颗', count: 10, shape: 'circle', columns: 5 },
+  { label: '袋', count: 10, shape: 'bag', columns: 5 },
+  { label: '包', count: 8, shape: 'square', columns: 4 },
+  { label: '中品', count: 10, shape: 'crystal', columns: 5 },
+  { label: '上品', count: 10, shape: 'cross', columns: 5 },
+];
+
+const marks = (count, className = '') =>
+  Array.from({ length: count }, (_, index) => (
+    <span key={index} className={`mark ${className}`.trim()} />
+  ));
+
+const resourceMarks = (count, shape) =>
+  Array.from({ length: count }, (_, index) => (
+    <span key={index} className={`resourceMark ${shape}`} />
+  ));
+
+function SheetHeader({ title }) {
+  return (
+    <header className="sheetHeader">
+      <div className="brand">逆命仙途</div>
+      <h1>{title}</h1>
+    </header>
+  );
 }
 
-const SpellTable = ({title, rows=4, className=''}) => <section className={`spellPanel panel ${className}`} style={{'--rows':rows}}><h2>{title}</h2><div className="spellHead"><span>名称</span><span>效果</span></div>{Array.from({length:rows},(_,i)=><div className="spellRow" key={i}><textarea/><textarea/></div>)}</section>;
-
-function PageTwo(){return <div className="sheet pageTwo"><header className="top"><div className="logo">逆命仙途</div><h1>角色卡 - 基础信息</h1></header><main className="pageTwoGrid"><div className="spellLabel">术法</div><section className="spellLeft"><SpellTable title="神通" rows={4}/><SpellTable title="秘法" rows={3}/><SpellTable title="功法" rows={3}/><SpellTable title="灵宝" rows={3}/></section><section className="spellRight"><SpellTable title="本源感悟" rows={2} className="origin"/><SpellTable title="感悟" rows={4} className="insight"/></section></main></div>}
-
-function App(){
- const [tab,setTab]=useState('p1');
- const [scale,setScale]=useState(1);
- useEffect(()=>{const fit=()=>{const pageW=1122.52, pageH=793.7, nav=52, margin=44; const sx=(window.innerWidth-margin*2)/pageW; const sy=(window.innerHeight-nav-margin*2)/pageH; setScale(Math.min(sx, sy));}; fit(); window.addEventListener('resize',fit); return()=>window.removeEventListener('resize',fit)},[]);
- return <><nav className="tabs"><button onClick={()=>setTab('p1')} className={tab==='p1'?'on':''}>第一页</button><button onClick={()=>setTab('p2')} className={tab==='p2'?'on':''}>第二页</button><button onClick={()=>window.print()}>导出 PDF / 打印</button></nav><div className="stage" style={{'--scale':scale}}>{tab==='p1'?<PageOne/>:<PageTwo/>}</div></>
+function FieldRow({ label, aside, filled = 0, ghost = 0, wide = false }) {
+  return (
+    <div className={`fieldRow${wide ? ' wide' : ''}`}>
+      <div className="fieldLabel">{label}</div>
+      <div className="fieldLine" />
+      {aside ? <div className="fieldAside">{aside}</div> : null}
+      {filled || ghost ? (
+        <div className="fieldMarks">
+          {marks(filled)}
+          {marks(ghost, 'ghost')}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
-createRoot(document.getElementById('root')).render(<App/>);
+function InfoPanel() {
+  return (
+    <section className="panel infoPanel">
+      <div className="profileGrid">
+        <div className="nameRow">
+          <div className="pairField">
+            <span className="fieldLabel">名称</span>
+            <div className="fieldLine" />
+          </div>
+          <div className="pairField">
+            <span className="fieldLabel">种族</span>
+            <div className="fieldLine" />
+          </div>
+        </div>
+
+        <div className="singleField">
+          <span className="fieldLabel">出身</span>
+          <div className="fieldLine" />
+        </div>
+
+        <div className="singleField">
+          <span className="fieldLabel">归属</span>
+          <div className="fieldLine" />
+        </div>
+
+        <div className="splitFieldRow">
+          <div className="splitFieldMain">
+            <span className="fieldLabel">境界</span>
+            <div className="fieldLine" />
+          </div>
+          <div className="splitFieldSide">
+            <span className="fieldAside">境界乘值</span>
+            <div className="fieldMarks">{marks(5)}</div>
+          </div>
+        </div>
+
+        <div className="splitFieldRow">
+          <div className="splitFieldMain">
+            <span className="fieldLabel">境界能力</span>
+            <div className="fieldLine" />
+          </div>
+          <div className="splitFieldSide">
+            <span className="fieldAside">真元</span>
+            <div className="fieldMarks">
+              {marks(1)}
+              {marks(5, 'ghost')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SideTextPanel({ title }) {
+  return (
+    <section className="panel bannerField">
+      <div className="bannerTitle">{title}</div>
+      <div className="bannerBody" />
+    </section>
+  );
+}
+
+function AttributePanel({ title, hint }) {
+  return (
+    <section className="panel attributePanel">
+      <div className="panelTitle">{title}</div>
+      <div className="attributeBody" />
+      <div className="panelHint">{hint}</div>
+    </section>
+  );
+}
+
+function TextPanel({ title, hint, vertical = false }) {
+  return (
+    <section className={`panel textPanel${vertical ? ' vertical' : ''}`}>
+      <div className="panelTitle">{title}</div>
+      <div className="textPanelBody">{hint ? <span>{hint}</span> : null}</div>
+    </section>
+  );
+}
+
+function FateRibbon() {
+  return (
+    <section className="fateSection">
+      <div className="fateHeader">
+        <span>逆命因果</span>
+        <strong>因果值</strong>
+        <span>天命因果</span>
+      </div>
+      <div className="fateRibbon">
+        {fateCards.map(([title, main, sub, tone]) => (
+          <article key={title} className={`fateStep ${tone}`} tabIndex={0}>
+            <div className="fateHover fateHoverTop">
+              <b>效果</b>
+              <span>{main}</span>
+            </div>
+            <div className="fateCardTitle">{title}</div>
+            <div className="fateHover fateHoverBottom">
+              <b>天赋 / 天谴</b>
+              <span>{sub || '无'}</span>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TalentBoard() {
+  return (
+    <section className="panel talentBoard">
+      <div className="panelTitle panelTitleCentered">天赋 / 天道</div>
+      {[0, 1, 2, 3].map((index) => (
+        <div key={index} className="talentBox">
+          <div className="talentMeta"><span>名称</span><div className="lineFill" /></div>
+          <div className="talentMeta"><span>品阶</span><div className="lineFill" /></div>
+          <div className="talentEffect">
+            <span>效果</span>
+            <div className="effectFill" />
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function CounterBox({ title, filled, ghost, note }) {
+  return (
+    <section className="panel counterBox">
+      <div className="panelTitle panelTitleCentered">{title}</div>
+      <div className="counterMarks">
+        {marks(filled)}
+        {marks(ghost, 'ghost')}
+      </div>
+      <p>{note}</p>
+    </section>
+  );
+}
+
+function StatRow({ label, filled, ghost, note }) {
+  return (
+    <div className="statRow">
+      <span>{label}</span>
+      <div className="statMarks">
+        {marks(filled)}
+        {marks(ghost, 'ghost')}
+      </div>
+      {note ? <small>{note}</small> : null}
+    </div>
+  );
+}
+
+function DamageThreshold({ title }) {
+  return (
+    <div className="damageThreshold">
+      <h4>{title}</h4>
+      <div className="damageScale">
+        <span className="fill">无伤害</span>
+        <span>轻伤</span>
+        <span className="fill">1 血量格</span>
+        <span>中伤</span>
+        <span className="fill">2 血量格</span>
+        <span>重伤</span>
+        <span className="fill">3 血量格</span>
+      </div>
+    </div>
+  );
+}
+
+function ResourceStrip() {
+  return (
+    <section className="panel resourceStrip">
+      <div className="resourceRail">灵石</div>
+      {resourceGroups.map(({ label, count, shape, columns }) => (
+        <div key={label} className="resourceGroup">
+          <strong>{label}</strong>
+          <div className="resourceMarks" style={{ '--resource-columns': columns }}>
+            {resourceMarks(count, shape)}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function ConflictContent() {
+  return (
+    <div className="conflictContent">
+      <h2>冲突开始时</h2>
+      <p>冲突场景中你的回合　1 轻巧动作</p>
+      <p>战斗动作　2 轻巧 / 1 全力动作</p>
+      <p>
+        轮次开始时恢复　拆招次数
+        <span className="mark" />
+      </p>
+    </div>
+  );
+}
+
+function CombatPanel() {
+  return (
+    <section className="combatPanel">
+      <div className="combatSkills">
+        <div className="combatSkill primary">
+          <b>普通攻击</b>
+          <div>
+            轻巧动作，对近距离 1 名目标
+            <br />
+            造成【核心属性】点伤害
+          </div>
+        </div>
+        <div className="combatSkill">
+          <b>法门增益一</b>
+          <div>法门对等式的附益</div>
+        </div>
+        <div className="combatSkill">
+          <b>法门增益二</b>
+          <div />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PageOne() {
+  return (
+    <div className="sheet sheetPageOne">
+      <SheetHeader title="角色卡 - 基础信息" />
+      <main className="pageOneLayout">
+        <section className="leftBlock">
+          <section className="leftTop">
+            <section className="leftPane">
+              <InfoPanel />
+
+              <SideTextPanel title="道心" />
+              <SideTextPanel title="身份" />
+
+              <section className="attributeGrid">
+                {talents.map(({ title, hint }) => (
+                  <AttributePanel key={title} title={title} hint={hint} />
+                ))}
+              </section>
+            </section>
+
+            <section className="middlePane">
+              <section className="panel portraitPanel">
+                <div className="portraitCanvas">立绘</div>
+              </section>
+              <CounterBox
+                title="福缘点上限"
+                filled={2}
+                ghost={4}
+                note="消耗 1 点：重掷 1-2 个骰子 / 优先决定位 +2 / 为故事开拓一笔"
+              />
+              <CounterBox
+                title="历练点补充"
+                filled={0}
+                ghost={2}
+                note="GM 会使用团结点为故事带来转折与挑战"
+              />
+            </section>
+          </section>
+
+          <section className="triplePanels">
+            <TextPanel title="道源" hint="修仙者的力量源泉" vertical />
+            <TextPanel title="法门" hint="修仙者使用力量的方式" vertical />
+            <TextPanel title="大道" hint="修仙者们性格与倾向产生的特殊风格" vertical />
+          </section>
+
+          <section className="doublePanels">
+            <TextPanel title="道源能力" />
+            <TextPanel title="出身效果" />
+          </section>
+
+          <section className="doublePanels compact">
+            <TextPanel title="道源效果" />
+            <TextPanel title="大道效果" />
+          </section>
+
+          <ResourceStrip />
+        </section>
+
+        <section className="rightPane">
+          <FateRibbon />
+          <TalentBoard />
+          <section className="bottomSection">
+            <section className="panel statsPanel">
+              <StatRow label="正常血量" filled={6} ghost={4} />
+              <StatRow label="险境血量" filled={6} ghost={4} />
+              <StatRow label="灵气" filled={7} ghost={5} />
+              <StatRow label="储物格" filled={6} ghost={5} />
+              <StatRow
+                label="损伤"
+                filled={3}
+                ghost={0}
+                note="受到 1 次重伤时扣除 1 格；扣除完后，血量格上限以剩余险境血量格为准"
+              />
+              <StatRow
+                label="调息"
+                filled={1}
+                ghost={0}
+                note="全力动作恢复一半灵气，并回气场资源"
+              />
+              <DamageThreshold title="肉体伤害阈值" />
+              <DamageThreshold title="神魂伤害阈值" />
+            </section>
+            <CombatPanel />
+          </section>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function SpellTable({ title, rows, tall = false }) {
+  return (
+    <section className={`panel spellTable${tall ? ' tall' : ''}`} style={{ '--rows': rows }}>
+      <div className="panelTitle panelTitleCentered">{title}</div>
+      <div className="spellHead">
+        <span>名称</span>
+        <span>效果</span>
+      </div>
+      {Array.from({ length: rows }, (_, index) => (
+        <div key={index} className="spellRow">
+          <div className="spellName" />
+          <div className="spellText" />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function PageTwo() {
+  return (
+    <div className="sheet sheetPageTwo">
+      <SheetHeader title="角色卡 - 术法信息" />
+      <main className="pageTwoLayout">
+        <div className="spellRail">术法</div>
+        <section className="spellColumn">
+          {spellGroups.map(({ title, rows }) => (
+            <SpellTable key={title} title={title} rows={rows} />
+          ))}
+        </section>
+        <section className="spellColumn right">
+          <SpellTable title="本源感悟" rows={2} tall />
+          <SpellTable title="感悟" rows={4} />
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState('p1');
+  const [hintOpen, setHintOpen] = useState(false);
+  const switchTab = (nextTab) => {
+    setTab(nextTab);
+    setHintOpen(false);
+  };
+
+  return (
+    <div className="appShell">
+      <nav className="pageTabs" aria-label="页面">
+        <button
+          type="button"
+          onClick={() => switchTab('p1')}
+          className={tab === 'p1' ? 'on' : ''}
+          aria-current={tab === 'p1' ? 'page' : undefined}
+        >
+          第一页
+        </button>
+        <button
+          type="button"
+          onClick={() => switchTab('p2')}
+          className={tab === 'p2' ? 'on' : ''}
+          aria-current={tab === 'p2' ? 'page' : undefined}
+        >
+          第二页
+        </button>
+      </nav>
+
+      <div className="stage">{tab === 'p1' ? <PageOne /> : <PageTwo />}</div>
+
+      <aside className="toolRail" aria-label="工具">
+        <button type="button" className="toolButton" aria-label="设置" title="设置">
+          <Settings size={20} strokeWidth={2.2} aria-hidden="true" />
+          <span>设置</span>
+        </button>
+        <button type="button" className="toolButton" onClick={() => window.print()} aria-label="导出" title="导出">
+          <Download size={20} strokeWidth={2.2} aria-hidden="true" />
+          <span>导出</span>
+        </button>
+        <div className="hintAction">
+          <button
+            type="button"
+            className={`toolButton${hintOpen ? ' on' : ''}`}
+            onClick={() => setHintOpen((open) => !open)}
+            aria-label="提示"
+            aria-expanded={hintOpen}
+            aria-controls="conflict-popover"
+            title="提示"
+          >
+            <Info size={20} strokeWidth={2.2} aria-hidden="true" />
+            <span>提示</span>
+          </button>
+          {hintOpen ? (
+            <aside id="conflict-popover" className="hintPopover" aria-label="冲突开始时">
+              <ConflictContent />
+            </aside>
+          ) : null}
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+createRoot(document.getElementById('root')).render(<App />);
