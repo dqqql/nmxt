@@ -35,18 +35,49 @@ const resourceGroups = [
   { label: '颗', count: 10, shape: 'circle', columns: 5 },
   { label: '袋', count: 10, shape: 'bag', columns: 5 },
   { label: '包', count: 8, shape: 'square', columns: 4 },
-  { label: '中品', count: 10, shape: 'crystal', columns: 5 },
-  { label: '上品', count: 10, shape: 'cross', columns: 5 },
+  { label: '中品', count: 10, shape: 'triangle', columns: 5 },
+  { label: '上品', count: 10, shape: 'star', columns: 5 },
 ];
+
+function ClickableMark({ initialState = 'solid', ariaLabel = '方格' }) {
+  const [state, setState] = useState(initialState);
+  const nextState = state === 'solid' ? 'filled' : state === 'filled' ? 'ghost' : 'solid';
+
+  return (
+    <button
+      type="button"
+      className={`mark ${state === 'filled' ? 'filled' : ''} ${state === 'ghost' ? 'ghost' : ''}`.trim()}
+      onClick={() => setState(nextState)}
+      aria-label={ariaLabel}
+    />
+  );
+}
+
+function ResourceMark({ shape, ariaLabel }) {
+  const [filled, setFilled] = useState(false);
+
+  return (
+    <button
+      type="button"
+      className={`resourceMark ${shape}${filled ? ' resourceFilled' : ''}`}
+      onClick={() => setFilled((value) => !value)}
+      aria-label={ariaLabel}
+    />
+  );
+}
 
 const marks = (count, className = '') =>
   Array.from({ length: count }, (_, index) => (
-    <span key={index} className={`mark ${className}`.trim()} />
+    <ClickableMark
+      key={index}
+      initialState={className.includes('ghost') ? 'ghost' : 'solid'}
+      ariaLabel={`方格 ${index + 1}`}
+    />
   ));
 
 const resourceMarks = (count, shape) =>
   Array.from({ length: count }, (_, index) => (
-    <span key={index} className={`resourceMark ${shape}`} />
+    <ResourceMark key={index} shape={shape} ariaLabel={`灵石 ${index + 1}`} />
   ));
 
 function SheetHeader({ title }) {
@@ -119,7 +150,7 @@ function InfoPanel() {
             <span className="fieldAside">真元</span>
             <div className="fieldMarks">
               {marks(1)}
-              {marks(5, 'ghost')}
+              {marks(4, 'ghost')}
             </div>
           </div>
         </div>
@@ -157,6 +188,8 @@ function TextPanel({ title, hint, vertical = false }) {
 }
 
 function FateRibbon() {
+  const [selectedIndex, setSelectedIndex] = useState(null);
+
   return (
     <section className="fateSection">
       <div className="fateHeader">
@@ -165,8 +198,15 @@ function FateRibbon() {
         <span>天命因果</span>
       </div>
       <div className="fateRibbon">
-        {fateCards.map(([title, main, sub, tone]) => (
-          <article key={title} className={`fateStep ${tone}`} tabIndex={0}>
+        {fateCards.map(([title, main, sub, tone], index) => (
+          <button
+            key={title}
+            type="button"
+            className={`fateStep ${tone}${selectedIndex === index ? ' selected' : ''}`}
+            onClick={() => setSelectedIndex((current) => (current === index ? null : index))}
+            aria-pressed={selectedIndex === index}
+            aria-label={`因果值：${title}`}
+          >
             <div className="fateHover fateHoverTop">
               <b>效果</b>
               <span>{main}</span>
@@ -176,7 +216,7 @@ function FateRibbon() {
               <b>天赋 / 天谴</b>
               <span>{sub || '无'}</span>
             </div>
-          </article>
+          </button>
         ))}
       </div>
     </section>
@@ -268,7 +308,7 @@ function ConflictContent() {
       <p>战斗动作　2 轻巧 / 1 全力动作</p>
       <p>
         轮次开始时恢复　拆招次数
-        <span className="mark" />
+        {marks(1)}
       </p>
     </div>
   );

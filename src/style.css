@@ -306,8 +306,12 @@ textarea {
 }
 
 .splitFieldSide {
-  grid-template-columns: auto auto;
-  gap: 12px;
+  grid-template-columns: 76px repeat(5, 20px);
+  column-gap: 8px;
+}
+
+.splitFieldSide .fieldMarks {
+  display: contents;
 }
 
 .fieldRow {
@@ -353,13 +357,36 @@ textarea {
   display: inline-block;
   width: 30px;
   height: 30px;
+  padding: 0;
   border: 2px solid #7e7773;
   background: #fff;
+  appearance: none;
+  color: inherit;
+  cursor: pointer;
+  flex: 0 0 auto;
+  line-height: 0;
 }
 
 .mark.ghost {
   border-style: dotted;
   border-color: #d3d0ce;
+}
+
+.mark.filled {
+  border-color: #202020;
+  background: #202020;
+}
+
+.mark:hover,
+.resourceMark:hover {
+  box-shadow: 0 0 0 2px #e5f2eb;
+}
+
+.mark:focus-visible,
+.resourceMark:focus-visible,
+.fateStep:focus-visible {
+  outline: 2px solid #16864d;
+  outline-offset: 2px;
 }
 
 .bannerField {
@@ -1122,7 +1149,12 @@ body {
 }
 
 .splitFieldSide {
-  gap: 8px;
+  grid-template-columns: 76px repeat(5, 23px);
+  column-gap: 5px;
+}
+
+.splitFieldSide .fieldAside {
+  justify-self: start;
 }
 
 .fieldLabel,
@@ -1645,8 +1677,12 @@ body {
   display: block;
   width: 18px;
   height: 18px;
+  padding: 0;
   border: 1.7px solid #202020;
   background: #fff;
+  appearance: none;
+  cursor: pointer;
+  line-height: 0;
 }
 
 .resourceMark.circle {
@@ -1671,16 +1707,67 @@ body {
   background: #fff;
 }
 
+.resourceMark.resourceFilled {
+  background: #202020;
+}
+
+.resourceMark.resourceFilled.bag::before {
+  background: #202020;
+}
+
 .resourceMark.square {
   border-radius: 3px;
 }
 
-.resourceMark.crystal {
-  clip-path: polygon(28% 0, 72% 0, 72% 24%, 100% 24%, 100% 76%, 72% 76%, 72% 100%, 28% 100%, 28% 76%, 0 76%, 0 24%, 28% 24%);
+.resourceMark.triangle,
+.resourceMark.star {
+  position: relative;
+  border: 0;
+  background: transparent;
 }
 
-.resourceMark.cross {
-  clip-path: polygon(38% 0, 62% 0, 62% 20%, 82% 20%, 82% 38%, 100% 38%, 100% 62%, 82% 62%, 82% 82%, 62% 82%, 62% 100%, 38% 100%, 38% 82%, 18% 82%, 18% 62%, 0 62%, 0 38%, 18% 38%, 18% 20%, 38% 20%);
+.resourceMark.triangle::before,
+.resourceMark.triangle::after,
+.resourceMark.star::before,
+.resourceMark.star::after {
+  content: "";
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.resourceMark.triangle::before,
+.resourceMark.star::before {
+  inset: 0;
+  background: #202020;
+}
+
+.resourceMark.triangle::after,
+.resourceMark.star::after {
+  background: #fff;
+}
+
+.resourceMark.triangle::before {
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.resourceMark.triangle::after {
+  inset: 3px 2.5px 2px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.resourceMark.star::before {
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 56%, 79% 91%, 50% 70%, 21% 91%, 32% 56%, 2% 35%, 39% 35%);
+}
+
+.resourceMark.star::after {
+  inset: 3px;
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 56%, 79% 91%, 50% 70%, 21% 91%, 32% 56%, 2% 35%, 39% 35%);
+}
+
+.resourceMark.resourceFilled.triangle::after,
+.resourceMark.resourceFilled.star::after {
+  background: #202020;
 }
 
 .rightPane {
@@ -1733,9 +1820,13 @@ body {
   min-width: 0;
   height: 100%;
   padding: 0 3px;
+  border: 0;
   border-right: 1px solid #ffffff55;
   color: #fff;
+  font: inherit;
   text-align: center;
+  cursor: pointer;
+  appearance: none;
   outline: none;
 }
 
@@ -1825,6 +1916,13 @@ body {
 .fateStep:focus,
 .fateStep:focus-visible {
   box-shadow: inset 0 0 0 2px #ffffff, inset 0 0 0 3px #252021;
+}
+
+.fateStep.selected,
+.fateStep.selected:hover,
+.fateStep.selected:focus,
+.fateStep.selected:focus-visible {
+  box-shadow: inset 0 0 0 3px #16864d, inset 0 0 0 5px #ffffff;
 }
 
 .fateStep:hover .fateHover,
