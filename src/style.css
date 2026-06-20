@@ -2190,22 +2190,68 @@ body {
 }
 
 /*
- * 固定卡面 + 整体缩放：
- * 卡片按固定 1760×990 设计尺寸渲染，内部排版完全不依赖视口，
- * 再用 transform: scale() 把整张卡按比例缩放以适配窗口。
- * 这样浏览器缩放（或窗口尺寸变化）只会让整张卡等比放缩，
- * 不会触发内部重排，从根本上避免组件排版被破坏。
- * 放在文件末尾的 @media screen 中，确保覆盖前面所有基于视口的 .sheet 规则，
- * 同时不影响 @media print 的打印布局。
+ * PDF-like viewing model:
+ * Render the card at one fixed design size. Browser zoom then scales the
+ * whole interface uniformly; when it no longer fits, the page scrolls instead
+ * of recomputing internal layout.
  */
 @media screen {
+  html,
+  body,
+  #root {
+    height: auto;
+    min-height: 100%;
+  }
+
+  body {
+    overflow: auto;
+  }
+
   .appShell {
-    grid-template-columns: var(--page-tab-width) minmax(0, 1fr) var(--tool-rail-width);
+    width: 100%;
+    min-width: max-content;
+    min-height: 100vh;
+    height: auto;
+    grid-template-columns: var(--page-tab-width) 1760px var(--tool-rail-width);
+    align-items: start;
+    padding: 8px 10px 36px;
+    overflow: visible;
+  }
+
+  .pageTabs {
+    gap: 8px;
+    padding-top: 78px;
+  }
+
+  .toolRail {
+    gap: 8px;
+    padding-top: 76px;
+  }
+
+  .pageTabs button {
+    width: var(--page-tab-width);
+    min-height: 104px;
+    padding: 14px 8px;
+    font-size: 16px;
+  }
+
+  .toolButton {
+    width: var(--tool-rail-width);
+    min-height: 68px;
+    font-size: 13px;
+  }
+
+  .stage {
+    width: 1760px;
+    height: 990px;
+    display: block;
+    place-items: unset;
+    overflow: visible;
   }
 
   .sheetScaler {
-    width: calc(1760px * var(--sheet-scale, 1));
-    height: calc(990px * var(--sheet-scale, 1));
+    width: 1760px;
+    height: 990px;
     flex: none;
   }
 
@@ -2214,7 +2260,35 @@ body {
     height: 990px;
     min-width: 0;
     aspect-ratio: auto;
-    transform: scale(var(--sheet-scale, 1));
-    transform-origin: top left;
+    transform: none;
+  }
+
+  .sheetHeader {
+    height: 58px;
+  }
+
+  .sheetHeader h1 {
+    font-size: 30px;
+  }
+
+  .brand {
+    font-size: 19px;
+  }
+
+  .panelTitle {
+    font-size: 18px;
+  }
+
+  .fieldLabel,
+  .fieldAside,
+  .bannerTitle,
+  .resourceRail,
+  .resourceGroup strong {
+    font-size: 16px;
+  }
+
+  .mark {
+    width: 24px;
+    height: 24px;
   }
 }
