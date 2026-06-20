@@ -515,19 +515,32 @@ function StatRow({ label, filled, ghost, note }) {
 }
 
 function DamageThreshold({ title, value }) {
+  const [light = '', medium = '', heavy = ''] = value ? value.match(/\d+/g) || [] : [];
+  const thresholds = [
+    { label: '轻伤', value: light },
+    { label: '中伤', value: medium },
+    { label: '重伤', value: heavy },
+  ];
+
   return (
     <div className="damageThreshold">
-      <h4>
-        {title}
-        {value != null ? <span className="thresholdValue">阈值 {value}</span> : null}
-      </h4>
+      <h4>{title}</h4>
       <div className="damageScale">
         <span className="fill">无伤害</span>
-        <span>轻伤</span>
+        <span className="thresholdStep" title={value || ''}>
+          <b>{thresholds[0].label}</b>
+          <em>{thresholds[0].value}</em>
+        </span>
         <span className="fill">1 血量格</span>
-        <span>中伤</span>
+        <span className="thresholdStep" title={value || ''}>
+          <b>{thresholds[1].label}</b>
+          <em>{thresholds[1].value}</em>
+        </span>
         <span className="fill">2 血量格</span>
-        <span>重伤</span>
+        <span className="thresholdStep" title={value || ''}>
+          <b>{thresholds[2].label}</b>
+          <em>{thresholds[2].value}</em>
+        </span>
         <span className="fill">3 血量格</span>
       </div>
     </div>
