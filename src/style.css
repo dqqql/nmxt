@@ -260,6 +260,74 @@ textarea {
   text-align: center;
 }
 
+.titleWithHint,
+.statLabel {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.infoHint {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.infoHintButton {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #8b8582;
+  cursor: help;
+}
+
+.infoHintButton:hover,
+.infoHintButton:focus-visible {
+  color: #211d1d;
+  outline: none;
+}
+
+.infoHintButton:focus-visible {
+  box-shadow: 0 0 0 2px #16864d;
+}
+
+.infoBubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 80;
+  width: max-content;
+  max-width: 250px;
+  padding: 6px 8px;
+  border: 1px solid #d8d5d2;
+  background: #fff;
+  color: #6f6965;
+  box-shadow: 0 10px 24px #0000001f;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  white-space: pre-line;
+  transform: translateX(-50%) translateY(2px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.infoHint:hover .infoBubble,
+.infoHint:focus-within .infoBubble {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 .infoPanel {
   padding: 24px 18px;
 }
@@ -556,21 +624,12 @@ textarea {
   display: grid;
   gap: 14px;
   padding-bottom: 12px;
+  overflow: visible;
 }
 
 .counterBox .counterMarks {
   justify-content: center;
   padding: 0 16px;
-}
-
-.counterBox p {
-  margin: 0;
-  padding: 0 14px;
-  text-align: center;
-  font-size: 13px;
-  color: #918b87;
-  line-height: 1.45;
-  white-space: pre-line;
 }
 
 .fateSection {
@@ -772,6 +831,7 @@ textarea {
   display: grid;
   gap: 14px;
   padding: 16px;
+  overflow: visible;
 }
 
 .statRow {
@@ -781,17 +841,9 @@ textarea {
   gap: 14px;
 }
 
-.statRow span {
+.statRow > span {
   font-size: 18px;
   font-weight: 700;
-}
-
-.statRow small {
-  grid-column: 2;
-  color: #8b8582;
-  font-size: 12px;
-  line-height: 1.45;
-  white-space: pre-line;
 }
 
 .damageThreshold {
@@ -1243,12 +1295,6 @@ body {
   height: 22px;
 }
 
-.counterBox p {
-  padding: 0 8px;
-  font-size: 10px;
-  line-height: 1.25;
-}
-
 .triplePanels,
 .doublePanels {
   min-height: 0;
@@ -1426,18 +1472,13 @@ body {
   gap: 8px;
 }
 
-.statRow span {
+.statRow > span {
   font-size: 14px;
 }
 
 .statRow .mark {
   width: 23px;
   height: 23px;
-}
-
-.statRow small {
-  font-size: 10px;
-  line-height: 1.2;
 }
 
 .damageThreshold {
@@ -1830,7 +1871,7 @@ body {
 }
 
 .rightPane {
-  grid-template-rows: 92px minmax(0, 1fr) 360px;
+  grid-template-rows: 92px minmax(0, 1fr) 392px;
 }
 
 .fateSection {
@@ -2002,6 +2043,109 @@ body {
 
 .combatSkill {
   min-height: 0;
+}
+
+.counterBox,
+.statsPanel {
+  overflow: visible;
+}
+
+/* Keep the character sheet on one stable screen layout while browser zoom changes. */
+@media screen {
+  :root {
+    --page-tab-width: 66px;
+    --tool-rail-width: 68px;
+  }
+
+  .pageTabs {
+    gap: 8px;
+    padding-top: 78px;
+  }
+
+  .toolRail {
+    gap: 8px;
+    padding-top: 76px;
+  }
+
+  .pageTabs button {
+    min-height: 104px;
+    padding: 14px 8px;
+    font-size: 16px;
+  }
+
+  .toolButton {
+    min-height: 68px;
+    font-size: 13px;
+  }
+
+  .stage {
+    height: calc(100vh - 16px);
+  }
+
+  .sheet {
+    --sheet-padding: 12px;
+    grid-template-rows: 58px minmax(0, 1fr);
+  }
+
+  .sheetHeader {
+    height: 58px;
+  }
+
+  .sheetHeader h1 {
+    font-size: 30px;
+  }
+
+  .brand {
+    font-size: 19px;
+  }
+
+  .panelTitle {
+    font-size: 18px;
+  }
+
+  .fieldLabel,
+  .fieldAside,
+  .bannerTitle,
+  .resourceRail,
+  .resourceGroup strong {
+    font-size: 16px;
+  }
+
+  .mark {
+    width: 24px;
+    height: 24px;
+  }
+
+  .rightPane {
+    grid-template-rows: 92px minmax(0, 1fr) 392px;
+  }
+
+  .statsPanel {
+    gap: 6px;
+    padding: 7px 10px;
+  }
+
+  .statRow {
+    gap: 7px;
+  }
+
+  .statRow > span,
+  .damageThreshold h4 {
+    font-size: 14px;
+  }
+
+  .damageThreshold {
+    gap: 3px;
+  }
+
+  .damageThreshold h4 {
+    margin: 1px 0 0;
+  }
+
+  .damageScale span {
+    min-height: 28px;
+    font-size: 10px;
+  }
 }
 
 @media (max-width: 1500px), (max-height: 820px) {

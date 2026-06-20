@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Download, Info, Settings } from 'lucide-react';
+import { CircleAlert, Download, Info, Settings } from 'lucide-react';
 import './style.css';
 
 const fateCards = [
@@ -79,6 +79,19 @@ const resourceMarks = (count, shape) =>
   Array.from({ length: count }, (_, index) => (
     <ResourceMark key={index} shape={shape} ariaLabel={`灵石 ${index + 1}`} />
   ));
+
+function InfoHint({ text, label = '说明' }) {
+  if (!text) return null;
+
+  return (
+    <span className="infoHint">
+      <button type="button" className="infoHintButton" aria-label={label}>
+        <CircleAlert size={13} strokeWidth={2.4} aria-hidden="true" />
+      </button>
+      <span className="infoBubble" role="tooltip">{text}</span>
+    </span>
+  );
+}
 
 function SheetHeader({ title }) {
   return (
@@ -244,12 +257,16 @@ function TalentBoard() {
 function CounterBox({ title, filled, ghost, note }) {
   return (
     <section className="panel counterBox">
-      <div className="panelTitle panelTitleCentered">{title}</div>
+      <div className="panelTitle panelTitleCentered">
+        <span className="titleWithHint">
+          <span>{title}</span>
+          <InfoHint text={note} label={`${title}说明`} />
+        </span>
+      </div>
       <div className="counterMarks">
         {marks(filled)}
         {marks(ghost, 'ghost')}
       </div>
-      <p>{note}</p>
     </section>
   );
 }
@@ -257,12 +274,14 @@ function CounterBox({ title, filled, ghost, note }) {
 function StatRow({ label, filled, ghost, note }) {
   return (
     <div className="statRow">
-      <span>{label}</span>
+      <span className="statLabel">
+        <span>{label}</span>
+        <InfoHint text={note} label={`${label}说明`} />
+      </span>
       <div className="statMarks">
         {marks(filled)}
         {marks(ghost, 'ghost')}
       </div>
-      {note ? <small>{note}</small> : null}
     </div>
   );
 }
