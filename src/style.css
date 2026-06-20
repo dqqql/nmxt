@@ -2292,3 +2292,272 @@ body {
     height: 24px;
   }
 }
+
+/* ===== 可填写横线 / 资源库选择 / 自动填充文本 ===== */
+
+/* 可填写横线：名称 / 种族 / 归属，标签与线（文字底部）对齐 */
+.lineField {
+  align-items: end;
+}
+
+.fillInput {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1.5px solid #c8c4c2;
+  background: transparent;
+  padding: 0 2px 2px;
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.fillInput:focus {
+  border-bottom-color: #16864d;
+}
+
+/* 资源库触发方块 */
+.selectorField {
+  align-items: center;
+}
+
+.selectorBox {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 28px;
+  padding: 3px 10px;
+  border: 1.5px solid #b8b3b0;
+  background: #fafafa;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.selectorBox:hover,
+.selectorBox:focus-visible {
+  border-color: #16864d;
+  background: #f1f7f3;
+}
+
+.selectorBox.filled {
+  background: #fff;
+  border-color: #6f6a66;
+}
+
+.selectorPlaceholder {
+  font-weight: 400;
+  color: #9a948f;
+}
+
+/* 竖排资源库面板（道源 / 法门 / 大道）：内容区居中放置方块 */
+.selectorPanel .textPanelBody {
+  display: grid;
+  place-items: center;
+  padding: 10px;
+}
+
+.selectorPanel .selectorBox {
+  justify-content: center;
+  text-align: center;
+  font-size: 16px;
+}
+
+/* 自动填充文本 */
+.fillText {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.fillText.empty {
+  color: #b3aeaa;
+  font-style: italic;
+}
+
+.fillStack {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+}
+
+.fillLine {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.fillLine b {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 5px;
+  background: #ece9e6;
+  color: #5f5b58;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 自动填充的双栏面板内容左对齐，便于阅读 */
+.doublePanels .textPanelBody {
+  display: block;
+  text-align: left;
+}
+
+/* 移除遗留的「道源增益」装饰标签（该信息已并入「道源能力」面板） */
+.doublePanels.compact .textPanel:first-child .textPanelBody::before {
+  content: none;
+}
+
+/* 伤害阈值数值徽标 */
+.thresholdValue {
+  margin-left: 8px;
+  padding: 0 6px;
+  background: #ece9e6;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4a4644;
+}
+
+/* 术法表预填文本 */
+.spellName,
+.spellText {
+  padding: 6px 9px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.spellName {
+  font-weight: 600;
+}
+
+/* ===== 资源库弹窗 ===== */
+.libraryOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(28, 24, 24, 0.55);
+}
+
+.libraryModal {
+  display: flex;
+  flex-direction: column;
+  width: min(920px, 100%);
+  max-height: 86vh;
+  background: var(--paper);
+  border: 1px solid #2a2626;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-serif);
+}
+
+.libraryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--dark);
+  color: #fff;
+}
+
+.libraryHeader h2 {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.librarySep {
+  margin: 0 8px;
+  color: #b6b0aa;
+}
+
+.libraryClose {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #5b5658;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.libraryClose:hover {
+  background: #4a4446;
+}
+
+.libraryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  padding: 18px;
+  overflow: auto;
+}
+
+.libraryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 118px;
+  padding: 0;
+  border: 1px solid #c4bfbb;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.libraryCard:hover {
+  border-color: #16864d;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.libraryCard.selected {
+  border-color: #16864d;
+  box-shadow: inset 0 0 0 2px #16864d;
+}
+
+.libraryCardTitle {
+  padding: 9px 12px;
+  background: #f0ede9;
+  border-bottom: 1px solid #d9d4d0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.libraryCard.selected .libraryCardTitle {
+  background: #16864d;
+  color: #fff;
+  border-bottom-color: #16864d;
+}
+
+.libraryCardBody {
+  padding: 4px 12px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #5f5b58;
+}
+
+.libraryCard.blank .libraryCardTitle {
+  background: #e7e4e1;
+  color: #6e6966;
+}
+
+@media (max-width: 560px) {
+  .libraryGrid {
+    grid-template-columns: 1fr;
+  }
+}
