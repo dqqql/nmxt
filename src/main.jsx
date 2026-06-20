@@ -1,6 +1,7 @@
 import React, { useState, useContext, createContext, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChevronLeft, ChevronRight, CircleAlert, Download, Info, ListChecks, Settings, Star, X } from 'lucide-react';
+import { sourceOptions } from './sourceOptions';
 import './style.css';
 
 const fateCards = [
@@ -93,6 +94,11 @@ const buildGuideSteps = [
       { label: '剩余属性', value: '0', note: '分配给最后一项属性。' },
     ],
   },
+  {
+    title: '道源',
+    summary: '打开资源库选择你的道源。选择后检查第一页的道源能力、道源效果、伤害阈值，以及第二页自动填入的神通和秘法。',
+    target: '第一页 > 道源；第二页 > 神通 / 秘法',
+  },
 ];
 
 const originOptions = [
@@ -145,79 +151,6 @@ const originOptions = [
     name: '流民之后',
     desc: '你的家族因巨大的变故，被迫背井离乡，流浪是你们生活的常态。',
     effect: '有备无患：你背包里面总是带着一份生存相关的物品，一次聚会一次，你可以拿出一份与目前情况有关的生存物资。',
-  },
-];
-
-const sourceOptions = [
-  {
-    name: '剑修',
-    desc: '【占位】以剑入道，攻伐凌厉。',
-    bodyThreshold: 3,
-    soulThreshold: 2,
-    buff: '【占位·道源增益】普攻附加 1 点穿透伤害。',
-    ability: '【占位·道源能力】凝聚剑意，可以远程发动近战攻击。',
-    effect: '【占位·道源效果】连续命中同一目标时，伤害逐次递增。',
-    skills: [
-      { name: '御剑斩', text: '【占位】轻巧动作，对单体造成核心属性 +2 伤害。' },
-      { name: '万剑归宗', text: '【占位】全力动作，对近距离全体造成核心属性伤害。' },
-    ],
-    arts: [{ name: '剑心通明', text: '【占位】一轮内免疫神魂干扰。' }],
-  },
-  {
-    name: '体修',
-    desc: '【占位】淬炼肉身，刚猛无俦。',
-    bodyThreshold: 4,
-    soulThreshold: 1,
-    buff: '【占位·道源增益】受到的肉体伤害 -1。',
-    ability: '【占位·道源能力】肉身成圣，可徒手格挡法术攻击。',
-    effect: '【占位·道源效果】血量越低，造成的伤害越高。',
-    skills: [
-      { name: '霸体诀', text: '【占位】获得 2 点临时血量格。' },
-      { name: '崩山拳', text: '【占位】造成核心属性 +2 伤害并击退目标。' },
-    ],
-    arts: [{ name: '金钟罩', text: '【占位】抵消下一次重伤。' }],
-  },
-  {
-    name: '符修',
-    desc: '【占位】绘符御法，变化万千。',
-    bodyThreshold: 2,
-    soulThreshold: 3,
-    buff: '【占位·道源增益】每场冲突可预备 1 张符箓。',
-    ability: '【占位·道源能力】可将一次检定结果延后发动。',
-    effect: '【占位·道源效果】消耗符箓时，效果范围扩大。',
-    skills: [
-      { name: '烈焰符', text: '【占位】对范围目标造成核心属性伤害。' },
-      { name: '困灵符', text: '【占位】使单体目标无法移动一轮。' },
-    ],
-    arts: [{ name: '聚灵阵', text: '【占位】本轮恢复 1 点真元。' }],
-  },
-  {
-    name: '丹修',
-    desc: '【占位】炼丹辅修，攻守兼备。',
-    bodyThreshold: 3,
-    soulThreshold: 3,
-    buff: '【占位·道源增益】调息时额外恢复 1 血量格。',
-    ability: '【占位·道源能力】可在冲突中服丹，立即恢复资源。',
-    effect: '【占位·道源效果】丹药效果对友方同样生效。',
-    skills: [
-      { name: '回春丹', text: '【占位】为目标恢复 2 血量格。' },
-      { name: '爆元丹', text: '【占位】下一次普攻伤害翻倍。' },
-    ],
-    arts: [{ name: '辟谷诀', text: '【占位】一轮内不受环境减益。' }],
-  },
-  {
-    name: '御兽',
-    desc: '【占位】契约灵兽，并肩而战。',
-    bodyThreshold: 3,
-    soulThreshold: 2,
-    buff: '【占位·道源增益】灵兽可代替你承受一次伤害。',
-    ability: '【占位·道源能力】灵兽可独立行动一次。',
-    effect: '【占位·道源效果】与灵兽相邻时，双方检定 +1。',
-    skills: [
-      { name: '兽魂冲撞', text: '【占位】令灵兽冲撞，造成核心属性伤害。' },
-      { name: '共鸣', text: '【占位】与灵兽共享一次防御。' },
-    ],
-    arts: [{ name: '驯养术', text: '【占位】立即唤回或召出灵兽。' }],
   },
 ];
 
@@ -463,7 +396,16 @@ function AttributePanel({ title, hint }) {
     <section className={`panel attributePanel${isCore ? ' core' : ''}`}>
       <div className="panelTitle">
         <span>{title}</span>
-        {isCore ? <span className="coreBadge">核心</span> : null}
+        <button
+          type="button"
+          className={`coreToggle${isCore ? ' on' : ''}`}
+          onClick={() => toggleCoreAttribute(title)}
+          aria-pressed={isCore}
+          aria-label={`${isCore ? '取消' : '标记'}${title}为核心属性`}
+          title={`${isCore ? '取消' : '标记'}核心属性`}
+        >
+          <Star size={13} strokeWidth={2.4} aria-hidden="true" />
+        </button>
       </div>
       <div className="attributeBody">
         <label className="attributeValueField">
@@ -476,16 +418,6 @@ function AttributePanel({ title, hint }) {
             aria-label={`${title}加值`}
           />
         </label>
-        <button
-          type="button"
-          className={`coreToggle${isCore ? ' on' : ''}`}
-          onClick={() => toggleCoreAttribute(title)}
-          aria-pressed={isCore}
-          aria-label={`${isCore ? '取消' : '标记'}${title}为核心属性`}
-          title={`${isCore ? '取消' : '标记'}核心属性`}
-        >
-          <Star size={18} strokeWidth={2.2} aria-hidden="true" />
-        </button>
       </div>
       <div className="panelHint">{hint}</div>
     </section>
@@ -840,11 +772,11 @@ function PageOne() {
   const origin = current.origin;
   const dao = current.dao;
 
-  // 道源能力面板同时承载「道源增益」与「道源能力」两条信息。
+  // 道源能力面板顶部用一行小标签显示增益，把主要空间留给能力正文。
   const sourceAbilityContent = source ? (
-    <div className="fillStack">
-      <div className="fillLine"><b>增益</b><span>{source.buff}</span></div>
-      <div className="fillLine"><b>能力</b><span>{source.ability}</span></div>
+    <div className="sourceAbilityStack">
+      <div className="sourceBuffLine"><b>增益</b><span>{source.buff}</span></div>
+      <div className="sourceAbilityText">{source.ability}</div>
     </div>
   ) : null;
 
@@ -1170,3 +1102,4 @@ function App() {
 }
 
 createRoot(document.getElementById('root')).render(<App />);
+
