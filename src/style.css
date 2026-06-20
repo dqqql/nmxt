@@ -2188,3 +2188,33 @@ body {
   }
 
 }
+
+/*
+ * 固定卡面 + 整体缩放：
+ * 卡片按固定 1760×990 设计尺寸渲染，内部排版完全不依赖视口，
+ * 再用 transform: scale() 把整张卡按比例缩放以适配窗口。
+ * 这样浏览器缩放（或窗口尺寸变化）只会让整张卡等比放缩，
+ * 不会触发内部重排，从根本上避免组件排版被破坏。
+ * 放在文件末尾的 @media screen 中，确保覆盖前面所有基于视口的 .sheet 规则，
+ * 同时不影响 @media print 的打印布局。
+ */
+@media screen {
+  .appShell {
+    grid-template-columns: var(--page-tab-width) minmax(0, 1fr) var(--tool-rail-width);
+  }
+
+  .sheetScaler {
+    width: calc(1760px * var(--sheet-scale, 1));
+    height: calc(990px * var(--sheet-scale, 1));
+    flex: none;
+  }
+
+  .sheet {
+    width: 1760px;
+    height: 990px;
+    min-width: 0;
+    aspect-ratio: auto;
+    transform: scale(var(--sheet-scale, 1));
+    transform-origin: top left;
+  }
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CircleAlert, Download, Info, Settings } from 'lucide-react';
 import './style.css';
@@ -34,7 +34,7 @@ const spellGroups = [
 const resourceGroups = [
   { label: '颗', count: 10, shape: 'circle', columns: 5 },
   { label: '袋', count: 10, shape: 'bag', columns: 5 },
-  { label: '包', count: 8, shape: 'square', columns: 4 },
+  { label: '包', count: 10, shape: 'square', columns: 5 },
   { label: '中品', count: 10, shape: 'triangle', columns: 5 },
   { label: '上品', count: 10, shape: 'star', columns: 5 },
 ];
@@ -486,9 +486,45 @@ function PageTwo() {
   );
 }
 
+// 固定卡面设计尺寸（16:9）。卡片内部全部按此尺寸固定排版，
+// 再整体用 transform 缩放以适配窗口，这样浏览器缩放只会让整张卡按比例放缩，
+// 不会改变内部布局，避免排版被破坏。
+const SHEET_WIDTH = 1760;
+const SHEET_HEIGHT = 990;
+
+function useFitScale(ref) {
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+
+    const compute = () => {
+      const { clientWidth: w, clientHeight: h } = el;
+      if (w && h) {
+        setScale(Math.min(w / SHEET_WIDTH, h / SHEET_HEIGHT));
+      }
+    };
+
+    compute();
+    const observer = new ResizeObserver(compute);
+    observer.observe(el);
+    window.addEventListener('resize', compute);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', compute);
+    };
+  }, [ref]);
+
+  return scale;
+}
+
 function App() {
   const [tab, setTab] = useState('p1');
   const [hintOpen, setHintOpen] = useState(false);
+  const stageRef = useRef(null);
+  const scale = useFitScale(stageRef);
   const switchTab = (nextTab) => {
     setTab(nextTab);
     setHintOpen(false);
@@ -515,7 +551,11 @@ function App() {
         </button>
       </nav>
 
-      <div className="stage">{tab === 'p1' ? <PageOne /> : <PageTwo />}</div>
+      <div className="stage" ref={stageRef}>
+        <div className="sheetScaler" style={{ '--sheet-scale': scale }}>
+          {tab === 'p1' ? <PageOne /> : <PageTwo />}
+        </div>
+      </div>
 
       <aside className="toolRail" aria-label="工具">
         <button type="button" className="toolButton" aria-label="设置" title="设置">
