@@ -26,9 +26,9 @@ const talents = [
 
 const spellGroups = [
   { title: '神通', rows: 4 },
-  { title: '秘法', rows: 3 },
-  { title: '功法', rows: 3 },
-  { title: '灵宝', rows: 3 },
+  { title: '秘法', rows: 2 },
+  { title: '功法', rows: 2 },
+  { title: '灵宝', rows: 2 },
 ];
 
 const resourceGroups = [
@@ -429,9 +429,9 @@ function PageOne() {
   );
 }
 
-function SpellTable({ title, rows, tall = false }) {
+function SpellTable({ title, rows, tall = false, variant = '' }) {
   return (
-    <section className={`panel spellTable${tall ? ' tall' : ''}`} style={{ '--rows': rows }}>
+    <section className={`panel spellTable${tall ? ' tall' : ''}${variant ? ` ${variant}` : ''}`} style={{ '--rows': rows }}>
       <div className="panelTitle panelTitleCentered">{title}</div>
       <div className="spellHead">
         <span>名称</span>
@@ -459,8 +459,8 @@ function PageTwo() {
           ))}
         </section>
         <section className="spellColumn right">
-          <SpellTable title="本源感悟" rows={2} tall />
-          <SpellTable title="感悟" rows={4} />
+          <SpellTable title="本源感悟" rows={2} tall variant="originInsight" />
+          <SpellTable title="感悟" rows={3} variant="insightTable" />
         </section>
       </main>
     </div>
