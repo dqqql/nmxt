@@ -570,6 +570,7 @@ textarea {
   font-size: 13px;
   color: #918b87;
   line-height: 1.45;
+  white-space: pre-line;
 }
 
 .fateSection {
@@ -790,6 +791,7 @@ textarea {
   color: #8b8582;
   font-size: 12px;
   line-height: 1.45;
+  white-space: pre-line;
 }
 
 .damageThreshold {

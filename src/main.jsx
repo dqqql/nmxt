@@ -9,10 +9,10 @@ const fateCards = [
   ['逆命叁', '历练点\n补充 +1', '一仙阶天赋', 'dark3'],
   ['逆命贰', '双 2\n大失败', '一天阶天赋', 'dark3'],
   ['逆命壹', '历练点\n补充 +1', '一地阶天赋', 'dark4'],
-  ['平平无奇', '平凡的\n开始', '一凡阶天赋\n或一人阶天道', 'neutral'],
-  ['天命壹', '福缘点\n上限 +1', '一地阶天赋\n+ 一地阶天道', 'light1'],
-  ['天命贰', '双 5\n大成功', '一天阶天赋\n+ 一天阶天道', 'light2'],
-  ['天命叁', '福缘点\n上限 +1', '一仙阶天赋\n+ 一仙阶天道', 'light3'],
+  ['平平无奇', '平凡的\n开始', '一凡级天赋\n或一人级天赋+一凡级天谴', 'neutral'],
+  ['天命壹', '福缘点\n上限 +1', '一地阶天赋\n+ 一地阶天谴', 'light1'],
+  ['天命贰', '双 5\n大成功', '一天阶天赋\n+ 一天阶天谴', 'light2'],
+  ['天命叁', '福缘点\n上限 +1', '一仙阶天赋\n+ 一仙阶天谴', 'light3'],
   ['天命肆', '双 4\n大成功', '', 'light4'],
   ['天命伍', '解锁\n天命神通', '', 'light5'],
 ];
@@ -226,7 +226,7 @@ function FateRibbon() {
 function TalentBoard() {
   return (
     <section className="panel talentBoard">
-      <div className="panelTitle panelTitleCentered">天赋 / 天道</div>
+      <div className="panelTitle panelTitleCentered">天赋 / 天谴</div>
       {[0, 1, 2, 3].map((index) => (
         <div key={index} className="talentBox">
           <div className="talentMeta"><span>名称</span><div className="lineFill" /></div>
@@ -328,7 +328,7 @@ function CombatPanel() {
         </div>
         <div className="combatSkill">
           <b>法门增益一</b>
-          <div>法门对等式的附益</div>
+          <div>法门对普攻的增益</div>
         </div>
         <div className="combatSkill">
           <b>法门增益二</b>
@@ -367,13 +367,13 @@ function PageOne() {
                 title="福缘点上限"
                 filled={2}
                 ghost={4}
-                note="消耗 1 点：重掷 1-2 个骰子 / 优先决定位 +2 / 为故事开拓一笔"
+                note={'消耗 1 点\n重骰 1-2 个骰子 / 此次检定值 +2 / 为故事增添一笔'}
               />
               <CounterBox
                 title="历练点补充"
                 filled={0}
                 ghost={2}
-                note="GM 会使用团结点为故事带来转折与挑战"
+                note="GM 会使用历练点为故事带来转折与挑战"
               />
             </section>
           </section>
@@ -410,13 +410,13 @@ function PageOne() {
                 label="损伤"
                 filled={3}
                 ghost={0}
-                note="受到 1 次重伤时扣除 1 格；扣除完后，血量格上限以剩余险境血量格为准"
+                note={'（受到 1 次重伤时扣除 1 格）\n扣除完后，血量格上限仅剩险境血量格'}
               />
               <StatRow
                 label="调息"
                 filled={1}
                 ghost={0}
-                note="全力动作恢复一半灵气，并回气场资源"
+                note={'【全力动作】恢复一半的灵气格（向下取整）\n并【回气】所有资源'}
               />
               <DamageThreshold title="肉体伤害阈值" />
               <DamageThreshold title="神魂伤害阈值" />
