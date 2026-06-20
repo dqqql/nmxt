@@ -1,6 +1,6 @@
-import React, { useState, useContext, createContext } from 'react';
+import React, { useState, useContext, createContext, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CircleAlert, Download, Info, Settings, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleAlert, Download, Info, ListChecks, Settings, Star, X } from 'lucide-react';
 import './style.css';
 
 const fateCards = [
@@ -45,19 +45,107 @@ const resourceGroups = [
  * 每个分类的选项除 name / desc（资源库卡片展示）外，还携带会自动填充到卡面其他位置的字段。
  */
 const realmOptions = [
-  { name: '练气', desc: '【占位】引气入体，修行的起点。', ability: '【占位·境界能力】可引动天地灵气入体，基础检定不受加成。' },
-  { name: '筑基', desc: '【占位】筑就道基，神识初成。', ability: '【占位·境界能力】神识外放，险境检定每场可重骰一次。' },
-  { name: '金丹', desc: '【占位】凝结金丹，法力雄浑。', ability: '【占位·境界能力】每轮额外获得 1 点真元。' },
-  { name: '元婴', desc: '【占位】元婴出窍，神魂不灭。', ability: '【占位·境界能力】受到致命伤害时，可保留 1 血量格不死。' },
-  { name: '化神', desc: '【占位】法则加身，言出法随。', ability: '【占位·境界能力】全力动作可同时影响范围内所有目标。' },
+  { name: '练气前期', desc: '练气期境界分段。境界能力：远距离跳跃与滑翔。小范围感知。', ability: '远距离跳跃与滑翔。小范围感知。' },
+  { name: '练气中期', desc: '练气期境界分段。境界能力：远距离跳跃与滑翔。小范围感知。', ability: '远距离跳跃与滑翔。小范围感知。' },
+  { name: '练气后期', desc: '练气期境界分段。境界能力：远距离跳跃与滑翔。小范围感知。', ability: '远距离跳跃与滑翔。小范围感知。' },
+  { name: '筑基前期', desc: '筑基期境界分段。境界能力：御器飞行，中范围感知。', ability: '御器飞行，中范围感知。' },
+  { name: '筑基中期', desc: '筑基期境界分段。境界能力：御器飞行，中范围感知。', ability: '御器飞行，中范围感知。' },
+  { name: '筑基后期', desc: '筑基期境界分段。境界能力：御器飞行，中范围感知。', ability: '御器飞行，中范围感知。' },
+  { name: '金丹期', desc: '金丹期境界。境界能力：自身飞行，大范围感知。', ability: '自身飞行，大范围感知。' },
+];
+
+const buildGuideSteps = [
+  {
+    title: '境界',
+    summary: '先选择角色当前境界，境界能力会自动写入左上基础信息区。',
+    target: '基础信息 > 境界',
+    tiers: [
+      { name: '练气前期 / 中期 / 后期', movement: '远距离跳跃与滑翔', perception: '小范围感知' },
+      { name: '筑基前期 / 中期 / 后期', movement: '御器飞行', perception: '中范围感知' },
+      { name: '金丹期', movement: '自身飞行', perception: '大范围感知' },
+    ],
+  },
+  {
+    title: '出身',
+    summary: '选择角色的来历，出身详解用于理解背景，出身效果会自动写入卡面。',
+    target: '基础信息 > 出身',
+    entries: [
+      { name: '宗门弟子', detail: '出身宗门的你对各路术法神通的了解甚于他人。', effectName: '宗门学识', effect: '了解他人术法门路相关检定获得优势。' },
+      { name: '修真世族', detail: '你出身于一方传承久远、底蕴深厚的修仙世家，代表你对人情世故的了解非比寻常。', effectName: '家族人脉', effect: '每次游戏一次，在城镇等种族集群地中寻找到一个能给予一次有限帮助的家族人脉。' },
+      { name: '寒门学子', detail: '你出身清贫，但凭借你的努力与坚持，叩开了仙途的大门。', effectName: '百折不挠', effect: '每当检定失败时放置 1 个指示物，上限为 2；可使用 2 个指示物使下次检定获得 +1。' },
+      { name: '名门望族', detail: '你出身于名声在外的家族之中，自小便有极为奢侈的生活。', effectName: '人情世故', effect: '与达官贵族等人交涉相关的检定获得优势。' },
+      { name: '将门世家', detail: '你自小便被熏陶了关于军人的作风，你比起一般人来说更为意志坚定。', effectName: '行伍本能', effect: '进行侦察与识别危险相关的检定中具有优势。' },
+      { name: '商贾之后', detail: '你家境殷实，家族是经营一方的成功商贾。你自幼耳濡目染的是算计、交易与人心。', effectName: '经商头脑', effect: '任意与交易相关的检定中具有优势。' },
+      { name: '书香门第', detail: '你出身凡俗书香世家，自幼饱读诗书，经史子集烂熟于心。', effectName: '博闻强识', effect: '与历史、地理人文等学识相关的检定中具有优势。' },
+      { name: '市井奇人', detail: '你在城镇坊间的烟火气中长大，你肯定有一门自己擅长的手艺。', effectName: '八面玲珑', effect: '与各路三教九流人物交涉时获得优势。' },
+      { name: '无名弃儿', detail: '你对亲生父母毫无印象，自有记忆起便是在街头、桥洞或某个混乱的孤儿院中挣扎求生。', effectName: '隐蔽求生', effect: '关于隐藏自己身形相关的任何检定中获得优势。' },
+      { name: '流民之后', detail: '你的家族因巨大的变故，被迫背井离乡，流浪是你们生活的常态。', effectName: '有备无患', effect: '背包里总是带着一份生存相关物品；一次聚会一次，可以拿出一份与目前情况有关的生存物资。' },
+    ],
+  },
+  {
+    title: '核心加值',
+    summary: '在四项属性中先选定一个核心属性，将它设为 +3，并用核心标识特别标注。',
+    target: '属性区 > 仙躯 / 身法 / 神魂 / 灵蕴',
+    coreValues: [
+      { label: '核心属性', value: '+3', note: '优先选择，并添加醒目标识。', primary: true },
+      { label: '剩余属性', value: '+2', note: '分配给第二擅长的属性。' },
+      { label: '剩余属性', value: '+1', note: '分配给第三擅长的属性。' },
+      { label: '剩余属性', value: '0', note: '分配给最后一项属性。' },
+    ],
+  },
 ];
 
 const originOptions = [
-  { name: '散修', desc: '【占位】无门无派，自由却艰辛。', effect: '【占位·出身效果】历练点补充 +1，但初始灵石减半。' },
-  { name: '宗门弟子', desc: '【占位】名门正派出身，资源丰厚。', effect: '【占位·出身效果】每场冲突首次施展秘法消耗 -1。' },
-  { name: '世家子弟', desc: '【占位】钟鸣鼎食之家的修士。', effect: '【占位·出身效果】初始灵宝 +1，社交类检定 +1。' },
-  { name: '皇朝供奉', desc: '【占位】受朝廷供养的修行者。', effect: '【占位·出身效果】可调用一次官方援助，福缘点上限 +1。' },
-  { name: '妖族遗孤', desc: '【占位】天生妖体，根骨异于常人。', effect: '【占位·出身效果】近战伤害 +1，但渡劫难度提升。' },
+  {
+    name: '宗门弟子',
+    desc: '出身宗门的你对各路术法神通的了解甚于他人。',
+    effect: '宗门学识：你在关于了解他人术法门路相关的检定中获得优势。',
+  },
+  {
+    name: '修真世族',
+    desc: '你出身于一方传承久远、底蕴深厚的修仙世家，代表你对人情世故的了解非比寻常。',
+    effect: '家族人脉：每次游戏一次，你在城镇等种族集群地中，可以寻找到一个能给予你一次有限帮助的家族人脉。',
+  },
+  {
+    name: '寒门学子',
+    desc: '你出身清贫，但凭借你的努力与坚持，叩开了仙途的大门。',
+    effect: '百折不挠：每当你检定失败时，你在此卡上放置 1 个指示物，上限为 2，你可以使用 2 个指示物为你下次检定获得 +1。',
+  },
+  {
+    name: '名门望族',
+    desc: '你出身于名声在外的家族之中，自小便有极为奢侈的生活。',
+    effect: '人情世故：你与达官贵族等人交涉相关的检定获得优势。',
+  },
+  {
+    name: '将门世家',
+    desc: '你自小便被熏陶了关于军人的作风，你比起一般人来说更为意志坚定。',
+    effect: '行伍本能：你在进行侦察与识别危险相关的检定中具有优势。',
+  },
+  {
+    name: '商贾之后',
+    desc: '你家境殷实，家族是经营一方的成功商贾。你自幼耳濡目染的是算计、交易与人心。',
+    effect: '经商头脑：你在任意与交易相关的检定中具有优势。',
+  },
+  {
+    name: '书香门第',
+    desc: '你出身凡俗书香世家，自幼饱读诗书，经史子集烂熟于心。',
+    effect: '博闻强识：你在与历史、地理人文等学识相关的检定中具有优势。',
+  },
+  {
+    name: '市井奇人',
+    desc: '你在城镇坊间的烟火气中长大，你肯定有一门自己擅长的手艺。',
+    effect: '八面玲珑：你在与各路三教九流人物交涉时，获得优势。',
+  },
+  {
+    name: '无名弃儿',
+    desc: '你对亲生父母毫无印象，自有记忆起便是在街头、桥洞或某个混乱的孤儿院中挣扎求生。',
+    effect: '隐蔽求生：你在关于隐藏自己身形相关的任何检定中获得优势。',
+  },
+  {
+    name: '流民之后',
+    desc: '你的家族因巨大的变故，被迫背井离乡，流浪是你们生活的常态。',
+    effect: '有备无患：你背包里面总是带着一份生存相关的物品，一次聚会一次，你可以拿出一份与目前情况有关的生存物资。',
+  },
 ];
 
 const sourceOptions = [
@@ -368,10 +456,37 @@ function SideTextPanel({ title }) {
 }
 
 function AttributePanel({ title, hint }) {
+  const { attributes, setAttributeValue, coreAttribute, toggleCoreAttribute } = useSheet();
+  const isCore = coreAttribute === title;
+
   return (
-    <section className="panel attributePanel">
-      <div className="panelTitle">{title}</div>
-      <div className="attributeBody" />
+    <section className={`panel attributePanel${isCore ? ' core' : ''}`}>
+      <div className="panelTitle">
+        <span>{title}</span>
+        {isCore ? <span className="coreBadge">核心</span> : null}
+      </div>
+      <div className="attributeBody">
+        <label className="attributeValueField">
+          <span>加值</span>
+          <input
+            type="text"
+            value={attributes[title] || ''}
+            onChange={(event) => setAttributeValue(title, event.target.value)}
+            placeholder="+0"
+            aria-label={`${title}加值`}
+          />
+        </label>
+        <button
+          type="button"
+          className={`coreToggle${isCore ? ' on' : ''}`}
+          onClick={() => toggleCoreAttribute(title)}
+          aria-pressed={isCore}
+          aria-label={`${isCore ? '取消' : '标记'}${title}为核心属性`}
+          title={`${isCore ? '取消' : '标记'}核心属性`}
+        >
+          <Star size={18} strokeWidth={2.2} aria-hidden="true" />
+        </button>
+      </div>
       <div className="panelHint">{hint}</div>
     </section>
   );
@@ -533,6 +648,160 @@ function ConflictContent() {
         {marks(1)}
       </p>
     </div>
+  );
+}
+
+function BuildGuidePopover({ onClose }) {
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [currentGuideStep, setCurrentGuideStep] = useState(0);
+  const dragRef = useRef(null);
+  const currentStep = buildGuideSteps[currentGuideStep];
+  const canShowPrevious = currentGuideStep > 0;
+  const canShowNext = currentGuideStep < buildGuideSteps.length - 1;
+
+  useEffect(() => {
+    const drag = (event) => {
+      const activeDrag = dragRef.current;
+      if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+
+      setOffset({
+        x: activeDrag.offset.x + event.clientX - activeDrag.startX,
+        y: activeDrag.offset.y + event.clientY - activeDrag.startY,
+      });
+    };
+
+    const stopDrag = (event) => {
+      if (dragRef.current?.pointerId === event.pointerId) {
+        dragRef.current = null;
+      }
+    };
+
+    window.addEventListener('pointermove', drag);
+    window.addEventListener('pointerup', stopDrag);
+    window.addEventListener('pointercancel', stopDrag);
+
+    return () => {
+      window.removeEventListener('pointermove', drag);
+      window.removeEventListener('pointerup', stopDrag);
+      window.removeEventListener('pointercancel', stopDrag);
+    };
+  }, []);
+
+  const startDrag = (event) => {
+    if (event.button !== 0) return;
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      offset,
+    };
+    event.preventDefault();
+  };
+
+  return (
+    <aside
+      id="build-guide-popover"
+      className="buildGuidePopover"
+      style={{ '--guide-x': `${offset.x}px`, '--guide-y': `${offset.y}px` }}
+      aria-label="建卡指引"
+    >
+      <header
+        className="buildGuideHeader"
+        onPointerDown={startDrag}
+      >
+        <div>
+          <h2>建卡指引</h2>
+          <span>拖动标题栏移动</span>
+        </div>
+        <button
+          type="button"
+          className="buildGuideClose"
+          onClick={onClose}
+          onPointerDown={(event) => event.stopPropagation()}
+          aria-label="关闭建卡指引"
+        >
+          <X size={16} strokeWidth={2.4} aria-hidden="true" />
+        </button>
+      </header>
+
+      <div className="buildGuideBody">
+        <section key={currentStep.title} className="guideStep">
+            <div className="guideStepIndex">{String(currentGuideStep + 1).padStart(2, '0')}</div>
+            <div className="guideStepContent">
+              <h3>{currentStep.title}</h3>
+              <p>
+                <strong>{currentStep.target}</strong>
+                <span>{currentStep.summary}</span>
+              </p>
+              {currentStep.tiers ? (
+                <div className="guideTierList">
+                  {currentStep.tiers.map((tier) => (
+                    <div key={tier.name} className="guideTier">
+                      <b>{tier.name}</b>
+                      <span>
+                        <mark>{tier.movement}</mark>
+                        <em>{tier.perception}</em>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {currentStep.entries ? (
+                <div className="guideEntryList">
+                  {currentStep.entries.map((entry) => (
+                    <div key={entry.name} className="guideEntry">
+                      <b>{entry.name}</b>
+                      <span>{entry.detail}</span>
+                      <em>
+                        <strong>{entry.effectName}</strong>
+                        {entry.effect}
+                      </em>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {currentStep.coreValues ? (
+                <div className="guideCoreList">
+                  {currentStep.coreValues.map((item) => (
+                    <div key={`${item.label}-${item.value}`} className={`guideCoreItem${item.primary ? ' primary' : ''}`}>
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                      <em>{item.note}</em>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </section>
+      </div>
+      <footer className="buildGuideFooter">
+        <button
+          type="button"
+          className="guidePageButton"
+          onClick={() => setCurrentGuideStep((step) => Math.max(step - 1, 0))}
+          disabled={!canShowPrevious}
+          aria-label="上一步"
+          title="上一步"
+        >
+          <ChevronLeft size={16} strokeWidth={2.4} aria-hidden="true" />
+        </button>
+        <span>{currentGuideStep + 1} / {buildGuideSteps.length}</span>
+        <button
+          type="button"
+          className="guideNextButton"
+          onClick={() => setCurrentGuideStep((step) => Math.min(step + 1, buildGuideSteps.length - 1))}
+          disabled={!canShowNext}
+        >
+          {canShowNext ? (
+            <>
+              <span>下一步</span>
+              <ChevronRight size={16} strokeWidth={2.4} aria-hidden="true" />
+            </>
+          ) : '最后一步'}
+        </button>
+      </footer>
+    </aside>
   );
 }
 
@@ -781,12 +1050,17 @@ function ResourceLibrary() {
 function App() {
   const [tab, setTab] = useState('p1');
   const [hintOpen, setHintOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [library, setLibrary] = useState(null);
   const [selections, setSelections] = useState({ realm: null, origin: null, source: null, method: null, dao: null });
   const [texts, setTexts] = useState({ name: '', race: '', belong: '' });
+  const [attributes, setAttributes] = useState({ '仙躯': '', '身法': '', '神魂': '', '灵蕴': '' });
+  const [coreAttribute, setCoreAttribute] = useState(null);
 
   const select = (category, index) => setSelections((prev) => ({ ...prev, [category]: index }));
   const setText = (field, value) => setTexts((prev) => ({ ...prev, [field]: value }));
+  const setAttributeValue = (field, value) => setAttributes((prev) => ({ ...prev, [field]: value }));
+  const toggleCoreAttribute = (field) => setCoreAttribute((current) => (current === field ? null : field));
 
   const current = {
     realm: selections.realm != null ? realmOptions[selections.realm] : null,
@@ -802,6 +1076,10 @@ function App() {
     select,
     texts,
     setText,
+    attributes,
+    setAttributeValue,
+    coreAttribute,
+    toggleCoreAttribute,
     library,
     openLibrary: setLibrary,
   };
@@ -809,6 +1087,7 @@ function App() {
   const switchTab = (nextTab) => {
     setTab(nextTab);
     setHintOpen(false);
+    setGuideOpen(false);
   };
 
   return (
@@ -866,6 +1145,21 @@ function App() {
                 <ConflictContent />
               </aside>
             ) : null}
+          </div>
+          <div className="guideAction">
+            <button
+              type="button"
+              className={`toolButton${guideOpen ? ' on' : ''}`}
+              onClick={() => setGuideOpen((open) => !open)}
+              aria-label="建卡指引"
+              aria-expanded={guideOpen}
+              aria-controls="build-guide-popover"
+              title="建卡指引"
+            >
+              <ListChecks size={20} strokeWidth={2.2} aria-hidden="true" />
+              <span>建卡指引</span>
+            </button>
+            {guideOpen ? <BuildGuidePopover onClose={() => setGuideOpen(false)} /> : null}
           </div>
         </aside>
       </div>
