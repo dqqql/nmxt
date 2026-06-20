@@ -5,3 +5,6 @@ dist/
 Thumbs.db
 AGENT.md
 docs/dao-source-unplaced.md
+docs/dao-unplaced.md
+.gitignore
+docs/method-unplaced.md

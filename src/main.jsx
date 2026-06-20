@@ -1,6 +1,8 @@
 import React, { useState, useContext, createContext, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChevronLeft, ChevronRight, CircleAlert, Download, Info, ListChecks, Settings, Star, X } from 'lucide-react';
+import { daoOptions } from './daoOptions';
+import { methodOptions } from './methodOptions';
 import { sourceOptions } from './sourceOptions';
 import './style.css';
 
@@ -99,6 +101,16 @@ const buildGuideSteps = [
     summary: '打开资源库选择你的道源。选择后检查第一页的道源能力、道源效果、伤害阈值，以及第二页自动填入的神通和秘法。',
     target: '第一页 > 道源；第二页 > 神通 / 秘法',
   },
+  {
+    title: '法门',
+    summary: '打开资源库选择你的法门。选择后，第一页右下的两条普攻增益会自动填入，并进入二级窗口选择要放入第二页的感悟卡。',
+    target: '第一页 > 法门；第一页右下 > 普攻增益；第二页 > 感悟 / 本源感悟',
+  },
+  {
+    title: '大道',
+    summary: '选择角色追寻的大道。第一页的大道效果会自动填入，第二页功法会根据当前境界显示练气或筑基功法。',
+    target: '第一页 > 大道；第一页 > 大道效果；第二页 > 功法',
+  },
 ];
 
 const originOptions = [
@@ -154,40 +166,6 @@ const originOptions = [
   },
 ];
 
-const methodOptions = [
-  {
-    name: '御剑术',
-    desc: '【占位】操控飞剑，远近皆宜。',
-    attackBuffs: ['【占位】普攻可额外作用于近距离 1 名目标。', '【占位】消耗 1 真元，本次普攻伤害 +2。'],
-    insight: { name: '剑意感悟', text: '【占位·感悟】领悟剑道，普攻暴击范围扩大。' },
-  },
-  {
-    name: '炼体诀',
-    desc: '【占位】以身为炉，近身缠斗。',
-    attackBuffs: ['【占位】普攻命中后，下一次受击伤害 -1。', '【占位】目标处于近距离时普攻 +1 伤害。'],
-    insight: { name: '铁骨感悟', text: '【占位·感悟】血量低于半数时，防御检定 +1。' },
-  },
-  {
-    name: '神识术',
-    desc: '【占位】神识为刃，攻心夺魄。',
-    attackBuffs: ['【占位】普攻改为造成神魂伤害。', '【占位】命中后令目标下一次检定 -1。'],
-    insight: { name: '灵觉感悟', text: '【占位·感悟】可提前察觉一次隐藏威胁。' },
-  },
-  {
-    name: '驭兽契',
-    desc: '【占位】借兽之力，群战为王。',
-    attackBuffs: ['【占位】灵兽协同时普攻 +1 伤害。', '【占位】普攻可由灵兽代为发动。'],
-    insight: { name: '同心感悟', text: '【占位·感悟】与灵兽相邻时，每轮多一次轻巧动作。' },
-  },
-];
-
-const daoOptions = [
-  { name: '杀伐', desc: '【占位】一往无前，以战止战。', effect: '【占位·大道效果】击败目标后，立即恢复 1 点真元。' },
-  { name: '守护', desc: '【占位】护持同道，坚如磐石。', effect: '【占位·大道效果】可为相邻同伴承受一次伤害。' },
-  { name: '自在', desc: '【占位】逍遥随心，不滞于物。', effect: '【占位·大道效果】每场冲突可无消耗重骰一次。' },
-  { name: '求知', desc: '【占位】格物致知，洞悉本源。', effect: '【占位·大道效果】分析类检定 +2。' },
-];
-
 const LIBRARY = {
   realm: { label: '境界', placeholder: '点击选择境界', options: realmOptions },
   origin: { label: '出身', placeholder: '点击选择出身', options: originOptions },
@@ -195,6 +173,9 @@ const LIBRARY = {
   method: { label: '法门', placeholder: '点击选择法门', options: methodOptions },
   dao: { label: '大道', placeholder: '点击选择大道', options: daoOptions },
 };
+
+const METHOD_INSIGHT_LIMIT = 3;
+const METHOD_ORIGIN_INSIGHT_LIMIT = 2;
 
 const SheetContext = createContext(null);
 
@@ -900,17 +881,27 @@ function SpellTable({ title, rows, tall = false, variant = '', prefill = [] }) {
 }
 
 function PageTwo() {
-  const { current } = useSheet();
+  const { current, methodCardSelections } = useSheet();
   const source = current.source;
   const method = current.method;
+  const dao = current.dao;
+  const realm = current.realm;
+  const selectedInsights = method ? methodCardSelections.insights.map((index) => method.insights[index]).filter(Boolean) : [];
+  const selectedOriginInsights = method
+    ? methodCardSelections.originInsights.map((index) => method.originInsights[index]).filter(Boolean)
+    : [];
+  const daoMethods = dao
+    ? realm?.name?.startsWith('筑基') || realm?.name?.startsWith('金丹')
+      ? dao.foundationMethods
+      : dao.qiMethods
+    : [];
 
   const prefillFor = (title) => {
     if (title === '神通') return source ? source.skills : [];
     if (title === '秘法') return source ? source.arts : [];
+    if (title === '功法') return daoMethods;
     return [];
   };
-
-  const insightPrefill = method ? [method.insight] : [];
 
   return (
     <div className="sheet sheetPageTwo">
@@ -923,8 +914,8 @@ function PageTwo() {
           ))}
         </section>
         <section className="spellColumn right">
-          <SpellTable title="本源感悟" rows={2} tall variant="originInsight" />
-          <SpellTable title="感悟" rows={3} variant="insightTable" prefill={insightPrefill} />
+          <SpellTable title="本源感悟" rows={2} tall variant="originInsight" prefill={selectedOriginInsights} />
+          <SpellTable title="感悟" rows={3} variant="insightTable" prefill={selectedInsights} />
         </section>
       </main>
     </div>
@@ -933,16 +924,89 @@ function PageTwo() {
 
 // 资源库弹窗：以卡片形式展示某一分类的全部条目及详细说明。
 function ResourceLibrary() {
-  const { library, openLibrary, selections, select } = useSheet();
+  const {
+    library,
+    openLibrary,
+    selections,
+    select,
+    methodInsightStep,
+    setMethodInsightStep,
+    methodCardSelections,
+    toggleMethodCard,
+  } = useSheet();
   if (!library) return null;
 
   const { label, options } = LIBRARY[library];
   const selectedIndex = selections[library];
+  const selectedMethod = library === 'method' && selectedIndex != null ? options[selectedIndex] : null;
 
   const choose = (index) => {
     select(library, index);
+    if (library === 'method' && index != null) {
+      setMethodInsightStep(true);
+      return;
+    }
     openLibrary(null);
   };
+
+  if (library === 'method' && methodInsightStep && selectedMethod) {
+    const insightCount = methodCardSelections.insights.length;
+    const originInsightCount = methodCardSelections.originInsights.length;
+    const renderInsightSection = (title, cards, selectionKey, selectedCards, limit) => (
+      <section className="libraryChoiceSection" aria-label={title}>
+        <div className="librarySectionTitle">
+          <h3>{title}</h3>
+          <span>{selectedCards.length} / {limit}</span>
+        </div>
+        <div className="libraryGrid libraryInsightGrid">
+          {cards.map((card, index) => {
+            const selected = selectedCards.includes(index);
+            return (
+              <button
+                key={`${selectionKey}-${card.name}`}
+                type="button"
+                className={`libraryCard insightCard${selected ? ' selected' : ''}`}
+                onClick={() => toggleMethodCard(selectionKey, index)}
+                aria-pressed={selected}
+              >
+                <div className="libraryCardTitle">{card.name}</div>
+                <div className="libraryCardBody">{card.text}</div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    );
+
+    return (
+      <div className="libraryOverlay" onClick={() => openLibrary(null)} role="presentation">
+        <div className="libraryModal methodInsightModal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={`资源库 ${selectedMethod.name}感悟卡`}>
+          <header className="libraryHeader">
+            <h2>资源库<span className="librarySep">·</span>{selectedMethod.name}<span className="librarySep">·</span>感悟卡</h2>
+            <button type="button" className="libraryClose" onClick={() => openLibrary(null)} aria-label="关闭">
+              <X size={18} strokeWidth={2.4} aria-hidden="true" />
+            </button>
+          </header>
+          <div className="libraryToolbar">
+            <button type="button" className="libraryBack" onClick={() => setMethodInsightStep(false)}>
+              返回法门
+            </button>
+            <div className="libraryChoiceSummary">
+              <span>感悟 {insightCount} / {METHOD_INSIGHT_LIMIT}</span>
+              <span>本源 {originInsightCount} / {METHOD_ORIGIN_INSIGHT_LIMIT}</span>
+            </div>
+            <button type="button" className="libraryDone" onClick={() => openLibrary(null)}>
+              完成
+            </button>
+          </div>
+          <div className="libraryInsightScroll">
+            {renderInsightSection('感悟', selectedMethod.insights, 'insights', methodCardSelections.insights, METHOD_INSIGHT_LIMIT)}
+            {renderInsightSection('本源感悟', selectedMethod.originInsights, 'originInsights', methodCardSelections.originInsights, METHOD_ORIGIN_INSIGHT_LIMIT)}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="libraryOverlay" onClick={() => openLibrary(null)} role="presentation">
@@ -985,14 +1049,37 @@ function App() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [library, setLibrary] = useState(null);
   const [selections, setSelections] = useState({ realm: null, origin: null, source: null, method: null, dao: null });
+  const [methodInsightStep, setMethodInsightStep] = useState(false);
+  const [methodCardSelections, setMethodCardSelections] = useState({ insights: [], originInsights: [] });
   const [texts, setTexts] = useState({ name: '', race: '', belong: '' });
   const [attributes, setAttributes] = useState({ '仙躯': '', '身法': '', '神魂': '', '灵蕴': '' });
   const [coreAttribute, setCoreAttribute] = useState(null);
 
-  const select = (category, index) => setSelections((prev) => ({ ...prev, [category]: index }));
+  const openLibrary = (category) => {
+    setLibrary(category);
+    setMethodInsightStep(false);
+  };
+  const select = (category, index) => {
+    setSelections((prev) => ({ ...prev, [category]: index }));
+    if (category === 'method') {
+      setMethodCardSelections({ insights: [], originInsights: [] });
+    }
+  };
   const setText = (field, value) => setTexts((prev) => ({ ...prev, [field]: value }));
   const setAttributeValue = (field, value) => setAttributes((prev) => ({ ...prev, [field]: value }));
   const toggleCoreAttribute = (field) => setCoreAttribute((current) => (current === field ? null : field));
+  const toggleMethodCard = (selectionKey, index) => {
+    const limit = selectionKey === 'originInsights' ? METHOD_ORIGIN_INSIGHT_LIMIT : METHOD_INSIGHT_LIMIT;
+    setMethodCardSelections((prev) => {
+      const selected = prev[selectionKey];
+      const exists = selected.includes(index);
+      if (exists) {
+        return { ...prev, [selectionKey]: selected.filter((item) => item !== index) };
+      }
+      if (selected.length >= limit) return prev;
+      return { ...prev, [selectionKey]: [...selected, index] };
+    });
+  };
 
   const current = {
     realm: selections.realm != null ? realmOptions[selections.realm] : null,
@@ -1013,7 +1100,11 @@ function App() {
     coreAttribute,
     toggleCoreAttribute,
     library,
-    openLibrary: setLibrary,
+    openLibrary,
+    methodInsightStep,
+    setMethodInsightStep,
+    methodCardSelections,
+    toggleMethodCard,
   };
 
   const switchTab = (nextTab) => {
@@ -1102,4 +1193,3 @@ function App() {
 }
 
 createRoot(document.getElementById('root')).render(<App />);
-

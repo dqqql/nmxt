@@ -2993,9 +2993,111 @@ body {
   color: #6e6966;
 }
 
+.methodInsightModal {
+  width: min(1040px, 100%);
+}
+
+.libraryToolbar {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid #d8d2cc;
+  background: #f7f4f0;
+}
+
+.libraryBack,
+.libraryDone {
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 1px solid #bdb5ae;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.libraryDone {
+  border-color: #16864d;
+  background: #16864d;
+  color: #fff;
+}
+
+.libraryBack:hover,
+.libraryBack:focus-visible {
+  border-color: #16864d;
+}
+
+.libraryDone:hover,
+.libraryDone:focus-visible {
+  background: #0f6f3e;
+}
+
+.libraryChoiceSummary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  color: #5f5b58;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.libraryChoiceSummary span {
+  padding: 2px 8px;
+  border: 1px solid #d0cac4;
+  background: #fff;
+}
+
+.libraryInsightScroll {
+  overflow: auto;
+  padding: 18px;
+}
+
+.libraryChoiceSection + .libraryChoiceSection {
+  margin-top: 20px;
+}
+
+.librarySectionTitle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #2a2626;
+}
+
+.librarySectionTitle h3 {
+  margin: 0;
+  padding-bottom: 5px;
+  font-size: 17px;
+}
+
+.librarySectionTitle span {
+  color: #6b6660;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.libraryInsightGrid {
+  padding: 0;
+  overflow: visible;
+}
+
 @media (max-width: 560px) {
   .libraryGrid {
     column-width: auto;
     column-count: 1;
+  }
+
+  .libraryToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .libraryChoiceSummary {
+    justify-content: flex-start;
   }
 }
