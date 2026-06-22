@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, CircleAlert, Download, Info, ListChecks, Set
 import { daoOptions } from './daoOptions';
 import { methodOptions } from './methodOptions';
 import { sourceOptions } from './sourceOptions';
+import { fateDraws, drawByPlan, tierMeta } from './talentOptions';
 import './style.css';
 
 const fateCards = [
@@ -492,7 +493,16 @@ function SelectorPanel({ title, category, vertical = false }) {
 }
 
 function FateRibbon() {
+  const { openFateDraw } = useSheet();
   const [selectedIndex, setSelectedIndex] = useState(null);
+
+  const handleSelect = (index, title) => {
+    setSelectedIndex(index);
+    // 选中带「天赋 / 天谴」的因果卡时弹出抽卡弹窗；否则仅高亮当前因果值。
+    if (fateDraws[title]) {
+      openFateDraw(title);
+    }
+  };
 
   return (
     <section className="fateSection">
@@ -506,8 +516,8 @@ function FateRibbon() {
           <button
             key={title}
             type="button"
-            className={`fateStep ${tone}${selectedIndex === index ? ' selected' : ''}`}
-            onClick={() => setSelectedIndex((current) => (current === index ? null : index))}
+            className={`fateStep ${tone}${selectedIndex === index ? ' selected' : ''}${fateDraws[title] ? ' drawable' : ''}`}
+            onClick={() => handleSelect(index, title)}
             aria-pressed={selectedIndex === index}
             aria-label={`因果值：${title}`}
           >
@@ -528,19 +538,52 @@ function FateRibbon() {
 }
 
 function TalentBoard() {
+  const { drawnTalents } = useSheet();
+
   return (
     <section className="panel talentBoard">
       <div className="panelTitle panelTitleCentered">天赋 / 天谴</div>
-      {[0, 1, 2, 3].map((index) => (
-        <div key={index} className="talentBox">
-          <div className="talentMeta"><span>名称</span><div className="lineFill" /></div>
-          <div className="talentMeta"><span>品阶</span><div className="lineFill" /></div>
-          <div className="talentEffect">
-            <span>效果</span>
-            <div className="effectFill" />
+      {[0, 1, 2, 3].map((index) => {
+        const entry = drawnTalents[index];
+        if (!entry) {
+          return (
+            <div key={index} className="talentBox empty">
+              <span className="talentEmptyRune" aria-hidden="true">命</span>
+              <div className="talentMeta"><span>名称</span><div className="lineFill" /></div>
+              <div className="talentMeta"><span>品阶</span><div className="lineFill" /></div>
+              <div className="talentEffect">
+                <span>效果</span>
+                <div className="effectFill">
+                  <span className="talentEmptyHint">✦ 点击上方「因果值」抽取</span>
+                </div>
+              </div>
+            </div>
+          );
+        }
+        const meta = tierMeta[entry.tier];
+        const kindLabel = entry.kind === 'talent' ? '天赋' : '天谴';
+        return (
+          <div
+            key={index}
+            className={`talentBox filled tier-${meta.tone} kind-${entry.kind}`}
+          >
+            <div className="talentMeta">
+              <span>名称</span>
+              <div className="lineFill text">{entry.name}</div>
+            </div>
+            <div className="talentMeta">
+              <span>品阶</span>
+              <div className="lineFill text">
+                <span className={`tierBadge tier-${meta.tone}`}>{meta.label}{kindLabel}</span>
+              </div>
+            </div>
+            <div className="talentEffect">
+              <span>效果</span>
+              <div className="effectFill text">{entry.effect}</div>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </section>
   );
 }
@@ -822,6 +865,62 @@ function CombatPanel() {
   );
 }
 
+// 立绘面板：点击画布上传图片，支持更换 / 移除。
+function PortraitPanel() {
+  const { portrait, setPortrait } = useSheet();
+  const inputRef = useRef(null);
+
+  const handleFile = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setPortrait(reader.result);
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  return (
+    <section className="panel portraitPanel">
+      <button
+        type="button"
+        className={`portraitCanvas${portrait ? ' hasImage' : ''}`}
+        onClick={() => inputRef.current?.click()}
+        aria-label={portrait ? '更换立绘' : '上传立绘'}
+      >
+        {portrait ? (
+          <>
+            <img src={portrait} alt="角色立绘" className="portraitImage" />
+            <span className="portraitReplace">更换立绘</span>
+          </>
+        ) : (
+          <span className="portraitPlaceholder">
+            <b>立绘</b>
+            <small>点击上传图片</small>
+          </span>
+        )}
+      </button>
+      {portrait ? (
+        <button
+          type="button"
+          className="portraitRemove"
+          onClick={() => setPortrait(null)}
+          aria-label="移除立绘"
+          title="移除立绘"
+        >
+          <X size={14} strokeWidth={2.6} aria-hidden="true" />
+        </button>
+      ) : null}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="portraitInput"
+        onChange={handleFile}
+      />
+    </section>
+  );
+}
+
 function PageOne() {
   const { current } = useSheet();
   const source = current.source;
@@ -856,9 +955,7 @@ function PageOne() {
             </section>
 
             <section className="middlePane">
-              <section className="panel portraitPanel">
-                <div className="portraitCanvas">立绘</div>
-              </section>
+              <PortraitPanel />
               <CounterBox
                 title="福缘点上限"
                 filled={2}
@@ -1040,6 +1137,134 @@ function ResourceLibrary() {
   );
 }
 
+// 因果抽卡弹窗：洗牌 → 翻牌揭示 → 填入卡面。
+function FateDrawModal() {
+  const { fateDraw, closeFateDraw, setDrawnTalents } = useSheet();
+  const [plan, setPlan] = useState(null);
+  const [phase, setPhase] = useState('choose'); // choose | shuffle | reveal
+  const [results, setResults] = useState([]);
+  const timerRef = useRef(null);
+
+  const startDraw = (selectedPlan) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setPlan(selectedPlan);
+    setResults(drawByPlan(selectedPlan));
+    setPhase('shuffle');
+    timerRef.current = setTimeout(() => setPhase('reveal'), 1250);
+  };
+
+  useEffect(() => {
+    if (!fateDraw) return undefined;
+    // 仅一种方案时直接开抽；多方案（平平无奇）先让玩家择路。
+    if (fateDraw.plans.length === 1) {
+      startDraw(fateDraw.plans[0]);
+    } else {
+      setPlan(null);
+      setResults([]);
+      setPhase('choose');
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fateDraw]);
+
+  if (!fateDraw) return null;
+
+  const confirm = () => {
+    setDrawnTalents(results);
+    closeFateDraw();
+  };
+
+  return (
+    <div className="fateDrawOverlay" role="dialog" aria-modal="true" aria-label="因果抽取">
+      <div className="fateDrawSky" aria-hidden="true" />
+      <div className="fateDrawModal" onClick={(event) => event.stopPropagation()}>
+        <header className="fateDrawHeader">
+          <div className="fateDrawTitleGroup">
+            <span className="fateDrawKicker">因 果 天 定</span>
+            <h2>{fateDraw.title}</h2>
+          </div>
+          <button type="button" className="fateDrawClose" onClick={closeFateDraw} aria-label="关闭">
+            <X size={18} strokeWidth={2.4} aria-hidden="true" />
+          </button>
+        </header>
+
+        {phase === 'choose' ? (
+          <div className="fateChoose">
+            <p className="fateChooseHint">此因果命途有二，择一而行：</p>
+            <div className="fateChooseList">
+              {fateDraw.plans.map((option) => (
+                <button
+                  key={option.label}
+                  type="button"
+                  className="fateChooseBtn"
+                  onClick={() => startDraw(option)}
+                >
+                  <span>{option.label}</span>
+                  <ChevronRight size={18} strokeWidth={2.4} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className={`fateStage phase-${phase}`}>
+            {phase === 'shuffle' ? (
+              <div className="fateShuffle">
+                <div className="shuffleDeck">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <span key={i} className="shuffleCard" style={{ '--i': i }} />
+                  ))}
+                </div>
+                <p className="shuffleText">天机演算中……</p>
+              </div>
+            ) : (
+              <>
+                <div className={`fateResults count-${results.length}`}>
+                  {results.map((entry, i) => {
+                    const meta = tierMeta[entry.tier];
+                    const kindLabel = entry.kind === 'talent' ? '天赋' : '天谴';
+                    return (
+                      <div
+                        key={`${entry.kind}-${entry.name}`}
+                        className={`drawCard tier-${meta.tone} kind-${entry.kind}`}
+                        style={{ '--i': i }}
+                      >
+                        <div className="drawCardInner">
+                          <div className="drawCardFace drawCardBack">
+                            <span className="drawCardRune">命</span>
+                          </div>
+                          <div className="drawCardFace drawCardFront">
+                            <div className="drawCardTop">
+                              <span className="drawCardTier">{meta.label}</span>
+                              <span className="drawCardKind">{kindLabel}</span>
+                            </div>
+                            <div className="drawCardName">{entry.name}</div>
+                            <div className="drawCardEffect">{entry.effect}</div>
+                            <span className="drawCardGlow" aria-hidden="true" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="fateActions">
+                  <button type="button" className="fateRedraw" onClick={() => startDraw(plan)}>
+                    重新抽取
+                  </button>
+                  <button type="button" className="fateConfirm" onClick={confirm}>
+                    填入卡面
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [tab, setTab] = useState('p1');
   const [hintOpen, setHintOpen] = useState(false);
@@ -1049,6 +1274,17 @@ function App() {
   const [texts, setTexts] = useState({ name: '', race: '', belong: '', daoHeart: '', identity: '' });
   const [attributes, setAttributes] = useState({ '仙躯': '', '身法': '', '神魂': '', '灵蕴': '' });
   const [coreAttribute, setCoreAttribute] = useState(null);
+  // 抽卡弹窗目标：{ title, plans } 或 null。drawnTalents 为已填入卡面的天赋 / 天谴。
+  const [fateDraw, setFateDraw] = useState(null);
+  const [drawnTalents, setDrawnTalents] = useState([]);
+  // 立绘图片（data URL），切页不丢失。
+  const [portrait, setPortrait] = useState(null);
+
+  const openFateDraw = (title) => {
+    const plans = fateDraws[title];
+    if (plans) setFateDraw({ title, plans });
+  };
+  const closeFateDraw = () => setFateDraw(null);
 
   const openLibrary = (category) => {
     setLibrary(category);
@@ -1080,6 +1316,13 @@ function App() {
     toggleCoreAttribute,
     library,
     openLibrary,
+    fateDraw,
+    openFateDraw,
+    closeFateDraw,
+    drawnTalents,
+    setDrawnTalents,
+    portrait,
+    setPortrait,
   };
 
   const switchTab = (nextTab) => {
@@ -1163,6 +1406,7 @@ function App() {
       </div>
 
       <ResourceLibrary />
+      <FateDrawModal />
     </SheetContext.Provider>
   );
 }
