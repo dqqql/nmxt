@@ -3651,12 +3651,12 @@ body {
   100% { opacity: 0; transform: translateX(120%); }
 }
 
-/* 仙阶额外金光 */
+/* 仙阶额外金光。
+   注意：不能给参与 3D 翻转的 .drawCardInner 加 filter——filter 会强制 3D 上下文
+   扁平化，使 backface-visibility 失效，翻牌后会露出镜像的牌背「命」字。
+   因此金光改用牌面自身的外发光 box-shadow 实现，不触碰 3D 元素。 */
 .drawCard.tier-xian .drawCardFront {
-  box-shadow: inset 0 0 30px rgba(255, 196, 70, 0.35);
-}
-.drawCard.tier-xian .drawCardInner {
-  filter: drop-shadow(0 0 18px rgba(255, 196, 70, 0.55));
+  box-shadow: inset 0 0 34px rgba(255, 196, 70, 0.4), 0 0 26px rgba(255, 196, 70, 0.55);
 }
 
 /* 操作按钮 */
