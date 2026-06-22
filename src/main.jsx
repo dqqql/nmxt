@@ -21,9 +21,9 @@ const fateCards = [
 ];
 
 const talents = [
-  { title: '仙躯', hint: '领域、血脉、妖体' },
-  { title: '身法', hint: '移动、见识、阻拦' },
-  { title: '神魂', hint: '收集、干扰、分析' },
+  { title: '仙躯', hint: '搬运、阻挡、抵抗' },
+  { title: '身法', hint: '移动、灵巧、隐匿' },
+  { title: '神魂', hint: '感知、干扰、分析' },
   { title: '灵蕴', hint: '交涉、法术、魅力' },
 ];
 
@@ -103,13 +103,13 @@ const buildGuideSteps = [
   },
   {
     title: '法门',
-    summary: '打开资源库选择你的法门。选择后，第一页右下的两条普攻增益会自动填入，并进入二级窗口选择要放入第二页的感悟卡。',
-    target: '第一页 > 法门；第一页右下 > 普攻增益；第二页 > 感悟 / 本源感悟',
+    summary: '打开资源库选择你的法门。选择后会直接获得当前境界的第一张感悟卡，并写入第一页右下的法门增益一。',
+    target: '第一页 > 法门；第一页右下 > 法门增益一；第二页 > 感悟',
   },
   {
     title: '大道',
-    summary: '选择角色追寻的大道。第一页的大道效果会自动填入，第二页功法会根据当前境界显示练气或筑基功法。',
-    target: '第一页 > 大道；第一页 > 大道效果；第二页 > 功法',
+    summary: '选择角色追寻的大道。第一页的大道效果会自动填入，第二页功法保持空白，便于手动记录。',
+    target: '第一页 > 大道；第一页 > 大道效果',
   },
 ];
 
@@ -174,18 +174,17 @@ const LIBRARY = {
   dao: { label: '大道', placeholder: '点击选择大道', options: daoOptions },
 };
 
-const METHOD_INSIGHT_LIMIT = 3;
-const METHOD_ORIGIN_INSIGHT_LIMIT = 2;
-
 const SheetContext = createContext(null);
 
 function useSheet() {
   return useContext(SheetContext);
 }
 
-function ClickableMark({ initialState = 'solid', ariaLabel = '方格' }) {
+function ClickableMark({ initialState = 'solid', ariaLabel = '方格', allowGhost = true }) {
   const [state, setState] = useState(initialState);
-  const nextState = state === 'solid' ? 'filled' : state === 'filled' ? 'ghost' : 'solid';
+  const nextState = allowGhost
+    ? state === 'solid' ? 'filled' : state === 'filled' ? 'ghost' : 'solid'
+    : state === 'filled' ? 'solid' : 'filled';
 
   return (
     <button
@@ -210,19 +209,48 @@ function ResourceMark({ shape, ariaLabel }) {
   );
 }
 
-const marks = (count, className = '') =>
+const marks = (count, className = '', options = {}) => {
+  const { initialFilled = 0, allowGhost = true } = options;
+  return (
   Array.from({ length: count }, (_, index) => (
     <ClickableMark
-      key={index}
-      initialState={className.includes('ghost') ? 'ghost' : 'solid'}
+      key={`${className || 'solid'}-${initialFilled}-${allowGhost}-${index}`}
+      initialState={index < initialFilled ? 'filled' : className.includes('ghost') ? 'ghost' : 'solid'}
       ariaLabel={`方格 ${index + 1}`}
+      allowGhost={allowGhost}
     />
-  ));
+  ))
+  );
+};
 
 const resourceMarks = (count, shape) =>
   Array.from({ length: count }, (_, index) => (
     <ResourceMark key={index} shape={shape} ariaLabel={`灵石 ${index + 1}`} />
   ));
+
+function getRealmInsightPrefix(realm) {
+  if (!realm?.name) return '练气';
+  if (realm.name.startsWith('筑基') || realm.name.startsWith('金丹')) return '筑基';
+  return '练气';
+}
+
+function getFirstRealmInsight(method, realm) {
+  if (!method?.insights?.length) return null;
+  const prefix = getRealmInsightPrefix(realm);
+  return method.insights.find((card) => card.name.startsWith(prefix)) || method.insights[0];
+}
+
+function formatInsightCard(card) {
+  return card ? `${card.name}：${card.text}` : '';
+}
+
+function getRealmMultiplier(realm) {
+  if (!realm?.name) return 0;
+  if (realm.name.startsWith('金丹')) return 3;
+  if (realm.name.startsWith('筑基')) return 2;
+  if (realm.name.startsWith('练气')) return 1;
+  return 0;
+}
 
 function InfoHint({ text, label = '说明' }) {
   if (!text) return null;
@@ -253,6 +281,18 @@ function FillInput({ field, label }) {
     <input
       className="fillInput"
       type="text"
+      value={texts[field]}
+      onChange={(event) => setText(field, event.target.value)}
+      aria-label={label}
+    />
+  );
+}
+
+function FillTextarea({ field, label }) {
+  const { texts, setText } = useSheet();
+  return (
+    <textarea
+      className="fillTextarea"
       value={texts[field]}
       onChange={(event) => setText(field, event.target.value)}
       aria-label={label}
@@ -306,6 +346,7 @@ function FieldRow({ label, aside, filled = 0, ghost = 0, wide = false }) {
 function InfoPanel() {
   const { current } = useSheet();
   const realm = current.realm;
+  const realmMultiplier = getRealmMultiplier(realm);
 
   return (
     <section className="panel infoPanel">
@@ -338,7 +379,7 @@ function InfoPanel() {
           </div>
           <div className="splitFieldSide">
             <span className="fieldAside">境界乘值</span>
-            <div className="fieldMarks">{marks(5)}</div>
+            <div className="fieldMarks">{marks(5, '', { initialFilled: realmMultiplier, allowGhost: false })}</div>
           </div>
         </div>
 
@@ -360,11 +401,13 @@ function InfoPanel() {
   );
 }
 
-function SideTextPanel({ title }) {
+function SideTextPanel({ title, field }) {
   return (
     <section className="panel bannerField">
       <div className="bannerTitle">{title}</div>
-      <div className="bannerBody" />
+      <div className="bannerBody">
+        <FillTextarea field={field} label={title} />
+      </div>
     </section>
   );
 }
@@ -734,7 +777,8 @@ function BuildGuidePopover({ onClose }) {
 function CombatPanel() {
   const { current } = useSheet();
   const method = current.method;
-  const buffs = method ? method.attackBuffs : [];
+  const realmInsight = getFirstRealmInsight(method, current.realm);
+  const buffs = method ? [formatInsightCard(realmInsight)] : [];
 
   return (
     <section className="combatPanel">
@@ -783,8 +827,8 @@ function PageOne() {
             <section className="leftPane">
               <InfoPanel />
 
-              <SideTextPanel title="道心" />
-              <SideTextPanel title="身份" />
+              <SideTextPanel title="道心" field="daoHeart" />
+              <SideTextPanel title="身份" field="identity" />
 
               <section className="attributeGrid">
                 {talents.map(({ title, hint }) => (
@@ -894,25 +938,15 @@ function SpellTable({ title, rows, tall = false, variant = '', prefill = [] }) {
 }
 
 function PageTwo() {
-  const { current, methodCardSelections } = useSheet();
+  const { current } = useSheet();
   const source = current.source;
   const method = current.method;
-  const dao = current.dao;
   const realm = current.realm;
-  const selectedInsights = method ? methodCardSelections.insights.map((index) => method.insights[index]).filter(Boolean) : [];
-  const selectedOriginInsights = method
-    ? methodCardSelections.originInsights.map((index) => method.originInsights[index]).filter(Boolean)
-    : [];
-  const daoMethods = dao
-    ? realm?.name?.startsWith('筑基') || realm?.name?.startsWith('金丹')
-      ? dao.foundationMethods
-      : dao.qiMethods
-    : [];
+  const selectedInsights = method ? [getFirstRealmInsight(method, realm)].filter(Boolean) : [];
 
   const prefillFor = (title) => {
-    if (title === '神通') return source ? source.skills : [];
-    if (title === '秘法') return source ? source.arts : [];
-    if (title === '功法') return daoMethods;
+    if (title === '神通') return source ? source.skills.slice(0, 1) : [];
+    if (title === '秘法') return source ? source.arts.slice(0, 1) : [];
     return [];
   };
 
@@ -927,8 +961,8 @@ function PageTwo() {
           ))}
         </section>
         <section className="spellColumn right">
-          <SpellTable title="本源感悟" rows={2} tall variant="originInsight" prefill={selectedOriginInsights} />
-          <SpellTable title="感悟" rows={3} variant="insightTable" prefill={selectedInsights} />
+          <SpellTable title="本源感悟" rows={2} tall variant="originInsight" />
+          <SpellTable title="感悟" rows={4} variant="insightTable" prefill={selectedInsights} />
         </section>
       </main>
     </div>
@@ -942,84 +976,16 @@ function ResourceLibrary() {
     openLibrary,
     selections,
     select,
-    methodInsightStep,
-    setMethodInsightStep,
-    methodCardSelections,
-    toggleMethodCard,
   } = useSheet();
   if (!library) return null;
 
   const { label, options } = LIBRARY[library];
   const selectedIndex = selections[library];
-  const selectedMethod = library === 'method' && selectedIndex != null ? options[selectedIndex] : null;
 
   const choose = (index) => {
     select(library, index);
-    if (library === 'method' && index != null) {
-      setMethodInsightStep(true);
-      return;
-    }
     openLibrary(null);
   };
-
-  if (library === 'method' && methodInsightStep && selectedMethod) {
-    const insightCount = methodCardSelections.insights.length;
-    const originInsightCount = methodCardSelections.originInsights.length;
-    const renderInsightSection = (title, cards, selectionKey, selectedCards, limit) => (
-      <section className="libraryChoiceSection" aria-label={title}>
-        <div className="librarySectionTitle">
-          <h3>{title}</h3>
-          <span>{selectedCards.length} / {limit}</span>
-        </div>
-        <div className="libraryGrid libraryInsightGrid">
-          {cards.map((card, index) => {
-            const selected = selectedCards.includes(index);
-            return (
-              <button
-                key={`${selectionKey}-${card.name}`}
-                type="button"
-                className={`libraryCard insightCard${selected ? ' selected' : ''}`}
-                onClick={() => toggleMethodCard(selectionKey, index)}
-                aria-pressed={selected}
-              >
-                <div className="libraryCardTitle">{card.name}</div>
-                <div className="libraryCardBody">{card.text}</div>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-    );
-
-    return (
-      <div className="libraryOverlay" onClick={() => openLibrary(null)} role="presentation">
-        <div className="libraryModal methodInsightModal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={`资源库 ${selectedMethod.name}感悟卡`}>
-          <header className="libraryHeader">
-            <h2>资源库<span className="librarySep">·</span>{selectedMethod.name}<span className="librarySep">·</span>感悟卡</h2>
-            <button type="button" className="libraryClose" onClick={() => openLibrary(null)} aria-label="关闭">
-              <X size={18} strokeWidth={2.4} aria-hidden="true" />
-            </button>
-          </header>
-          <div className="libraryToolbar">
-            <button type="button" className="libraryBack" onClick={() => setMethodInsightStep(false)}>
-              返回法门
-            </button>
-            <div className="libraryChoiceSummary">
-              <span>感悟 {insightCount} / {METHOD_INSIGHT_LIMIT}</span>
-              <span>本源 {originInsightCount} / {METHOD_ORIGIN_INSIGHT_LIMIT}</span>
-            </div>
-            <button type="button" className="libraryDone" onClick={() => openLibrary(null)}>
-              完成
-            </button>
-          </div>
-          <div className="libraryInsightScroll">
-            {renderInsightSection('感悟', selectedMethod.insights, 'insights', methodCardSelections.insights, METHOD_INSIGHT_LIMIT)}
-            {renderInsightSection('本源感悟', selectedMethod.originInsights, 'originInsights', methodCardSelections.originInsights, METHOD_ORIGIN_INSIGHT_LIMIT)}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="libraryOverlay" onClick={() => openLibrary(null)} role="presentation">
@@ -1062,37 +1028,19 @@ function App() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [library, setLibrary] = useState(null);
   const [selections, setSelections] = useState({ realm: null, origin: null, source: null, method: null, dao: null });
-  const [methodInsightStep, setMethodInsightStep] = useState(false);
-  const [methodCardSelections, setMethodCardSelections] = useState({ insights: [], originInsights: [] });
-  const [texts, setTexts] = useState({ name: '', race: '', belong: '' });
+  const [texts, setTexts] = useState({ name: '', race: '', belong: '', daoHeart: '', identity: '' });
   const [attributes, setAttributes] = useState({ '仙躯': '', '身法': '', '神魂': '', '灵蕴': '' });
   const [coreAttribute, setCoreAttribute] = useState(null);
 
   const openLibrary = (category) => {
     setLibrary(category);
-    setMethodInsightStep(false);
   };
   const select = (category, index) => {
     setSelections((prev) => ({ ...prev, [category]: index }));
-    if (category === 'method') {
-      setMethodCardSelections({ insights: [], originInsights: [] });
-    }
   };
   const setText = (field, value) => setTexts((prev) => ({ ...prev, [field]: value }));
   const setAttributeValue = (field, value) => setAttributes((prev) => ({ ...prev, [field]: value }));
   const toggleCoreAttribute = (field) => setCoreAttribute((current) => (current === field ? null : field));
-  const toggleMethodCard = (selectionKey, index) => {
-    const limit = selectionKey === 'originInsights' ? METHOD_ORIGIN_INSIGHT_LIMIT : METHOD_INSIGHT_LIMIT;
-    setMethodCardSelections((prev) => {
-      const selected = prev[selectionKey];
-      const exists = selected.includes(index);
-      if (exists) {
-        return { ...prev, [selectionKey]: selected.filter((item) => item !== index) };
-      }
-      if (selected.length >= limit) return prev;
-      return { ...prev, [selectionKey]: [...selected, index] };
-    });
-  };
 
   const current = {
     realm: selections.realm != null ? realmOptions[selections.realm] : null,
@@ -1114,10 +1062,6 @@ function App() {
     toggleCoreAttribute,
     library,
     openLibrary,
-    methodInsightStep,
-    setMethodInsightStep,
-    methodCardSelections,
-    toggleMethodCard,
   };
 
   const switchTab = (nextTab) => {
