@@ -300,6 +300,26 @@ function FillTextarea({ field, label }) {
   );
 }
 
+function formatNoteLine(line) {
+  return line
+    .trim()
+    .replace(/^（(.+)）$/, '$1')
+    .replace(/^\((.+)\)$/, '$1')
+    .replace(/[（(]\s*([^（）()]+?)\s*[）)]/g, ' $1')
+    .replace(/\s+/g, ' ');
+}
+
+function InlineNote({ text, className = '', stacked = false }) {
+  if (!text) return null;
+  const lines = text.split('\n').map(formatNoteLine).filter(Boolean);
+
+  return (
+    <span className={`inlineNote ${className}`.trim()}>
+      {stacked ? lines.map((line) => <span key={line}>{line}</span>) : lines.join(' / ')}
+    </span>
+  );
+}
+
 // 自动填充的纯文本（由资源库选择联动而来）。空选择时显示淡色占位提示。
 function FilledText({ value, placeholder = '——', className = '' }) {
   return (
@@ -528,11 +548,9 @@ function TalentBoard() {
 function CounterBox({ title, filled, ghost, note }) {
   return (
     <section className="panel counterBox">
-      <div className="panelTitle panelTitleCentered">
-        <span className="titleWithHint">
-          <span>{title}</span>
-          <InfoHint text={note} label={`${title}说明`} />
-        </span>
+      <div className="panelTitle panelTitleCentered counterTitle">
+        <span>{title}</span>
+        <InlineNote text={note} className="counterNote" />
       </div>
       <div className="counterMarks">
         {marks(filled)}
@@ -547,12 +565,12 @@ function StatRow({ label, filled, ghost, note }) {
     <div className="statRow">
       <span className="statLabel">
         <span>{label}</span>
-        <InfoHint text={note} label={`${label}说明`} />
       </span>
       <div className="statMarks">
         {marks(filled)}
         {marks(ghost, 'ghost')}
       </div>
+      <InlineNote text={note} className="statNote" stacked />
     </div>
   );
 }

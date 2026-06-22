@@ -583,6 +583,14 @@ textarea {
   gap: 4px;
 }
 
+.inlineNote {
+  color: #7d7773;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
 .infoHint {
   position: relative;
   display: inline-grid;
@@ -1020,9 +1028,23 @@ textarea {
 
 .counterBox {
   display: grid;
-  gap: 14px;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
   padding-bottom: 12px;
   overflow: visible;
+}
+
+.counterTitle {
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+}
+
+.counterNote {
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .counterBox .counterMarks {
@@ -1234,7 +1256,7 @@ textarea {
 
 .statRow {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: 96px max-content minmax(0, 1fr);
   align-items: center;
   gap: 14px;
 }
@@ -1242,6 +1264,14 @@ textarea {
 .statRow > span {
   font-size: 18px;
   font-weight: 700;
+}
+
+.statNote {
+  display: grid;
+  gap: 1px;
+  justify-self: start;
+  font-size: 10.5px;
+  line-height: 1.05;
 }
 
 .damageThreshold {
@@ -1719,6 +1749,10 @@ body {
   padding-bottom: 5px;
 }
 
+.counterNote {
+  font-size: 9.5px;
+}
+
 .counterBox .counterMarks {
   padding: 0 10px;
 }
@@ -1901,12 +1935,17 @@ body {
 }
 
 .statRow {
-  grid-template-columns: 66px minmax(0, 1fr);
+  grid-template-columns: 66px max-content minmax(0, 1fr);
   gap: 8px;
 }
 
 .statRow > span {
   font-size: 14px;
+}
+
+.statNote {
+  font-size: 8.8px;
+  line-height: 1.05;
 }
 
 .statRow .mark {
@@ -2569,6 +2608,11 @@ body {
   .statRow > span,
   .damageThreshold h4 {
     font-size: 14px;
+  }
+
+  .statRow > .statNote {
+    font-size: 8.5px;
+    line-height: 1.05;
   }
 
   .damageThreshold {
