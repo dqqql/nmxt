@@ -24,19 +24,52 @@ const fateCards = [
 const diceLabels = ['双一', '双二', '双三', '双四', '双五', '双六'];
 const diceEffectCycle = ['无效果', '大失败', '大成功'];
 const baseDiceEffects = ['大失败', '无效果', '无效果', '无效果', '无效果', '大成功'];
-const fateDiceEffects = {
-  逆命肆: { 2: '大失败' },
-  逆命贰: { 1: '大失败' },
-  天命贰: { 4: '大成功' },
-  天命肆: { 3: '大成功' },
+const fateProgression = {
+  reverse: [
+    { title: '逆命壹', trainingSupply: 1 },
+    { title: '逆命贰', dice: { 1: '大失败' } },
+    { title: '逆命叁', trainingSupply: 1 },
+    { title: '逆命肆', dice: { 2: '大失败' } },
+    { title: '逆命伍' },
+  ],
+  forward: [
+    { title: '天命壹', fortuneLimit: 1 },
+    { title: '天命贰', dice: { 4: '大成功' } },
+    { title: '天命叁', fortuneLimit: 1 },
+    { title: '天命肆', dice: { 3: '大成功' } },
+    { title: '天命伍' },
+  ],
 };
 
-function getDiceEffectsForFate(title) {
+function getFateState(title) {
   const next = [...baseDiceEffects];
-  Object.entries(fateDiceEffects[title] || {}).forEach(([index, effect]) => {
-    next[Number(index)] = effect;
+  const state = {
+    diceEffects: next,
+    fortuneLimit: 2,
+    trainingSupply: 0,
+    inheritedEffects: [],
+  };
+  const progression = title?.startsWith('逆命') ? fateProgression.reverse : title?.startsWith('天命') ? fateProgression.forward : null;
+  const selectedIndex = progression?.findIndex((step) => step.title === title) ?? -1;
+
+  if (!progression || selectedIndex < 0) return state;
+
+  progression.slice(0, selectedIndex + 1).forEach((step) => {
+    if (step.trainingSupply) {
+      state.trainingSupply += step.trainingSupply;
+      state.inheritedEffects.push(`历练点补充 +${step.trainingSupply}`);
+    }
+    if (step.fortuneLimit) {
+      state.fortuneLimit += step.fortuneLimit;
+      state.inheritedEffects.push(`福缘点上限 +${step.fortuneLimit}`);
+    }
+    Object.entries(step.dice || {}).forEach(([index, effect]) => {
+      state.diceEffects[Number(index)] = effect;
+      state.inheritedEffects.push(`${diceLabels[Number(index)]}：${effect}`);
+    });
   });
-  return next;
+
+  return state;
 }
 
 const talents = [
@@ -200,16 +233,27 @@ function useSheet() {
 }
 
 function ClickableMark({ initialState = 'solid', ariaLabel = '方格', allowGhost = true }) {
-  const [state, setState] = useState(initialState);
-  const nextState = allowGhost
-    ? state === 'solid' ? 'filled' : state === 'filled' ? 'ghost' : 'solid'
-    : state === 'filled' ? 'solid' : 'filled';
+  const [state, setState] = useState({
+    filled: initialState === 'filled',
+    ghost: initialState === 'ghost',
+  });
+
+  const toggleFilled = () => {
+    setState((value) => ({ ...value, filled: !value.filled }));
+  };
+
+  const toggleGhost = (event) => {
+    event.preventDefault();
+    if (!allowGhost) return;
+    setState((value) => ({ ...value, ghost: !value.ghost }));
+  };
 
   return (
     <button
       type="button"
-      className={`mark ${state === 'filled' ? 'filled' : ''} ${state === 'ghost' ? 'ghost' : ''}`.trim()}
-      onClick={() => setState(nextState)}
+      className={`mark ${state.filled ? 'filled' : ''} ${state.ghost ? 'ghost' : ''}`.trim()}
+      onClick={toggleFilled}
+      onContextMenu={toggleGhost}
       aria-label={ariaLabel}
     />
   );
@@ -511,12 +555,11 @@ function SelectorPanel({ title, category, vertical = false }) {
 }
 
 function FateRibbon() {
-  const { openFateDraw, setDiceEffects } = useSheet();
-  const [selectedIndex, setSelectedIndex] = useState(null);
+  const { openFateDraw, selectedFateTitle, setSelectedFateTitle, setDiceEffects } = useSheet();
 
   const handleSelect = (index, title) => {
-    setSelectedIndex(index);
-    setDiceEffects(getDiceEffectsForFate(title));
+    setSelectedFateTitle(title);
+    setDiceEffects(getFateState(title).diceEffects);
     // 选中带「天赋 / 天谴」的因果卡时弹出抽卡弹窗；否则仅高亮当前因果值。
     if (fateDraws[title]) {
       openFateDraw(title);
@@ -531,26 +574,29 @@ function FateRibbon() {
         <span>天命因果</span>
       </div>
       <div className="fateRibbon">
-        {fateCards.map(([title, main, sub, tone], index) => (
-          <button
-            key={title}
-            type="button"
-            className={`fateStep ${tone}${selectedIndex === index ? ' selected' : ''}${fateDraws[title] ? ' drawable' : ''}`}
-            onClick={() => handleSelect(index, title)}
-            aria-pressed={selectedIndex === index}
-            aria-label={`因果值：${title}`}
-          >
-            <div className="fateHover fateHoverTop">
-              <b>效果</b>
-              <span>{main}</span>
-            </div>
-            <div className="fateCardTitle">{title}</div>
-            <div className="fateHover fateHoverBottom">
-              <b>天赋 / 天谴</b>
-              <span>{sub || '无'}</span>
-            </div>
-          </button>
-        ))}
+        {fateCards.map(([title, main, sub, tone], index) => {
+          const inherited = getFateState(title).inheritedEffects;
+          return (
+            <button
+              key={title}
+              type="button"
+              className={`fateStep ${tone}${selectedFateTitle === title ? ' selected' : ''}${fateDraws[title] ? ' drawable' : ''}`}
+              onClick={() => handleSelect(index, title)}
+              aria-pressed={selectedFateTitle === title}
+              aria-label={`因果值：${title}`}
+            >
+              <div className="fateHover fateHoverTop">
+                <b>效果</b>
+                <span>{inherited.length ? inherited.join('\n') : main}</span>
+              </div>
+              <div className="fateCardTitle">{title}</div>
+              <div className="fateHover fateHoverBottom">
+                <b>天赋 / 天谴</b>
+                <span>{sub || '无'}</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
@@ -607,7 +653,7 @@ function TalentBoard() {
   );
 }
 
-function CounterBox({ title, filled, ghost, note }) {
+function CounterBox({ title, filled, ghost, note, locked = false }) {
   return (
     <section className="panel counterBox">
       <div className="panelTitle panelTitleCentered counterTitle">
@@ -615,8 +661,12 @@ function CounterBox({ title, filled, ghost, note }) {
         <InlineNote text={note} className="counterNote" />
       </div>
       <div className="counterMarks">
-        {marks(filled)}
-        {marks(ghost, 'ghost')}
+        {locked ? marks(filled, '', { allowGhost: false }) : (
+          <>
+            {marks(filled)}
+            {marks(ghost, 'ghost')}
+          </>
+        )}
       </div>
     </section>
   );
@@ -968,7 +1018,7 @@ function PortraitPanel() {
 }
 
 function PageOne() {
-  const { current } = useSheet();
+  const { current, fateState } = useSheet();
   const source = current.source;
   const origin = current.origin;
   const dao = current.dao;
@@ -1004,14 +1054,16 @@ function PageOne() {
               <PortraitPanel />
               <CounterBox
                 title="福缘点上限"
-                filled={2}
-                ghost={4}
+                filled={fateState.fortuneLimit}
+                ghost={0}
+                locked
                 note={'消耗 1 点\n重骰 1-2 个骰子 / 此次检定值 +2 / 为故事增添一笔'}
               />
               <CounterBox
                 title="历练点补充"
-                filled={0}
-                ghost={2}
+                filled={fateState.trainingSupply}
+                ghost={0}
+                locked
                 note="GM 会使用历练点为故事带来转折与挑战"
               />
             </section>
@@ -1052,7 +1104,7 @@ function PageOne() {
             <section className="panel statsPanel">
               <StatRow label="正常血量" filled={6} ghost={4} />
               <StatRow label="险境血量" filled={6} ghost={4} />
-              <StatRow label="灵气" filled={7} ghost={5} />
+              <StatRow label="灵气" filled={8} ghost={4} />
               <StatRow label="储物格" filled={6} ghost={5} />
               <StatRow
                 label="损伤"
@@ -1443,6 +1495,7 @@ function App() {
   const [drawnTalents, setDrawnTalents] = useState([]);
   // 立绘图片（data URL），切页不丢失。
   const [portrait, setPortrait] = useState(null);
+  const [selectedFateTitle, setSelectedFateTitle] = useState(null);
   const [diceEffects, setDiceEffects] = useState(baseDiceEffects);
 
   const openFateDraw = (title) => {
@@ -1475,6 +1528,7 @@ function App() {
     method: selections.method != null ? methodOptions[selections.method] : null,
     dao: selections.dao != null ? daoOptions[selections.dao] : null,
   };
+  const fateState = getFateState(selectedFateTitle);
 
   const contextValue = {
     selections,
@@ -1495,6 +1549,9 @@ function App() {
     setDrawnTalents,
     portrait,
     setPortrait,
+    selectedFateTitle,
+    setSelectedFateTitle,
+    fateState,
     diceEffects,
     setDiceEffects,
     cycleDiceEffect,

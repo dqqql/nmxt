@@ -767,6 +767,11 @@ textarea {
   background: #202020;
 }
 
+.mark.ghost.filled {
+  border-style: dotted;
+  border-color: #d3d0ce;
+}
+
 .mark:hover,
 .resourceMark:hover {
   box-shadow: 0 0 0 2px #e5f2eb;
