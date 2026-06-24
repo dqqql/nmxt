@@ -1,6 +1,6 @@
 import React, { useState, useContext, createContext, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChevronLeft, ChevronRight, CircleAlert, Download, Info, ListChecks, Settings, Star, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleAlert, Download, Info, ListChecks, Minus, Plus, Settings, Star, X } from 'lucide-react';
 import { daoOptions } from './daoOptions';
 import { methodOptions } from './methodOptions';
 import { sourceOptions } from './sourceOptions';
@@ -653,20 +653,57 @@ function TalentBoard() {
   );
 }
 
-function CounterBox({ title, filled, ghost, note, locked = false }) {
+function OverflowCounter({ value, setValue, label }) {
+  const change = (delta) => {
+    setValue((current) => Math.max(0, current + delta));
+  };
+
+  return (
+    <div className="overflowCounter" aria-label={label}>
+      <button
+        type="button"
+        className="overflowCounterBtn"
+        onClick={() => change(-1)}
+        aria-label={`${label}减少`}
+      >
+        <Minus size={12} strokeWidth={2.6} aria-hidden="true" />
+      </button>
+      <output className="overflowCounterValue" aria-live="polite">{value}</output>
+      <button
+        type="button"
+        className="overflowCounterBtn"
+        onClick={() => change(1)}
+        aria-label={`${label}增加`}
+      >
+        <Plus size={12} strokeWidth={2.6} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+function CounterBox({ title, filled, ghost, note, locked = false, overflowCounter = null }) {
   return (
     <section className="panel counterBox">
       <div className="panelTitle panelTitleCentered counterTitle">
         <span>{title}</span>
         <InlineNote text={note} className="counterNote" />
       </div>
-      <div className="counterMarks">
-        {locked ? marks(filled, '', { allowGhost: false }) : (
-          <>
-            {marks(filled)}
-            {marks(ghost, 'ghost')}
-          </>
-        )}
+      <div className={`counterBody${overflowCounter ? ' withOverflow' : ''}`}>
+        <div className="counterMarks">
+          {locked ? marks(filled, '', { allowGhost: false }) : (
+            <>
+              {marks(filled)}
+              {marks(ghost, 'ghost')}
+            </>
+          )}
+        </div>
+        {overflowCounter ? (
+          <OverflowCounter
+            value={overflowCounter.value}
+            setValue={overflowCounter.setValue}
+            label={overflowCounter.label}
+          />
+        ) : null}
       </div>
     </section>
   );
@@ -1018,7 +1055,7 @@ function PortraitPanel() {
 }
 
 function PageOne() {
-  const { current, fateState } = useSheet();
+  const { current, fateState, fortuneOverflow, setFortuneOverflow } = useSheet();
   const source = current.source;
   const origin = current.origin;
   const dao = current.dao;
@@ -1057,6 +1094,11 @@ function PageOne() {
                 filled={fateState.fortuneLimit}
                 ghost={0}
                 locked
+                overflowCounter={{
+                  value: fortuneOverflow,
+                  setValue: setFortuneOverflow,
+                  label: '溢出福缘点',
+                }}
                 note={'消耗 1 点\n重骰 1-2 个骰子 / 此次检定值 +2 / 为故事增添一笔'}
               />
               <CounterBox
@@ -1497,6 +1539,7 @@ function App() {
   const [portrait, setPortrait] = useState(null);
   const [selectedFateTitle, setSelectedFateTitle] = useState(null);
   const [diceEffects, setDiceEffects] = useState(baseDiceEffects);
+  const [fortuneOverflow, setFortuneOverflow] = useState(0);
 
   const openFateDraw = (title) => {
     const plans = fateDraws[title];
@@ -1555,6 +1598,8 @@ function App() {
     diceEffects,
     setDiceEffects,
     cycleDiceEffect,
+    fortuneOverflow,
+    setFortuneOverflow,
   };
 
   const switchTab = (nextTab) => {
