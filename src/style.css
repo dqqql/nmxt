@@ -1465,7 +1465,7 @@ textarea {
   line-height: 1.1;
 }
 
-.thresholdStep em {
+.thresholdStep input {
   display: block;
   width: 100%;
   min-height: 18px;
@@ -1473,10 +1473,16 @@ textarea {
   border: 1px solid #b9b3ae;
   background: #fff;
   color: var(--ink);
-  font-style: normal;
+  font-family: var(--font-serif);
   font-size: 13px;
   line-height: 1.2;
   text-align: left;
+}
+
+.thresholdStep input:focus {
+  border-color: #16864d;
+  outline: 1px solid #16864d;
+  outline-offset: 0;
 }
 
 .damageScale .fill {

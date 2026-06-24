@@ -726,10 +726,21 @@ function StatRow({ label, filled, ghost, note }) {
 
 function DamageThreshold({ title, value }) {
   const [light = '', medium = '', heavy = ''] = value ? value.match(/\d+/g) || [] : [];
+  const [thresholdValues, setThresholdValues] = useState([light, medium, heavy]);
+  useEffect(() => {
+    setThresholdValues([light, medium, heavy]);
+  }, [light, medium, heavy]);
+
+  const updateThreshold = (index, nextValue) => {
+    setThresholdValues((current) => current.map((entry, currentIndex) => (
+      currentIndex === index ? nextValue : entry
+    )));
+  };
+
   const thresholds = [
-    { label: '轻伤', value: light },
-    { label: '中伤', value: medium },
-    { label: '重伤', value: heavy },
+    { label: '轻伤', value: thresholdValues[0] },
+    { label: '中伤', value: thresholdValues[1] },
+    { label: '重伤', value: thresholdValues[2] },
   ];
 
   return (
@@ -739,17 +750,32 @@ function DamageThreshold({ title, value }) {
         <span className="fill">无伤害</span>
         <span className="thresholdStep" title={value || ''}>
           <b>{thresholds[0].label}</b>
-          <em>{thresholds[0].value}</em>
+          <input
+            type="text"
+            value={thresholds[0].value}
+            onChange={(event) => updateThreshold(0, event.target.value)}
+            aria-label={`${title}${thresholds[0].label}阈值`}
+          />
         </span>
         <span className="fill">1 血量格</span>
         <span className="thresholdStep" title={value || ''}>
           <b>{thresholds[1].label}</b>
-          <em>{thresholds[1].value}</em>
+          <input
+            type="text"
+            value={thresholds[1].value}
+            onChange={(event) => updateThreshold(1, event.target.value)}
+            aria-label={`${title}${thresholds[1].label}阈值`}
+          />
         </span>
         <span className="fill">2 血量格</span>
         <span className="thresholdStep" title={value || ''}>
           <b>{thresholds[2].label}</b>
-          <em>{thresholds[2].value}</em>
+          <input
+            type="text"
+            value={thresholds[2].value}
+            onChange={(event) => updateThreshold(2, event.target.value)}
+            aria-label={`${title}${thresholds[2].label}阈值`}
+          />
         </span>
         <span className="fill">3 血量格</span>
       </div>
