@@ -3754,3 +3754,249 @@ body {
   .talentEmptyHint { display: none; }
   .talentBox.empty .effectFill { border-top: 1px solid #dedbd8; }
 }
+
+/* ===== Dice outcome strip carved from the portrait panel ===== */
+.portraitPanel {
+  display: block;
+}
+
+.portraitBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.portraitCanvas {
+  min-height: 0;
+}
+
+.portraitRemove {
+  right: 140px;
+}
+
+.diceEffectStrip {
+  display: grid;
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  border-left: 1px solid var(--line);
+  background: #fff;
+}
+
+.diceEffectItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+  padding: 3px 8px 3px 18px;
+  border: 0;
+  background: transparent;
+  color: #121212;
+  font-family: var(--font-serif);
+  text-align: left;
+  cursor: pointer;
+}
+
+.diceEffectItem::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #1d5cff;
+  transform: translateY(-50%);
+}
+
+.diceEffectItem span {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.diceEffectItem strong {
+  min-width: 0;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.diceEffectItem span::after {
+  content: "：";
+}
+
+.diceEffectItem.state-fail {
+  background: #f8d9d5;
+  color: #7a1e17;
+}
+
+.diceEffectItem.state-success {
+  background: #dff1e5;
+  color: #145b32;
+}
+
+.diceEffectItem:hover,
+.diceEffectItem:focus-visible {
+  box-shadow: inset 0 0 0 2px #16864d;
+  outline: 0;
+}
+
+/* ===== Fate manual selection ===== */
+.fateChooseBtn > span {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.fateChooseBtn em {
+  color: #cabfe0;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+
+.fateManual {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  overflow: auto;
+  max-height: min(760px, calc(90vh - 78px));
+}
+
+.manualPlanTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.manualPlanTabs button {
+  padding: 9px 16px;
+  border: 1px solid rgba(255, 213, 130, 0.28);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #efe7fb;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.manualPlanTabs button.on {
+  border-color: #ffd873;
+  background: rgba(255, 213, 130, 0.18);
+  color: #ffd873;
+}
+
+.manualSlotList {
+  display: grid;
+  gap: 18px;
+}
+
+.manualSlot {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 213, 130, 0.24);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.manualSlot header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.manualSlot header span {
+  color: #ffd873;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.manualSlot header small {
+  color: #e2d8f0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.manualCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.manualCard {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  min-height: 150px;
+  padding: 14px;
+  border: 1px solid #d8d3cf;
+  border-radius: 8px;
+  background: #f7f4ef;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.manualCard:hover {
+  transform: translateY(-2px);
+  border-color: #16864d;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.manualCard.selected {
+  border-color: #16864d;
+  background: #edf7f1;
+  box-shadow: inset 0 0 0 2px #16864d;
+}
+
+.manualCardTitle {
+  color: #2c2725;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.manualCardBody {
+  color: #5f5b58;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: auto;
+}
+
+.fateActions.manual {
+  justify-content: center;
+}
+
+.fateConfirm:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ===== Page two refinements ===== */
+.pageTwoLayout {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.spellColumn.right {
+  grid-template-rows: minmax(0, 0.94fr) minmax(0, 2fr);
+}
