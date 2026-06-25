@@ -1,4 +1,4 @@
-import React, { useState, useContext, createContext, useEffect, useRef } from 'react';
+import React, { useState, useContext, createContext, useEffect, useLayoutEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChevronLeft, ChevronRight, CircleAlert, Download, Info, ListChecks, Minus, Plus, Settings, Star, X } from 'lucide-react';
 import {
@@ -220,12 +220,56 @@ function InlineNote({ text, className = '', stacked = false }) {
   );
 }
 
+// 文本自适应：当内容超出其固定大小的框（被裁切）时，逐步缩小字号直到完全显示；
+// 设有下限（默认基准字号的 70%，且不低于 10px）以保证可读性。
+// 未溢出的文本保持原字号不变。
+function useAutoFitFont(deps, { minRatio = 0.7, minPx = 10 } = {}) {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+
+    const overflowing = () => (
+      el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1
+    );
+
+    const fit = () => {
+      // 先还原到 CSS 基准字号再判断，确保能放大回去
+      el.style.fontSize = '';
+      if (!overflowing()) return;
+      const base = parseFloat(getComputedStyle(el).fontSize) || 14;
+      const floor = Math.max(base * minRatio, minPx);
+      let size = base;
+      while (size > floor && overflowing()) {
+        size = Math.max(floor, size - 0.5);
+        el.style.fontSize = `${size}px`;
+      }
+    };
+
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return ref;
+}
+
+// 自适应字号的纯文本块：内容超框时自动缩小字号。
+// 统一加上 autoFit 类（height:100% + overflow:hidden），使其撑满所在固定框，
+// 从而能正确检测溢出；框本身不固定高度时则不会触发缩放。
+function AutoFitText({ children, className = '', as = 'div', fitOptions }) {
+  const ref = useAutoFitFont([children], fitOptions);
+  const Tag = as;
+  return <Tag ref={ref} className={`autoFit ${className}`.trim()}>{children}</Tag>;
+}
+
 // 自动填充的纯文本（由资源库选择联动而来）。空选择时显示淡色占位提示。
 function FilledText({ value, placeholder = '——', className = '' }) {
   return (
-    <div className={`fillText${value ? '' : ' empty'} ${className}`.trim()}>
+    <AutoFitText className={`fillText${value ? '' : ' empty'} ${className}`.trim()}>
       {value || placeholder}
-    </div>
+    </AutoFitText>
   );
 }
 
@@ -481,7 +525,7 @@ function TalentBoard() {
             </div>
             <div className="talentEffect">
               <span>效果</span>
-              <div className="effectFill text">{entry.effect}</div>
+              <AutoFitText className="effectFill text">{entry.effect}</AutoFitText>
             </div>
           </div>
         );
@@ -823,11 +867,11 @@ function CombatPanel() {
         </div>
         <div className="combatSkill">
           <b>法门增益一</b>
-          <div>{buffs[0] || ''}</div>
+          <AutoFitText>{buffs[0] || ''}</AutoFitText>
         </div>
         <div className="combatSkill">
           <b>法门增益二</b>
-          <div>{buffs[1] || ''}</div>
+          <AutoFitText>{buffs[1] || ''}</AutoFitText>
         </div>
       </div>
     </section>
@@ -926,8 +970,8 @@ function PageOne() {
   // 道源能力面板顶部用一行小标签显示增益，把主要空间留给能力正文。
   const sourceAbilityContent = source ? (
     <div className="sourceAbilityStack">
-      <div className="sourceBuffLine"><b>增益</b><span>{source.buff}</span></div>
-      <div className="sourceAbilityText">{source.ability}</div>
+      <div className="sourceBuffLine"><b>增益</b><AutoFitText as="span">{source.buff}</AutoFitText></div>
+      <AutoFitText className="sourceAbilityText">{source.ability}</AutoFitText>
     </div>
   ) : null;
 
@@ -1046,8 +1090,8 @@ function SpellTable({ title, rows, tall = false, variant = '', prefill = [] }) {
         const entry = prefill[index];
         return (
           <div key={index} className="spellRow">
-            <div className="spellName">{entry ? entry.name : ''}</div>
-            <div className="spellText">{entry ? entry.text : ''}</div>
+            <AutoFitText className="spellName">{entry ? entry.name : ''}</AutoFitText>
+            <AutoFitText className="spellText">{entry ? entry.text : ''}</AutoFitText>
           </div>
         );
       })}
@@ -1361,7 +1405,7 @@ function FateDrawModal() {
                               <span className="drawCardKind">{kindLabel}</span>
                             </div>
                             <div className="drawCardName">{entry.name}</div>
-                            <div className="drawCardEffect">{entry.effect}</div>
+                            <AutoFitText className="drawCardEffect">{entry.effect}</AutoFitText>
                             <span className="drawCardGlow" aria-hidden="true" />
                           </div>
                         </div>

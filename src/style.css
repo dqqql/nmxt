@@ -3033,6 +3033,14 @@ body {
 }
 
 /* 自动填充文本 */
+/* 自适应字号文本：撑满所在固定框，便于 JS 检测溢出并缩小字号。
+   框本身不限高时高度等于内容，不会触发缩放。 */
+.autoFit {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .fillText {
   font-size: 14px;
   line-height: 1.4;
