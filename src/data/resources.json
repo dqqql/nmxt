@@ -1,0 +1,7 @@
+[
+  { "label": "颗", "count": 10, "shape": "circle", "columns": 5 },
+  { "label": "袋", "count": 10, "shape": "bag", "columns": 5 },
+  { "label": "包", "count": 10, "shape": "square", "columns": 5 },
+  { "label": "中品", "count": 10, "shape": "triangle", "columns": 5 },
+  { "label": "上品", "count": 10, "shape": "star", "columns": 5 }
+]

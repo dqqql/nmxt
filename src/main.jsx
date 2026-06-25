@@ -1,45 +1,28 @@
 import React, { useState, useContext, createContext, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChevronLeft, ChevronRight, CircleAlert, Download, Info, ListChecks, Minus, Plus, Settings, Star, X } from 'lucide-react';
-import { daoOptions } from './daoOptions';
-import { methodOptions } from './methodOptions';
-import { sourceOptions } from './sourceOptions';
-import { fateDraws, drawByPlan, punishmentPool, talentPool, tierMeta } from './talentOptions';
+import {
+  realmOptions,
+  originOptions,
+  sourceOptions,
+  methodOptions,
+  daoOptions,
+  talentPool,
+  punishmentPool,
+  tierMeta,
+  fateCards,
+  diceLabels,
+  diceEffectCycle,
+  baseDiceEffects,
+  fateProgression,
+  fateDraws,
+  drawByPlan,
+  attributeDefs,
+  spellGroups,
+  resourceGroups,
+  buildGuideSteps,
+} from './data';
 import './style.css';
-
-const fateCards = [
-  ['逆命伍', '解锁\n逆命禁咒', '', 'dark'],
-  ['逆命肆', '双三\n大失败', '', 'dark2'],
-  ['逆命叁', '历练点\n补充 +1', '一仙阶天赋', 'dark3'],
-  ['逆命贰', '双二\n大失败', '一天阶天赋', 'dark3'],
-  ['逆命壹', '历练点\n补充 +1', '一地阶天赋', 'dark4'],
-  ['平平无奇', '平凡的\n开始', '一凡级天赋\n或一人级天赋+一凡级天谴', 'neutral'],
-  ['天命壹', '福缘点\n上限 +1', '一地阶天赋\n+ 一地阶天谴', 'light1'],
-  ['天命贰', '双五\n大成功', '一天阶天赋\n+ 一天阶天谴', 'light2'],
-  ['天命叁', '福缘点\n上限 +1', '一仙阶天赋\n+ 一仙阶天谴', 'light3'],
-  ['天命肆', '双四\n大成功', '', 'light4'],
-  ['天命伍', '解锁\n天命神通', '', 'light5'],
-];
-
-const diceLabels = ['双一', '双二', '双三', '双四', '双五', '双六'];
-const diceEffectCycle = ['无效果', '大失败', '大成功'];
-const baseDiceEffects = ['大失败', '无效果', '无效果', '无效果', '无效果', '大成功'];
-const fateProgression = {
-  reverse: [
-    { title: '逆命壹', trainingSupply: 1 },
-    { title: '逆命贰', dice: { 1: '大失败' } },
-    { title: '逆命叁', trainingSupply: 1 },
-    { title: '逆命肆', dice: { 2: '大失败' } },
-    { title: '逆命伍' },
-  ],
-  forward: [
-    { title: '天命壹', fortuneLimit: 1 },
-    { title: '天命贰', dice: { 4: '大成功' } },
-    { title: '天命叁', fortuneLimit: 1 },
-    { title: '天命肆', dice: { 3: '大成功' } },
-    { title: '天命伍' },
-  ],
-};
 
 function getFateState(title) {
   const next = [...baseDiceEffects];
@@ -71,152 +54,6 @@ function getFateState(title) {
 
   return state;
 }
-
-const talents = [
-  { title: '仙躯', hint: '搬运、阻挡、抵抗' },
-  { title: '身法', hint: '移动、灵巧、隐匿' },
-  { title: '神魂', hint: '感知、干扰、分析' },
-  { title: '灵蕴', hint: '交涉、法术、魅力' },
-];
-
-const spellGroups = [
-  { title: '神通', rows: 4 },
-  { title: '秘法', rows: 2 },
-  { title: '功法', rows: 2 },
-  { title: '灵宝', rows: 2 },
-];
-
-const resourceGroups = [
-  { label: '颗', count: 10, shape: 'circle', columns: 5 },
-  { label: '袋', count: 10, shape: 'bag', columns: 5 },
-  { label: '包', count: 10, shape: 'square', columns: 5 },
-  { label: '中品', count: 10, shape: 'triangle', columns: 5 },
-  { label: '上品', count: 10, shape: 'star', columns: 5 },
-];
-
-/*
- * 资源库数据：以下均为「占位符」内容，仅用于验证选择→自动填充的联动是否正确。
- * 待确认无误后再替换为正式文案。
- * 每个分类的选项除 name / desc（资源库卡片展示）外，还携带会自动填充到卡面其他位置的字段。
- */
-const realmOptions = [
-  { name: '练气前期', desc: '练气期境界分段。境界能力：远距离跳跃与滑翔。小范围感知。', ability: '远距离跳跃与滑翔。小范围感知。' },
-  { name: '练气中期', desc: '练气期境界分段。境界能力：远距离跳跃与滑翔。小范围感知。', ability: '远距离跳跃与滑翔。小范围感知。' },
-  { name: '练气后期', desc: '练气期境界分段。境界能力：远距离跳跃与滑翔。小范围感知。', ability: '远距离跳跃与滑翔。小范围感知。' },
-  { name: '筑基前期', desc: '筑基期境界分段。境界能力：御器飞行，中范围感知。', ability: '御器飞行，中范围感知。' },
-  { name: '筑基中期', desc: '筑基期境界分段。境界能力：御器飞行，中范围感知。', ability: '御器飞行，中范围感知。' },
-  { name: '筑基后期', desc: '筑基期境界分段。境界能力：御器飞行，中范围感知。', ability: '御器飞行，中范围感知。' },
-  { name: '金丹期', desc: '金丹期境界。境界能力：自身飞行，大范围感知。', ability: '自身飞行，大范围感知。' },
-];
-
-const buildGuideSteps = [
-  {
-    title: '境界',
-    summary: '先选择角色当前境界，境界能力会自动写入左上基础信息区。',
-    target: '基础信息 > 境界',
-    tiers: [
-      { name: '练气前期 / 中期 / 后期', movement: '远距离跳跃与滑翔', perception: '小范围感知' },
-      { name: '筑基前期 / 中期 / 后期', movement: '御器飞行', perception: '中范围感知' },
-      { name: '金丹期', movement: '自身飞行', perception: '大范围感知' },
-    ],
-  },
-  {
-    title: '出身',
-    summary: '选择角色的来历，出身详解用于理解背景，出身效果会自动写入卡面。',
-    target: '基础信息 > 出身',
-    entries: [
-      { name: '宗门弟子', detail: '出身宗门的你对各路术法神通的了解甚于他人。', effectName: '宗门学识', effect: '了解他人术法门路相关检定获得优势。' },
-      { name: '修真世族', detail: '你出身于一方传承久远、底蕴深厚的修仙世家，代表你对人情世故的了解非比寻常。', effectName: '家族人脉', effect: '每次游戏一次，在城镇等种族集群地中寻找到一个能给予一次有限帮助的家族人脉。' },
-      { name: '寒门学子', detail: '你出身清贫，但凭借你的努力与坚持，叩开了仙途的大门。', effectName: '百折不挠', effect: '每当检定失败时放置 1 个指示物，上限为 2；可使用 2 个指示物使下次检定获得 +1。' },
-      { name: '名门望族', detail: '你出身于名声在外的家族之中，自小便有极为奢侈的生活。', effectName: '人情世故', effect: '与达官贵族等人交涉相关的检定获得优势。' },
-      { name: '将门世家', detail: '你自小便被熏陶了关于军人的作风，你比起一般人来说更为意志坚定。', effectName: '行伍本能', effect: '进行侦察与识别危险相关的检定中具有优势。' },
-      { name: '商贾之后', detail: '你家境殷实，家族是经营一方的成功商贾。你自幼耳濡目染的是算计、交易与人心。', effectName: '经商头脑', effect: '任意与交易相关的检定中具有优势。' },
-      { name: '书香门第', detail: '你出身凡俗书香世家，自幼饱读诗书，经史子集烂熟于心。', effectName: '博闻强识', effect: '与历史、地理人文等学识相关的检定中具有优势。' },
-      { name: '市井奇人', detail: '你在城镇坊间的烟火气中长大，你肯定有一门自己擅长的手艺。', effectName: '八面玲珑', effect: '与各路三教九流人物交涉时获得优势。' },
-      { name: '无名弃儿', detail: '你对亲生父母毫无印象，自有记忆起便是在街头、桥洞或某个混乱的孤儿院中挣扎求生。', effectName: '隐蔽求生', effect: '关于隐藏自己身形相关的任何检定中获得优势。' },
-      { name: '流民之后', detail: '你的家族因巨大的变故，被迫背井离乡，流浪是你们生活的常态。', effectName: '有备无患', effect: '背包里总是带着一份生存相关物品；一次聚会一次，可以拿出一份与目前情况有关的生存物资。' },
-    ],
-  },
-  {
-    title: '核心加值',
-    summary: '在四项属性中先选定一个核心属性，将它设为 +3，并用核心标识特别标注。',
-    target: '属性区 > 仙躯 / 身法 / 神魂 / 灵蕴',
-    coreValues: [
-      { label: '核心属性', value: '+3', note: '优先选择，并添加醒目标识。', primary: true },
-      { label: '剩余属性', value: '+2', note: '分配给第二擅长的属性。' },
-      { label: '剩余属性', value: '+1', note: '分配给第三擅长的属性。' },
-      { label: '剩余属性', value: '0', note: '分配给最后一项属性。' },
-    ],
-  },
-  {
-    title: '道源',
-    summary: '打开资源库选择你的道源。选择后检查第一页的道源能力、道源效果、伤害阈值，以及第二页自动填入的神通和秘法。',
-    target: '第一页 > 道源；第二页 > 神通 / 秘法',
-  },
-  {
-    title: '法门',
-    summary: '打开资源库选择你的法门。选择后会直接获得当前境界的第一张感悟卡，并写入第一页右下的法门增益一。',
-    target: '第一页 > 法门；第一页右下 > 法门增益一；第二页 > 感悟',
-  },
-  {
-    title: '大道',
-    summary: '选择角色追寻的大道。第一页的大道效果会自动填入，第二页功法保持空白，便于手动记录。',
-    target: '第一页 > 大道；第一页 > 大道效果',
-  },
-];
-
-const originOptions = [
-  {
-    name: '宗门弟子',
-    desc: '出身宗门的你对各路术法神通的了解甚于他人。',
-    effect: '宗门学识：你在关于了解他人术法门路相关的检定中获得优势。',
-  },
-  {
-    name: '修真世族',
-    desc: '你出身于一方传承久远、底蕴深厚的修仙世家，代表你对人情世故的了解非比寻常。',
-    effect: '家族人脉：每次游戏一次，你在城镇等种族集群地中，可以寻找到一个能给予你一次有限帮助的家族人脉。',
-  },
-  {
-    name: '寒门学子',
-    desc: '你出身清贫，但凭借你的努力与坚持，叩开了仙途的大门。',
-    effect: '百折不挠：每当你检定失败时，你在此卡上放置 1 个指示物，上限为 2，你可以使用 2 个指示物为你下次检定获得 +1。',
-  },
-  {
-    name: '名门望族',
-    desc: '你出身于名声在外的家族之中，自小便有极为奢侈的生活。',
-    effect: '人情世故：你与达官贵族等人交涉相关的检定获得优势。',
-  },
-  {
-    name: '将门世家',
-    desc: '你自小便被熏陶了关于军人的作风，你比起一般人来说更为意志坚定。',
-    effect: '行伍本能：你在进行侦察与识别危险相关的检定中具有优势。',
-  },
-  {
-    name: '商贾之后',
-    desc: '你家境殷实，家族是经营一方的成功商贾。你自幼耳濡目染的是算计、交易与人心。',
-    effect: '经商头脑：你在任意与交易相关的检定中具有优势。',
-  },
-  {
-    name: '书香门第',
-    desc: '你出身凡俗书香世家，自幼饱读诗书，经史子集烂熟于心。',
-    effect: '博闻强识：你在与历史、地理人文等学识相关的检定中具有优势。',
-  },
-  {
-    name: '市井奇人',
-    desc: '你在城镇坊间的烟火气中长大，你肯定有一门自己擅长的手艺。',
-    effect: '八面玲珑：你在与各路三教九流人物交涉时，获得优势。',
-  },
-  {
-    name: '无名弃儿',
-    desc: '你对亲生父母毫无印象，自有记忆起便是在街头、桥洞或某个混乱的孤儿院中挣扎求生。',
-    effect: '隐蔽求生：你在关于隐藏自己身形相关的任何检定中获得优势。',
-  },
-  {
-    name: '流民之后',
-    desc: '你的家族因巨大的变故，被迫背井离乡，流浪是你们生活的常态。',
-    effect: '有备无患：你背包里面总是带着一份生存相关的物品，一次聚会一次，你可以拿出一份与目前情况有关的生存物资。',
-  },
-];
 
 const LIBRARY = {
   realm: { label: '境界', placeholder: '点击选择境界', options: realmOptions },
@@ -1107,7 +944,7 @@ function PageOne() {
               <SideTextPanel title="身份" field="identity" />
 
               <section className="attributeGrid">
-                {talents.map(({ title, hint }) => (
+                {attributeDefs.map(({ title, hint }) => (
                   <AttributePanel key={title} title={title} hint={hint} />
                 ))}
               </section>
