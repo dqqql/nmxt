@@ -23,6 +23,7 @@ import {
   buildGuideSteps,
 } from './data';
 import gameLogo from './assets/game-logo.png';
+import { exportSheetsAsPdf } from './exportPdf';
 import './style.css';
 
 function getFateState(title) {
@@ -1232,6 +1233,16 @@ function PdfCheck({ label, double = false }) {
   );
 }
 
+function PdfClickableCheck({ label, double = false }) {
+  return (
+    <span className="pdfCheckLine interactive">
+      <ClickableMark ariaLabel={label ? `${label} 标记 1` : '标记'} />
+      {double ? <ClickableMark ariaLabel={label ? `${label} 标记 2` : '标记 2'} /> : null}
+      {label ? <span>{label}</span> : null}
+    </span>
+  );
+}
+
 function PdfMarks({ solid = 3, ghost = 3 }) {
   return (
     <span className="pdfMarks">
@@ -1241,8 +1252,87 @@ function PdfMarks({ solid = 3, ghost = 3 }) {
   );
 }
 
+function PdfClickableMarks({ solid = 3, ghost = 3, label = '方格' }) {
+  return (
+    <span className="pdfMarks interactive">
+      {Array.from({ length: solid }, (_, index) => (
+        <ClickableMark key={`s-${index}`} ariaLabel={`${label} ${index + 1}`} />
+      ))}
+      {Array.from({ length: ghost }, (_, index) => (
+        <ClickableMark
+          key={`g-${index}`}
+          initialState="ghost"
+          ariaLabel={`${label} 虚线 ${index + 1}`}
+        />
+      ))}
+    </span>
+  );
+}
+
 function FormulaCell({ value }) {
   return <span className="formulaCell">{value}</span>;
+}
+
+function EditableFormulaCell({ prefix, field, ariaLabel }) {
+  const { texts, setText } = useSheet();
+  return (
+    <span className="formulaCell editable">
+      <span>{prefix}</span>
+      <input
+        type="text"
+        value={texts[field] || ''}
+        onChange={(event) => setText(field, event.target.value)}
+        aria-label={ariaLabel}
+      />
+      <span>】</span>
+    </span>
+  );
+}
+
+function PdfTextInput({ field, label }) {
+  const { texts, setText } = useSheet();
+  return (
+    <input
+      className="pdfTextInput"
+      type="text"
+      value={texts[field] || ''}
+      onChange={(event) => setText(field, event.target.value)}
+      aria-label={label}
+    />
+  );
+}
+
+function EditableFeatureTable({ rows, namePrefix, effectPrefix, className = '' }) {
+  const { texts, setText } = useSheet();
+  return (
+    <div className={`featureRows editableFeatureTable ${className}`.trim()}>
+      <div className="featureTableHead">
+        <span />
+        <span>名称</span>
+        <span>效果</span>
+      </div>
+      {rows.map((label, index) => {
+        const nameField = `${namePrefix}${index}`;
+        const effectField = `${effectPrefix}${index}`;
+        return (
+          <div key={label} className="featureRow">
+            <span>{label}</span>
+            <input
+              type="text"
+              value={texts[nameField] || ''}
+              onChange={(event) => setText(nameField, event.target.value)}
+              aria-label={`${label}名称`}
+            />
+            <textarea
+              value={texts[effectField] || ''}
+              onChange={(event) => setText(effectField, event.target.value)}
+              aria-label={`${label}效果`}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function PageTwo() {
@@ -1278,17 +1368,20 @@ function PageTwo() {
 }
 
 function PageThree() {
+  const formationFeatureRows = ['固定特征壹', '固定特征贰', '临时特征壹', '临时特征贰', '临时特征叁', '临时特征肆'];
+  const followerMoveRows = ['普攻', '初始神通', '神通壹', '神通贰', '神通叁', '秘法壹'];
+
   return (
     <div className="sheet pdfSheet">
       <PdfSheetHeader />
       <main className="pdfPageBody pdfThreeGrid">
         <section className="pdfBlock formationBasics">
           <div className="pdfTableTitle">阵法·基础信息</div>
-          <div className="formLine"><span>阵法名称</span><b /></div>
-          <div className="formLine"><span>检定加值</span><b /></div>
+          <div className="formLine"><span>阵法名称</span><PdfTextInput field="formationName" label="阵法名称" /></div>
+          <div className="formLine"><span>检定加值</span><PdfTextInput field="formationBonus" label="阵法检定加值" /></div>
           <div className="formLine split">
-            <span>护阵难度</span><FormulaCell value="9+【 】" />
-            <span>破阵难度</span><FormulaCell value="10+【 】" />
+            <span>护阵难度</span><EditableFormulaCell prefix="9+【" field="formationGuardDifficulty" ariaLabel="护阵难度加值" />
+            <span>破阵难度</span><EditableFormulaCell prefix="10+【" field="formationBreakDifficulty" ariaLabel="破阵难度加值" />
           </div>
           <div className="formationLife">
             <span>破阵命盘</span>
@@ -1298,15 +1391,11 @@ function PageThree() {
               <p>你可以通过推进动作将破阵命盘独立刻度擦除，并重新将所有临时特征激活</p>
             </div>
           </div>
-          <div className="featureRows">
-            {['固定特征壹', '固定特征贰', '临时特征壹', '临时特征贰', '临时特征叁', '临时特征肆'].map((label, index) => (
-              <div key={label} className="featureRow">
-                <span>{label}</span>
-                <span>{index === 0 ? '阵攻' : ''}</span>
-                <span>{index === 0 ? '【初始特征】轻巧动作，对场景内 2 个敌人进行攻击，造成少量伤害' : ''}</span>
-              </div>
-            ))}
-          </div>
+          <EditableFeatureTable
+            rows={formationFeatureRows}
+            namePrefix="formationFeatureName"
+            effectPrefix="formationFeatureEffect"
+          />
         </section>
 
         <PdfTable title="特征库" rows={1} className="plainBlock traitLibrary">
@@ -1317,25 +1406,25 @@ function PageThree() {
           <div className="pdfTableTitle">阵法升级</div>
           <div className="upgradeIntro">当你拥有阵法后<br />你每次境界提升时<br />都可以标记一项进行升级</div>
           <div className="upgradeChecks">
-            <PdfCheck label="加固阵法 - 破阵命盘刻度 +1" double />
-            <PdfCheck label="增加机关 - 破阵难度 +1" />
-            <PdfCheck label="修习阵法 - 护阵难度 +1" />
-            <PdfCheck label="阵法反噬 - 当对方破阵命盘未推进成功时，可对其触发一个临时特征（需标记 2 次进行升级）" double />
-            <PdfCheck label="阵法修复 - 轮次结束时，破阵命盘会自动擦除 1 格（需标记 2 次进行升级）" double />
+            <PdfClickableCheck label="加固阵法 - 破阵命盘刻度 +1" double />
+            <PdfClickableCheck label="增加机关 - 破阵难度 +1" />
+            <PdfClickableCheck label="修习阵法 - 护阵难度 +1" />
+            <PdfClickableCheck label="阵法反噬 - 当对方破阵命盘未推进成功时，可对其触发一个临时特征（需标记 2 次进行升级）" double />
+            <PdfClickableCheck label="阵法修复 - 轮次结束时，破阵命盘会自动擦除 1 格（需标记 2 次进行升级）" double />
           </div>
         </section>
 
         <section className="pdfBlock followerBasics">
           <div className="pdfTableTitle">随从·基础信息</div>
-          <div className="formLine"><span>随从名称</span><b /></div>
-          <div className="formLine"><span>检定加值</span><FormulaCell value="2+【 】" /></div>
+          <div className="formLine"><span>随从名称</span><PdfTextInput field="followerName" label="随从名称" /></div>
+          <div className="formLine"><span>检定加值</span><EditableFormulaCell prefix="2+【" field="followerBonus" ariaLabel="随从检定加值" /></div>
           <div className="formLine split wide">
             <span>种类</span>
-            <PdfCheck label="灵兽（血量格扣除完后会对主人造成一次中度伤害）" />
-            <PdfCheck label="傀儡（血量格扣除完时会扣除主人 1 灵气格）" />
+            <PdfClickableCheck label="灵兽（血量格扣除完后会对主人造成一次中度伤害）" />
+            <PdfClickableCheck label="傀儡（血量格扣除完时会扣除主人 1 灵气格）" />
           </div>
-          <div className="formLine"><span>正常血量</span><PdfMarks /></div>
-          <div className="formLine"><span>险境血量</span><PdfMarks /></div>
+          <div className="formLine"><span>正常血量</span><PdfClickableMarks label="正常血量" /></div>
+          <div className="formLine"><span>险境血量</span><PdfClickableMarks label="险境血量" /></div>
           <div className="thresholdBand">
             {['肉体伤害阈值', '神魂伤害阈值'].map((label) => (
               <div key={label}>
@@ -1346,28 +1435,25 @@ function PageThree() {
               </div>
             ))}
           </div>
-          <div className="featureRows followerMoves">
-            {['普攻', '初始神通', '神通壹', '神通贰', '神通叁', '神通肆'].map((label, index) => (
-              <div key={label} className="featureRow">
-                <span>{label}</span>
-                <span />
-                <span>{index === 0 ? '轻巧动作，【核心属性】点伤害，本回合中主人对这个目标的下一次检定具有优势' : index === 1 ? '轻巧动作，【核心属性 +2】点伤害，命中未拆招成功目标，施加【脆弱】（二选一）' : ''}</span>
-              </div>
-            ))}
-          </div>
+          <EditableFeatureTable
+            rows={followerMoveRows}
+            namePrefix="followerMoveName"
+            effectPrefix="followerMoveEffect"
+            className="followerMoves"
+          />
         </section>
 
         <section className="pdfBlock followerUpgrade">
           <div className="pdfTableTitle">随从升级</div>
           <div className="upgradeIntro">当你拥有随从后<br />你每次境界提升时<br />都可以标记一项进行升级</div>
           <div className="upgradeChecks twoCol">
-            <PdfCheck label="血量格 +1" double />
-            <PdfCheck label="获得 1 拆招次数（无需消耗灵气）" />
-            <PdfCheck label="肉体中伤与重伤阈值 +1" />
-            <PdfCheck label="护主 - 当你首次血量归零时，灵兽会保护你" />
-            <PdfCheck label="神魂中伤与重伤阈值 +1" />
-            <PdfCheck label="长休时，与灵兽玩耍交流，并获得 1 辐缘点" />
-            <PdfCheck label="检定值 +1" />
+            <PdfClickableCheck label="血量格 +1" double />
+            <PdfClickableCheck label="获得 1 拆招次数（无需消耗灵气）" />
+            <PdfClickableCheck label="肉体中伤与重伤阈值 +1" />
+            <PdfClickableCheck label="护主 - 当你首次血量归零时，灵兽会保护你" />
+            <PdfClickableCheck label="神魂中伤与重伤阈值 +1" />
+            <PdfClickableCheck label="长休时，与灵兽玩耍交流，并获得 1 辐缘点" />
+            <PdfClickableCheck label="检定值 +1" />
           </div>
         </section>
 
@@ -1378,7 +1464,7 @@ function PageThree() {
             <div><span /><b>名称</b><b>初始能力</b><b>进阶能力</b></div>
             {['凶杀血脉', '灵法血脉', '铁骨血脉', '愈灵血脉', '缚影血脉', '追风血脉'].map((name, index) => (
               <div key={name}>
-                <PdfCheck label="" />
+                <PdfClickableCheck label="" />
                 <span>{name}</span>
                 <span>{['所有伤害 +1', '首次使用神通不扣除主人灵气格', '血量格 +1', '习得神通 - 疗愈', '习得神通 - 缚身', '在一个场景中一次，可携带主人进行一次远距离移动'][index]}</span>
                 <span>{['具有优势时，破置值 -1', '可以从道源神通中学习一个', '首次受到的中度伤害无效', '退场时主人不会受到伤害', '对具有异常状态的敌人检定具有优势', '不受缓速影响'][index]}</span>
@@ -1399,7 +1485,18 @@ function BreakthroughPanel({ title, stages }) {
         {stages.map((stage) => (
           <div key={stage.label} className="stageStep">
             <b>{stage.label.split('').map((char) => <span key={char}>{char}</span>)}</b>
-            <span>{stage.text}</span>
+            {stage.checked ? (
+              <span className="stageTaskList">
+                {stage.text.split('\n').map((line) => (
+                  <span key={line} className="stageTask">
+                    <span className="pdfCheck" />
+                    <span>{line}</span>
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <span>{stage.text}</span>
+            )}
           </div>
         ))}
       </div>
@@ -1434,7 +1531,7 @@ function PageFour() {
           <BreakthroughPanel
             title="练气期"
             stages={[
-              { label: '前期', text: '根据道源选取初始神通与秘法\n根据法门选择 1 张练气期感悟卡' },
+              { label: '前期', text: '根据道源选取初始神通与秘法\n根据法门选择 1 张练气期感悟卡', checked: true },
               { label: '中期', text: '根据道源选取自选神通 1 个\n并选择 1 个练气期凡阶灵宝' },
               { label: '后期', text: '根据法门选择 1 张练气期感悟卡\n根据大道选择 1 个功法' },
             ]}
@@ -1472,7 +1569,9 @@ function PageFive() {
       <main className="pdfPageBody pdfFiveGrid">
         <PdfTable title="灵宝库" rows={4} className="treasureTable" />
         <PdfTable title="已学习技艺列表" rows={2} className="learnedSkills">
-          <div className="emptyLarge" />
+          <div className="learnedSkillRows">
+            {Array.from({ length: 2 }, (_, index) => <div key={index} />)}
+          </div>
         </PdfTable>
         <PdfTable title="储物袋" rows={3} className="bagTable">
           <div className="bagRows">
@@ -1794,9 +1893,27 @@ function App() {
   const [tab, setTab] = useState('p1');
   const [hintOpen, setHintOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
   const [library, setLibrary] = useState(null);
   const [selections, setSelections] = useState({ realm: null, origin: null, source: null, method: null, dao: null });
-  const [texts, setTexts] = useState({ name: '', race: '', belong: '', daoHeart: '', identity: '' });
+  const [texts, setTexts] = useState({
+    name: '',
+    race: '',
+    belong: '',
+    daoHeart: '',
+    identity: '',
+    formationName: '',
+    formationBonus: '',
+    formationGuardDifficulty: '',
+    formationBreakDifficulty: '',
+    formationFeatureName0: '阵攻',
+    formationFeatureEffect0: '【初始特征】轻巧动作，对场景内 2 个敌人进行攻击，造成少量伤害',
+    followerName: '',
+    followerBonus: '',
+    followerMoveEffect0: '轻巧动作，【核心属性】点伤害，本回合中主人对这个目标的下一次检定具有优势',
+    followerMoveEffect1: '轻巧动作，【核心属性 +2】点伤害，命中未拆招成功目标，施加【脆弱】（二选一）',
+  });
   const [attributes, setAttributes] = useState({ '仙躯': '', '身法': '', '神魂': '', '灵蕴': '' });
   const [coreAttribute, setCoreAttribute] = useState(null);
   // 抽卡弹窗目标：{ title, plans } 或 null。drawnTalents 为已填入卡面的天赋 / 天谴。
@@ -1807,6 +1924,7 @@ function App() {
   const [selectedFateTitle, setSelectedFateTitle] = useState(null);
   const [diceEffects, setDiceEffects] = useState(baseDiceEffects);
   const [fortuneOverflow, setFortuneOverflow] = useState(0);
+  const exportPageRefs = useRef({});
 
   const openFateDraw = (title) => {
     const plans = fateDraws[title];
@@ -1883,6 +2001,41 @@ function App() {
     return <PageFive />;
   };
 
+  const renderExportPage = (pageId) => {
+    if (pageId === 'p1') return <PageOne />;
+    if (pageId === 'p2') return <PageTwo />;
+    if (pageId === 'p3') return <PageThree />;
+    if (pageId === 'p4') return <PageFour />;
+    return <PageFive />;
+  };
+
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    setExportError('');
+    setHintOpen(false);
+    setGuideOpen(false);
+
+    try {
+      const visibleSheet = document.querySelector('.stage .sheet');
+      const sheets = pageTabs.map((page) => {
+        if (page.id === tab && visibleSheet) return visibleSheet;
+        return exportPageRefs.current[page.id]?.querySelector('.sheet');
+      }).filter(Boolean);
+
+      if (sheets.length !== pageTabs.length) {
+        throw new Error(`Expected ${pageTabs.length} pages, found ${sheets.length}.`);
+      }
+
+      await exportSheetsAsPdf(sheets, texts.name);
+    } catch (error) {
+      console.error('导出 PDF 失败', error);
+      setExportError(error?.message || '导出失败，请查看控制台错误。');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <SheetContext.Provider value={contextValue}>
       <div className="appShell">
@@ -1911,10 +2064,26 @@ function App() {
             <Settings size={20} strokeWidth={2.2} aria-hidden="true" />
             <span>设置</span>
           </button>
-          <button type="button" className="toolButton" onClick={() => window.print()} aria-label="导出" title="导出">
-            <Download size={20} strokeWidth={2.2} aria-hidden="true" />
-            <span>导出</span>
-          </button>
+          <div className="exportAction">
+            <button
+              type="button"
+              className="toolButton"
+              onClick={handleExport}
+              disabled={exporting}
+              aria-label={exporting ? '正在导出' : '导出'}
+              aria-busy={exporting}
+              aria-describedby={exportError ? 'export-error-popover' : undefined}
+              title={exporting ? '正在导出' : '导出'}
+            >
+              <Download size={20} strokeWidth={2.2} aria-hidden="true" />
+              <span>{exporting ? '生成中' : '导出'}</span>
+            </button>
+            {exportError ? (
+              <aside id="export-error-popover" className="exportErrorPopover" role="alert">
+                导出失败：{exportError}
+              </aside>
+            ) : null}
+          </div>
           <div className="hintAction">
             <button
               type="button"
@@ -1950,6 +2119,24 @@ function App() {
             {guideOpen ? <BuildGuidePopover onClose={() => setGuideOpen(false)} /> : null}
           </div>
         </aside>
+      </div>
+
+      <div className="exportStack" aria-hidden="true" inert>
+        {pageTabs.map((page) => (
+          <div
+            key={page.id}
+            className="exportPage"
+            ref={(node) => {
+              if (node) {
+                exportPageRefs.current[page.id] = node;
+              } else {
+                delete exportPageRefs.current[page.id];
+              }
+            }}
+          >
+            {renderExportPage(page.id)}
+          </div>
+        ))}
       </div>
 
       <ResourceLibrary />
