@@ -22,6 +22,7 @@ import {
   resourceGroups,
   buildGuideSteps,
 } from './data';
+import gameLogo from '../“角色卡2026 0525”文件夹/Links/组 1.png';
 import './style.css';
 
 function getFateState(title) {
@@ -55,6 +56,28 @@ function getFateState(title) {
   return state;
 }
 
+const pdfSpellGroups = [
+  { title: '神通', rows: 3, className: 'pdfTall' },
+  { title: '本源感悟', rows: 2, className: 'pdfTall' },
+  { title: '秘法', rows: 2, className: 'pdfMid' },
+  { title: '感悟', rows: 4, className: 'pdfMid' },
+  { title: '功法', rows: 2, className: 'pdfShort' },
+  { title: '灵宝', rows: 2, className: 'pdfShort' },
+];
+
+const pageTabs = [
+  { id: 'p1', label: '第一页' },
+  { id: 'p2', label: '第二页' },
+  { id: 'p3', label: '第三页' },
+  { id: 'p4', label: '第四页' },
+  { id: 'p5', label: '第五页' },
+];
+
+const selectorPanelHints = {
+  source: '修仙者的“力量源泉”',
+  method: '修仙者使用力量的方式',
+  dao: '修仙者们性格与倾向产生的特殊风格',
+};
 const LIBRARY = {
   realm: { label: '境界', placeholder: '点击选择境界', options: realmOptions },
   origin: { label: '出身', placeholder: '点击选择出身', options: originOptions },
@@ -105,7 +128,68 @@ function ResourceMark({ shape, ariaLabel }) {
       className={`resourceMark ${shape}${filled ? ' resourceFilled' : ''}`}
       onClick={() => setFilled((value) => !value)}
       aria-label={ariaLabel}
-    />
+      aria-pressed={filled}
+    >
+      <ResourceIcon shape={shape} filled={filled} />
+    </button>
+  );
+}
+
+function ResourceIcon({ shape, filled }) {
+  const fill = filled ? '#202020' : '#fff';
+  const stroke = '#202020';
+  const common = {
+    fill,
+    stroke,
+    strokeWidth: 0.75,
+    vectorEffect: 'non-scaling-stroke',
+  };
+
+  if (shape === 'bag') {
+    return (
+      <svg viewBox="0 0 16 18" aria-hidden="true" focusable="false">
+        <path
+          {...common}
+          d="M13.24,5.83c0,3.24-3.12,5.86-6.96,5.86S-.68,9.07-.68,5.83C-.68,3.72,.64,.82,2.63-.95c.18-.16,.43-.25,.68-.25h5.94c.25,0,.49,.09,.68,.25,1.99,1.76,3.32,4.66,3.32,6.77Z"
+          transform="translate(1.72 5.8)"
+        />
+        <path
+          {...common}
+          d="M7.86,1.14c0,.36-.22,.92-.49,1.48-.14,.3-.5,.49-.89,.49H1.67c-.4,0-.76-.2-.9-.51-.22-.47-.39-.98-.39-1.43,0-.41,.38-.77,.88-.79,.4-.02,.74,.16,.9,.43,.04,.06,.14,.06,.18,0,.15-.25,.47-.43,.85-.43s.69,.17,.85,.43c.04,.06,.14,.06,.18,0,.15-.25,.47-.43,.85-.43s.69,.17,.85,.43c.04,.06,.14,.06,.18,0,.15-.25,.47-.43,.85-.43,.52,0,.94,.34,.94,.76Z"
+          transform="translate(3.9 1.1)"
+        />
+      </svg>
+    );
+  }
+
+  if (shape === 'square') {
+    return (
+      <svg viewBox="0 0 15.92 15.91" aria-hidden="true" focusable="false">
+        <path {...common} d="M3.21,.38h9.5c1.56,0,2.83,1.27,2.83,2.83v9.5c0,1.56-1.27,2.84-2.84,2.84H3.21c-1.56,0-2.84-1.27-2.84-2.84V3.21C.38,1.65,1.65,.38,3.21,.38Z" />
+      </svg>
+    );
+  }
+
+  if (shape === 'triangle') {
+    return (
+      <svg viewBox="0 0 15.92 15.91" aria-hidden="true" focusable="false">
+        <polygon {...common} points="3.21 .38 3.21 3.21 .38 3.21 .38 12.71 3.21 12.71 3.21 15.54 12.71 15.54 12.71 12.71 15.54 12.71 15.54 3.21 12.71 3.21 12.71 .38 3.21 .38" />
+      </svg>
+    );
+  }
+
+  if (shape === 'star') {
+    return (
+      <svg viewBox="0 0 15.91 15.91" aria-hidden="true" focusable="false">
+        <polygon {...common} points="6.04 .38 6.04 4.16 2.26 4.16 2.26 2.27 4.15 2.27 4.15 6.04 .38 6.04 .38 9.87 4.15 9.87 4.15 13.65 2.26 13.65 2.26 11.76 6.04 11.76 6.04 15.54 9.87 15.54 9.87 11.76 13.65 11.76 13.65 13.65 11.76 13.65 11.76 9.87 15.54 9.87 15.54 6.04 11.76 6.04 11.76 2.27 13.65 2.27 13.65 4.16 9.87 4.16 9.87 .38 6.04 .38" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 14.92 14.92" aria-hidden="true" focusable="false">
+      <path {...common} d="M7.46,14.55c3.91,0,7.09-3.17,7.09-7.09S11.38,.38,7.46,.38,.38,3.55,.38,7.46s3.17,7.09,7.09,7.09Z" />
+    </svg>
   );
 }
 
@@ -425,9 +509,14 @@ function TextPanel({ title, hint, content, vertical = false }) {
 
 // 竖排的资源库选择面板（道源 / 法门 / 大道）。
 function SelectorPanel({ title, category, vertical = false }) {
+  const hint = selectorPanelHints[category];
+
   return (
     <section className={`panel textPanel selectorPanel${vertical ? ' vertical' : ''}`}>
-      <div className="panelTitle">{title}</div>
+      <div className="panelTitle">
+        <span>{title}</span>
+        {hint ? <small>{hint}</small> : null}
+      </div>
       <div className="textPanelBody">
         <SelectorBox category={category} />
       </div>
@@ -1099,6 +1188,63 @@ function SpellTable({ title, rows, tall = false, variant = '', prefill = [] }) {
   );
 }
 
+function PdfSheetHeader({ title = '角色卡 - 基础信息' }) {
+  return (
+    <header className="pdfSheetHeader">
+      <img src={gameLogo} alt="逆命仙途" className="pdfLogo" />
+      <h1>{title}</h1>
+    </header>
+  );
+}
+
+function PdfTable({ title, rows, prefill = [], className = '', children }) {
+  return (
+    <section className={`pdfTable ${className}`.trim()} style={{ '--rows': rows }}>
+      <div className="pdfTableTitle">{title}</div>
+      {children || (
+        <>
+          <div className="pdfTableHead">
+            <span>名称</span>
+            <span>效果</span>
+          </div>
+          {Array.from({ length: rows }, (_, index) => {
+            const entry = prefill[index];
+            return (
+              <div key={index} className="pdfTableRow">
+                <div>{entry?.name || ''}</div>
+                <div>{entry?.text || ''}</div>
+              </div>
+            );
+          })}
+        </>
+      )}
+    </section>
+  );
+}
+
+function PdfCheck({ label, double = false }) {
+  return (
+    <span className="pdfCheckLine">
+      <span className="pdfCheck" />
+      {double ? <span className="pdfCheck" /> : null}
+      {label ? <span>{label}</span> : null}
+    </span>
+  );
+}
+
+function PdfMarks({ solid = 3, ghost = 3 }) {
+  return (
+    <span className="pdfMarks">
+      {Array.from({ length: solid }, (_, index) => <span key={`s-${index}`} />)}
+      {Array.from({ length: ghost }, (_, index) => <span key={`g-${index}`} className="ghost" />)}
+    </span>
+  );
+}
+
+function FormulaCell({ value }) {
+  return <span className="formulaCell">{value}</span>;
+}
+
 function PageTwo() {
   const { current } = useSheet();
   const source = current.source;
@@ -1107,23 +1253,237 @@ function PageTwo() {
   const selectedInsights = method ? [getFirstRealmInsight(method, realm)].filter(Boolean) : [];
 
   const prefillFor = (title) => {
-    if (title === '神通') return source ? source.skills.slice(0, 1) : [];
-    if (title === '秘法') return source ? source.arts.slice(0, 1) : [];
+    if (title === '神通') return source ? source.skills.slice(0, 3) : [];
+    if (title === '秘法') return source ? source.arts.slice(0, 2) : [];
+    if (title === '感悟') return selectedInsights;
     return [];
   };
 
   return (
-    <div className="sheet sheetPageTwo">
-      <SheetHeader title="角色卡 - 术法信息" />
-      <main className="pageTwoLayout">
-        <section className="spellColumn">
-          {spellGroups.map(({ title, rows }) => (
-            <SpellTable key={title} title={title} rows={rows} prefill={prefillFor(title)} />
-          ))}
+    <div className="sheet pdfSheet sheetPageTwo">
+      <PdfSheetHeader />
+      <main className="pdfPageBody pdfTwoGrid">
+        {pdfSpellGroups.map(({ title, rows, className }) => (
+          <PdfTable
+            key={title}
+            title={title}
+            rows={rows}
+            className={className}
+            prefill={prefillFor(title)}
+          />
+        ))}
+      </main>
+    </div>
+  );
+}
+
+function PageThree() {
+  return (
+    <div className="sheet pdfSheet">
+      <PdfSheetHeader />
+      <main className="pdfPageBody pdfThreeGrid">
+        <section className="pdfBlock formationBasics">
+          <div className="pdfTableTitle">阵法·基础信息</div>
+          <div className="formLine"><span>阵法名称</span><b /></div>
+          <div className="formLine"><span>检定加值</span><b /></div>
+          <div className="formLine split">
+            <span>护阵难度</span><FormulaCell value="9+【 】" />
+            <span>破阵难度</span><FormulaCell value="10+【 】" />
+          </div>
+          <div className="formationLife">
+            <span>破阵命盘</span>
+            <div>
+              <PdfMarks solid={4} ghost={2} />
+              <p>当破阵命盘被对方推进后，所有的临时特征会暂时失效</p>
+              <p>你可以通过推进动作将破阵命盘独立刻度擦除，并重新将所有临时特征激活</p>
+            </div>
+          </div>
+          <div className="featureRows">
+            {['固定特征壹', '固定特征贰', '临时特征壹', '临时特征贰', '临时特征叁', '临时特征肆'].map((label, index) => (
+              <div key={label} className="featureRow">
+                <span>{label}</span>
+                <span>{index === 0 ? '阵攻' : ''}</span>
+                <span>{index === 0 ? '【初始特征】轻巧动作，对场景内 2 个敌人进行攻击，造成少量伤害' : ''}</span>
+              </div>
+            ))}
+          </div>
         </section>
-        <section className="spellColumn right">
-          <SpellTable title="本源感悟" rows={2} variant="originInsight" />
-          <SpellTable title="感悟" rows={4} variant="insightTable" prefill={selectedInsights} />
+
+        <PdfTable title="特征库" rows={1} className="plainBlock traitLibrary">
+          <div className="emptyLarge" />
+        </PdfTable>
+
+        <section className="pdfBlock upgradeBlock">
+          <div className="pdfTableTitle">阵法升级</div>
+          <div className="upgradeIntro">当你拥有阵法后<br />你每次境界提升时<br />都可以标记一项进行升级</div>
+          <div className="upgradeChecks">
+            <PdfCheck label="加固阵法 - 破阵命盘刻度 +1" double />
+            <PdfCheck label="增加机关 - 破阵难度 +1" />
+            <PdfCheck label="修习阵法 - 护阵难度 +1" />
+            <PdfCheck label="阵法反噬 - 当对方破阵命盘未推进成功时，可对其触发一个临时特征（需标记 2 次进行升级）" double />
+            <PdfCheck label="阵法修复 - 轮次结束时，破阵命盘会自动擦除 1 格（需标记 2 次进行升级）" double />
+          </div>
+        </section>
+
+        <section className="pdfBlock followerBasics">
+          <div className="pdfTableTitle">随从·基础信息</div>
+          <div className="formLine"><span>随从名称</span><b /></div>
+          <div className="formLine"><span>检定加值</span><FormulaCell value="2+【 】" /></div>
+          <div className="formLine split wide">
+            <span>种类</span>
+            <PdfCheck label="灵兽（血量格扣除完后会对主人造成一次中度伤害）" />
+            <PdfCheck label="傀儡（血量格扣除完时会扣除主人 1 灵气格）" />
+          </div>
+          <div className="formLine"><span>正常血量</span><PdfMarks /></div>
+          <div className="formLine"><span>险境血量</span><PdfMarks /></div>
+          <div className="thresholdBand">
+            {['肉体伤害阈值', '神魂伤害阈值'].map((label) => (
+              <div key={label}>
+                <span>{label}</span>
+                <b>无伤害</b><em>轻伤 <FormulaCell value="5+【 】" /></em><b>1 血量格</b>
+                <em>中伤 <FormulaCell value="7+【 】" /></em><b>2 血量格</b>
+                <em>重伤 <FormulaCell value="11+【 】" /></em><b>3 血量格</b>
+              </div>
+            ))}
+          </div>
+          <div className="featureRows followerMoves">
+            {['普攻', '初始神通', '神通壹', '神通贰', '神通叁', '神通肆'].map((label, index) => (
+              <div key={label} className="featureRow">
+                <span>{label}</span>
+                <span />
+                <span>{index === 0 ? '轻巧动作，【核心属性】点伤害，本回合中主人对这个目标的下一次检定具有优势' : index === 1 ? '轻巧动作，【核心属性 +2】点伤害，命中未拆招成功目标，施加【脆弱】（二选一）' : ''}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="pdfBlock followerUpgrade">
+          <div className="pdfTableTitle">随从升级</div>
+          <div className="upgradeIntro">当你拥有随从后<br />你每次境界提升时<br />都可以标记一项进行升级</div>
+          <div className="upgradeChecks twoCol">
+            <PdfCheck label="血量格 +1" double />
+            <PdfCheck label="获得 1 拆招次数（无需消耗灵气）" />
+            <PdfCheck label="肉体中伤与重伤阈值 +1" />
+            <PdfCheck label="护主 - 当你首次血量归零时，灵兽会保护你" />
+            <PdfCheck label="神魂中伤与重伤阈值 +1" />
+            <PdfCheck label="长休时，与灵兽玩耍交流，并获得 1 辐缘点" />
+            <PdfCheck label="检定值 +1" />
+          </div>
+        </section>
+
+        <section className="pdfBlock bloodlineBlock">
+          <div className="pdfTableTitle">灵兽血脉</div>
+          <div className="bloodlineNote">你的兽修精进时<br />灵兽的血脉就会进行一次血脉升级<br />创建你的本命灵兽时<br />选择血脉并获取增益</div>
+          <div className="bloodlineTable">
+            <div><span /><b>名称</b><b>初始能力</b><b>进阶能力</b></div>
+            {['凶杀血脉', '灵法血脉', '铁骨血脉', '愈灵血脉', '缚影血脉', '追风血脉'].map((name, index) => (
+              <div key={name}>
+                <PdfCheck label="" />
+                <span>{name}</span>
+                <span>{['所有伤害 +1', '首次使用神通不扣除主人灵气格', '血量格 +1', '习得神通 - 疗愈', '习得神通 - 缚身', '在一个场景中一次，可携带主人进行一次远距离移动'][index]}</span>
+                <span>{['具有优势时，破置值 -1', '可以从道源神通中学习一个', '首次受到的中度伤害无效', '退场时主人不会受到伤害', '对具有异常状态的敌人检定具有优势', '不受缓速影响'][index]}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function BreakthroughPanel({ title, stages }) {
+  return (
+    <section className="breakthroughPanel">
+      <div className="breakthroughStage">
+        <strong>{title}</strong>
+        {stages.map((stage) => (
+          <div key={stage.label} className="stageStep">
+            <b>{stage.label.split('').map((char) => <span key={char}>{char}</span>)}</b>
+            <span>{stage.text}</span>
+          </div>
+        ))}
+      </div>
+      <div className="breakthroughSeal">突破</div>
+      <div className="breakthroughResult">
+        <div className="resultPrimary">
+          境界提升至{title === '练气期' ? '筑基前期' : '金丹前期'}，境界乘值 +1<br />
+          将灵气上限增加 1 格<br />
+          根据已修习的法门选择 1 张本源感悟卡<br />
+          核心属性 +1<br />所有阈值 +3<br />灵气格 +2<br />升级你的法门至进阶
+        </div>
+        <div className="resultChecks">
+          <PdfCheck label="正常血量格 +1 并所有中伤阈值 +1" />
+          <PdfCheck label="将两个非核心属性 +1" />
+          <PdfCheck label="险境血量格 +1 并所有重伤阈值 +1" />
+          <PdfCheck label={`获取一个${title === '练气期' ? '练气期' : '筑基期'}凡阶灵宝`} />
+          <PdfCheck label="灵气格 +1" />
+          <PdfCheck label="储物格 +1" />
+          <PdfCheck label="不再升级法门，改为修习额外一个法门" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PageFour() {
+  return (
+    <div className="sheet pdfSheet">
+      <PdfSheetHeader />
+      <main className="pdfPageBody pdfFourGrid">
+        <div className="breakthroughStack">
+          <BreakthroughPanel
+            title="练气期"
+            stages={[
+              { label: '前期', text: '根据道源选取初始神通与秘法\n根据法门选择 1 张练气期感悟卡' },
+              { label: '中期', text: '根据道源选取自选神通 1 个\n并选择 1 个练气期凡阶灵宝' },
+              { label: '后期', text: '根据法门选择 1 张练气期感悟卡\n根据大道选择 1 个功法' },
+            ]}
+          />
+          <BreakthroughPanel
+            title="筑基期"
+            stages={[
+              { label: '前期', text: '根据法门选择 1 张筑基期感悟卡\n并选择 1 个灵宝' },
+              { label: '中期', text: '根据道源选取自选神通与秘法各 1 个' },
+              { label: '后期', text: '根据法门选择 1 张筑基期感悟卡\n根据大道选择 1 个筑基期功法' },
+            ]}
+          />
+        </div>
+        <div className="pdfBlankHalf" />
+      </main>
+    </div>
+  );
+}
+
+function CraftCard() {
+  return (
+    <section className="craftCard">
+      <div><span>名称</span><b /></div>
+      <div><span>效果</span><b /></div>
+      <div><span>总进度</span><b /></div>
+      <div><span>当前进度</span><b /></div>
+    </section>
+  );
+}
+
+function PageFive() {
+  return (
+    <div className="sheet pdfSheet">
+      <PdfSheetHeader />
+      <main className="pdfPageBody pdfFiveGrid">
+        <PdfTable title="灵宝库" rows={4} className="treasureTable" />
+        <PdfTable title="已学习技艺列表" rows={2} className="learnedSkills">
+          <div className="emptyLarge" />
+        </PdfTable>
+        <PdfTable title="储物袋" rows={3} className="bagTable">
+          <div className="bagRows">
+            {Array.from({ length: 3 }, (_, index) => <div key={index} />)}
+          </div>
+        </PdfTable>
+        <section className="craftsPanel">
+          <div className="craftsTitle">技艺造物</div>
+          <div className="craftList">
+            {Array.from({ length: 4 }, (_, index) => <CraftCard key={index} />)}
+          </div>
         </section>
       </main>
     </div>
@@ -1515,31 +1875,34 @@ function App() {
     setGuideOpen(false);
   };
 
+  const renderPage = () => {
+    if (tab === 'p1') return <PageOne />;
+    if (tab === 'p2') return <PageTwo />;
+    if (tab === 'p3') return <PageThree />;
+    if (tab === 'p4') return <PageFour />;
+    return <PageFive />;
+  };
+
   return (
     <SheetContext.Provider value={contextValue}>
       <div className="appShell">
         <nav className="pageTabs" aria-label="页面">
-          <button
-            type="button"
-            onClick={() => switchTab('p1')}
-            className={tab === 'p1' ? 'on' : ''}
-            aria-current={tab === 'p1' ? 'page' : undefined}
-          >
-            第一页
-          </button>
-          <button
-            type="button"
-            onClick={() => switchTab('p2')}
-            className={tab === 'p2' ? 'on' : ''}
-            aria-current={tab === 'p2' ? 'page' : undefined}
-          >
-            第二页
-          </button>
+          {pageTabs.map((page) => (
+            <button
+              key={page.id}
+              type="button"
+              onClick={() => switchTab(page.id)}
+              className={tab === page.id ? 'on' : ''}
+              aria-current={tab === page.id ? 'page' : undefined}
+            >
+              {page.label}
+            </button>
+          ))}
         </nav>
 
         <div className="stage">
           <div className="sheetScaler">
-            {tab === 'p1' ? <PageOne /> : <PageTwo />}
+            {renderPage()}
           </div>
         </div>
 

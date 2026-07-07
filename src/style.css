@@ -2403,6 +2403,8 @@ body {
 
 .resourceStrip {
   grid-template-columns: 66px repeat(5, minmax(0, 1fr));
+  min-height: 0;
+  overflow: hidden;
 }
 
 .resourceRail {
@@ -2411,16 +2413,17 @@ body {
 
 .resourceGroup {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 18px minmax(0, 1fr);
+  grid-template-rows: 15px minmax(0, 1fr);
   gap: 2px;
-  padding: 2px 8px 5px;
+  padding: 1px 8px 2px;
   align-items: stretch;
+  min-height: 0;
 }
 
 .resourceGroup strong {
   display: grid;
   place-items: center;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
 }
 
@@ -2429,104 +2432,42 @@ body {
   grid-template-columns: repeat(var(--resource-columns, 5), max-content);
   grid-auto-rows: max-content;
   place-content: center;
-  gap: 5px 7px;
+  gap: 2px 7px;
+  min-height: 0;
 }
 
 .resourceMark {
-  display: block;
-  width: 18px;
-  height: 18px;
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
   padding: 0;
-  border: 1.7px solid #202020;
-  background: #fff;
+  border: 0;
+  background: transparent;
   appearance: none;
   cursor: pointer;
   line-height: 0;
 }
 
-.resourceMark.circle {
-  border-radius: 999px;
+.resourceMark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 .resourceMark.bag {
-  position: relative;
-  border-radius: 30% 30% 42% 42%;
+  height: 21px;
 }
 
-.resourceMark.bag::before {
-  content: "";
-  position: absolute;
-  left: 3px;
-  right: 3px;
-  top: -5px;
-  height: 5px;
-  border: 1.5px solid #202020;
-  border-bottom: 0;
-  border-radius: 8px 8px 0 0;
-  background: #fff;
+.resourceMark:hover svg,
+.resourceMark:focus-visible svg {
+  filter: drop-shadow(0 0 0 #202020);
 }
 
-.resourceMark.resourceFilled {
-  background: #202020;
-}
-
-.resourceMark.resourceFilled.bag::before {
-  background: #202020;
-}
-
-.resourceMark.square {
-  border-radius: 3px;
-}
-
-.resourceMark.triangle,
-.resourceMark.star {
-  position: relative;
-  border: 0;
-  background: transparent;
-}
-
-.resourceMark.triangle::before,
-.resourceMark.triangle::after,
-.resourceMark.star::before,
-.resourceMark.star::after {
-  content: "";
-  position: absolute;
-  display: block;
-  pointer-events: none;
-}
-
-.resourceMark.triangle::before,
-.resourceMark.star::before {
-  inset: 0;
-  background: #202020;
-}
-
-.resourceMark.triangle::after,
-.resourceMark.star::after {
-  background: #fff;
-}
-
-.resourceMark.triangle::before {
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
-}
-
-.resourceMark.triangle::after {
-  inset: 3px 2.5px 2px;
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
-}
-
-.resourceMark.star::before {
-  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 56%, 79% 91%, 50% 70%, 21% 91%, 32% 56%, 2% 35%, 39% 35%);
-}
-
-.resourceMark.star::after {
-  inset: 3px;
-  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 56%, 79% 91%, 50% 70%, 21% 91%, 32% 56%, 2% 35%, 39% 35%);
-}
-
-.resourceMark.resourceFilled.triangle::after,
-.resourceMark.resourceFilled.star::after {
-  background: #202020;
+.resourceMark:focus-visible {
+  outline: 2px solid #16864d;
+  outline-offset: 2px;
 }
 
 .rightPane {
@@ -3020,6 +2961,28 @@ body {
 }
 
 /* 竖排资源库面板（道源 / 法门 / 大道）：内容区居中放置方块 */
+.selectorPanel .panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.selectorPanel .panelTitle > span {
+  flex: 0 0 auto;
+}
+
+.selectorPanel .panelTitle small {
+  min-width: 0;
+  color: #7c7774;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .selectorPanel .textPanelBody {
   display: grid;
   place-items: center;
@@ -4103,4 +4066,688 @@ body {
 
 .spellColumn.right {
   grid-template-rows: minmax(0, 0.94fr) minmax(0, 2fr);
+}
+
+/* ===== PDF imported pages ===== */
+.pdfSheet {
+  --pdf-line: #eeeeee;
+  --pdf-soft: #e9e9e9;
+  --pdf-dark: #231f20;
+  display: grid;
+  grid-template-rows: 64px minmax(0, 1fr);
+  height: 1245px;
+  padding: 22px;
+  border: 0;
+  background: #fff;
+  color: #181818;
+  box-shadow: 0 14px 40px #00000022;
+}
+
+.pdfSheetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 0 24px 0 10px;
+  background: var(--pdf-dark);
+  color: #fff;
+}
+
+.pdfLogo {
+  width: 124px;
+  height: 48px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.pdfSheetHeader h1 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.pdfPageBody {
+  min-height: 0;
+  padding-top: 8px;
+}
+
+.pdfTwoGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1.14fr) minmax(0, 1.08fr) minmax(0, 0.7fr);
+  gap: 0 44px;
+}
+
+.pdfTable {
+  position: relative;
+  display: grid;
+  grid-template-rows: 36px 28px repeat(var(--rows), minmax(0, 1fr));
+  min-height: 0;
+  border: 3px solid var(--pdf-line);
+  background: #fff;
+  overflow: visible;
+}
+
+.pdfTable::before,
+.pdfTable::after {
+  content: "";
+  position: absolute;
+  right: -10px;
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.pdfTable::before {
+  top: -9px;
+}
+
+.pdfTable::after {
+  bottom: -9px;
+}
+
+.pdfTableTitle {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  background: var(--pdf-soft);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.pdfTableHead,
+.pdfTableRow {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  min-height: 0;
+}
+
+.pdfTableHead {
+  color: #777;
+  font-size: 15px;
+}
+
+.pdfTableHead span,
+.pdfTableRow > div {
+  display: flex;
+  align-items: start;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 6px 10px;
+  border-top: 3px solid var(--pdf-line);
+  border-right: 3px solid var(--pdf-line);
+  line-height: 1.35;
+}
+
+.pdfTableRow > div {
+  justify-content: flex-start;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.pdfTableRow > div:first-child {
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.pdfTableHead span:last-child,
+.pdfTableRow > div:last-child {
+  border-right: 0;
+}
+
+.pdfShort {
+  grid-template-rows: 36px 28px repeat(var(--rows), minmax(0, 1fr));
+}
+
+.pdfThreeGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1.45fr) minmax(0, 0.72fr) minmax(0, 0.92fr);
+  grid-template-areas:
+    "formation follower"
+    "traits followerUpgrade"
+    "formationUpgrade bloodline";
+  gap: 0 44px;
+}
+
+.formationBasics {
+  grid-area: formation;
+}
+
+.traitLibrary {
+  grid-area: traits;
+}
+
+.upgradeBlock {
+  grid-area: formationUpgrade;
+}
+
+.followerBasics {
+  grid-area: follower;
+}
+
+.followerUpgrade {
+  grid-area: followerUpgrade;
+}
+
+.bloodlineBlock {
+  grid-area: bloodline;
+}
+
+.pdfBlock {
+  min-height: 0;
+  border: 3px solid var(--pdf-line);
+  background: #fff;
+  overflow: hidden;
+}
+
+.formationBasics,
+.followerBasics,
+.upgradeBlock,
+.followerUpgrade,
+.bloodlineBlock {
+  display: grid;
+  grid-template-rows: 36px auto;
+}
+
+.formLine,
+.formationLife,
+.featureRow {
+  display: grid;
+  min-height: 34px;
+  border-top: 3px solid var(--pdf-line);
+}
+
+.formLine {
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+}
+
+.formLine > span:first-child,
+.formationLife > span,
+.featureRow > span:first-child {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  border-right: 3px solid var(--pdf-line);
+  color: #444;
+  font-size: 15px;
+}
+
+.formLine b {
+  min-height: 100%;
+}
+
+.formLine.split {
+  grid-template-columns: 96px 160px 96px minmax(0, 1fr);
+}
+
+.formLine.split.wide {
+  grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.formulaCell {
+  display: inline-grid;
+  place-items: center;
+  min-width: 72px;
+  min-height: 26px;
+  padding: 0 8px;
+  background: #fff;
+  font-weight: 800;
+}
+
+.formationLife {
+  grid-template-columns: 96px minmax(0, 1fr);
+  min-height: 118px;
+}
+
+.formationLife > div {
+  padding: 14px;
+}
+
+.formationLife p {
+  margin: 7px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pdfMarks {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 10px;
+}
+
+.pdfMarks span,
+.pdfCheck {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #333;
+  background: #fff;
+  vertical-align: middle;
+}
+
+.pdfMarks .ghost {
+  border-style: dotted;
+  border-color: #9a9a9a;
+}
+
+.featureRows {
+  display: grid;
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.featureRow {
+  grid-template-columns: 96px 120px minmax(0, 1fr);
+  min-height: 0;
+}
+
+.featureRow > span {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 7px 10px;
+  border-right: 3px solid var(--pdf-line);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.featureRow > span:last-child {
+  border-right: 0;
+}
+
+.plainBlock {
+  grid-template-rows: 36px minmax(0, 1fr);
+}
+
+.emptyLarge {
+  min-height: 0;
+}
+
+.upgradeBlock,
+.followerUpgrade {
+  grid-template-columns: 31% minmax(0, 1fr);
+  grid-template-rows: 36px minmax(0, 1fr);
+}
+
+.upgradeBlock .pdfTableTitle,
+.followerUpgrade .pdfTableTitle {
+  grid-column: 1 / -1;
+}
+
+.upgradeIntro,
+.bloodlineNote {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  border-top: 3px solid var(--pdf-line);
+  border-right: 3px solid var(--pdf-line);
+  color: #777;
+  font-size: 15px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.upgradeChecks {
+  display: grid;
+  align-content: center;
+  gap: 10px 28px;
+  padding: 22px 36px;
+  border-top: 3px solid var(--pdf-line);
+}
+
+.upgradeChecks.twoCol {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pdfCheckLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.pdfCheckLine .pdfCheck {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+
+.followerBasics {
+  grid-template-rows: 36px repeat(5, 34px) 116px minmax(0, 1fr);
+}
+
+.thresholdBand {
+  display: grid;
+  grid-template-rows: repeat(2, 1fr);
+  border-top: 3px solid var(--pdf-line);
+}
+
+.thresholdBand > div {
+  display: grid;
+  grid-template-columns: 118px repeat(7, minmax(0, 1fr));
+  align-items: stretch;
+  border-bottom: 3px solid var(--pdf-line);
+}
+
+.thresholdBand > div:last-child {
+  border-bottom: 0;
+}
+
+.thresholdBand span,
+.thresholdBand b,
+.thresholdBand em {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 2px 6px;
+  border-right: 3px solid var(--pdf-line);
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.thresholdBand b {
+  background: #5a5a5a;
+  color: #fff;
+}
+
+.thresholdBand em {
+  background: #d8d8d8;
+}
+
+.thresholdBand > div > *:last-child {
+  border-right: 0;
+}
+
+.followerMoves {
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+}
+
+.bloodlineBlock {
+  grid-template-columns: 24% minmax(0, 1fr);
+  grid-template-rows: 36px minmax(0, 1fr);
+}
+
+.bloodlineBlock .pdfTableTitle {
+  grid-column: 1 / -1;
+}
+
+.bloodlineTable {
+  display: grid;
+  grid-template-rows: 30px repeat(6, minmax(0, 1fr));
+  min-height: 0;
+  border-top: 3px solid var(--pdf-line);
+}
+
+.bloodlineTable > div {
+  display: grid;
+  grid-template-columns: 42px 110px minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 0;
+  border-bottom: 3px solid var(--pdf-line);
+}
+
+.bloodlineTable > div:last-child {
+  border-bottom: 0;
+}
+
+.bloodlineTable span,
+.bloodlineTable b,
+.bloodlineTable .pdfCheckLine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 5px 8px;
+  border-right: 3px solid var(--pdf-line);
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.bloodlineTable .pdfCheckLine {
+  padding: 0;
+}
+
+.bloodlineTable .pdfCheckLine .pdfCheck {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid #333;
+  background: #fff;
+}
+
+.bloodlineTable > div > *:last-child {
+  border-right: 0;
+}
+
+.pdfFourGrid {
+  display: grid;
+  grid-template-columns: 49% minmax(0, 1fr);
+  gap: 44px;
+}
+
+.breakthroughStack {
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-height: 0;
+}
+
+.breakthroughPanel {
+  display: grid;
+  grid-template-columns: 42% 13% minmax(0, 1fr);
+  min-height: 0;
+  border: 6px solid #3d3d3d;
+  background: #fff;
+}
+
+.breakthroughStage {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  background: #3e3e3e;
+  color: #fff;
+}
+
+.breakthroughStage > strong {
+  grid-row: 1 / -1;
+  display: grid;
+  place-items: center;
+  border-right: 2px solid #777;
+  font-family: var(--font-serif);
+  font-size: 46px;
+  line-height: 1.12;
+  writing-mode: vertical-rl;
+}
+
+.stageStep {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 18px 18px 18px 54px;
+  border-bottom: 2px solid #777;
+  text-align: center;
+}
+
+.stageStep:last-child {
+  border-bottom: 0;
+}
+
+.stageStep b {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  display: grid;
+  grid-auto-rows: min-content;
+  justify-items: center;
+  color: rgba(255, 255, 255, 0.18);
+  font-family: var(--font-serif);
+  font-size: 45px;
+  line-height: 0.86;
+  transform: translateY(-50%);
+  writing-mode: horizontal-tb;
+  pointer-events: none;
+  user-select: none;
+}
+
+.stageStep b span {
+  position: static;
+  white-space: nowrap;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.stageStep > span {
+  position: relative;
+  white-space: pre-line;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.breakthroughSeal {
+  display: grid;
+  place-items: center;
+  margin: 22px 10px;
+  border-radius: 999px;
+  background: #3a3a3a;
+  color: #fff;
+  font-family: var(--font-serif);
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1;
+  writing-mode: vertical-rl;
+}
+
+.breakthroughResult {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  border-left: 2px solid #ececec;
+}
+
+.resultPrimary,
+.resultChecks {
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  border-bottom: 3px solid #f0f0f0;
+  font-size: 15px;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.resultChecks {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  place-items: center start;
+  gap: 8px 16px;
+  text-align: left;
+}
+
+.pdfBlankHalf {
+  background: #fff;
+}
+
+.pdfFiveGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 0.74fr) minmax(0, 1.78fr);
+  gap: 28px 44px;
+}
+
+.treasureTable {
+  grid-template-rows: 36px 28px repeat(4, minmax(0, 1fr));
+}
+
+.learnedSkills {
+  grid-template-rows: 36px minmax(0, 1fr);
+}
+
+.bagTable {
+  grid-template-rows: 36px minmax(0, 1fr);
+}
+
+.bagRows {
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.bagRows > div {
+  border-top: 3px solid var(--pdf-line);
+}
+
+.craftsPanel {
+  display: grid;
+  grid-template-rows: 48px minmax(0, 1fr);
+  min-height: 0;
+}
+
+.craftsTitle {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.craftList {
+  display: grid;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 30px;
+  min-height: 0;
+}
+
+.craftCard {
+  display: grid;
+  grid-template-rows: 28px minmax(0, 1fr) 30px 30px;
+  min-height: 0;
+  border: 3px solid var(--pdf-line);
+}
+
+.craftCard > div {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  border-bottom: 3px solid var(--pdf-line);
+}
+
+.craftCard > div:last-child {
+  border-bottom: 0;
+}
+
+.craftCard span {
+  display: grid;
+  place-items: center;
+  border-right: 3px solid var(--pdf-line);
+  color: #777;
+  font-size: 14px;
+}
+
+@media screen {
+  .pdfSheet {
+    width: 1760px;
+    height: 1245px;
+  }
+}
+
+@media print {
+  .pdfSheet {
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    box-shadow: none;
+    break-after: page;
+  }
 }
