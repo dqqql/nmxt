@@ -22,7 +22,7 @@ import {
   resourceGroups,
   buildGuideSteps,
 } from './data';
-import gameLogo from '../“角色卡2026 0525”文件夹/Links/组 1.png';
+import gameLogo from './assets/game-logo.png';
 import './style.css';
 
 function getFateState(title) {
