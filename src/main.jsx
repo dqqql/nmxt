@@ -1,6 +1,6 @@
 import React, { useState, useContext, createContext, useEffect, useLayoutEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChevronLeft, ChevronRight, CircleAlert, Download, Info, ListChecks, Minus, Plus, Settings, Star, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleAlert, Info, ListChecks, Minus, Plus, Printer, Settings, Star, X } from 'lucide-react';
 import {
   realmOptions,
   originOptions,
@@ -23,7 +23,13 @@ import {
   buildGuideSteps,
 } from './data';
 import gameLogo from './assets/game-logo.png';
-import { exportSheetsAsPdf } from './exportPdf';
+import { attachPrintLifecycle, printSheetsWithBrowser } from './exportPdf';
+import {
+  createMarkState,
+  toggleMarkFilled,
+  toggleMarkGhost,
+  updateKeyedMarkState,
+} from './interactiveState';
 import './style.css';
 
 function getFateState(title) {
@@ -93,20 +99,32 @@ function useSheet() {
   return useContext(SheetContext);
 }
 
-function ClickableMark({ initialState = 'solid', ariaLabel = '方格', allowGhost = true }) {
-  const [state, setState] = useState({
-    filled: initialState === 'filled',
-    ghost: initialState === 'ghost',
-  });
+function ClickableMark({ id, initialState = 'solid', ariaLabel = '方格', allowGhost = true }) {
+  const { markStates, setMarkStates } = useSheet();
+  const [localState, setLocalState] = useState(createMarkState(initialState));
+  const state = id ? (markStates[id] || createMarkState(initialState)) : localState;
 
   const toggleFilled = () => {
-    setState((value) => ({ ...value, filled: !value.filled }));
+    if (id) {
+      setMarkStates((store) => updateKeyedMarkState(store, id, initialState, toggleMarkFilled));
+      return;
+    }
+    setLocalState(toggleMarkFilled);
   };
 
   const toggleGhost = (event) => {
     event.preventDefault();
     if (!allowGhost) return;
-    setState((value) => ({ ...value, ghost: !value.ghost }));
+    if (id) {
+      setMarkStates((store) => updateKeyedMarkState(
+        store,
+        id,
+        initialState,
+        (value) => toggleMarkGhost(value, allowGhost),
+      ));
+      return;
+    }
+    setLocalState((value) => toggleMarkGhost(value, allowGhost));
   };
 
   return (
@@ -120,14 +138,24 @@ function ClickableMark({ initialState = 'solid', ariaLabel = '方格', allowGhos
   );
 }
 
-function ResourceMark({ shape, ariaLabel }) {
-  const [filled, setFilled] = useState(false);
+function ResourceMark({ id, shape, ariaLabel }) {
+  const { markStates, setMarkStates } = useSheet();
+  const [localFilled, setLocalFilled] = useState(false);
+  const filled = id ? Boolean(markStates[id]?.filled) : localFilled;
+
+  const toggleFilled = () => {
+    if (id) {
+      setMarkStates((store) => updateKeyedMarkState(store, id, 'solid', toggleMarkFilled));
+      return;
+    }
+    setLocalFilled((value) => !value);
+  };
 
   return (
     <button
       type="button"
       className={`resourceMark ${shape}${filled ? ' resourceFilled' : ''}`}
-      onClick={() => setFilled((value) => !value)}
+      onClick={toggleFilled}
       aria-label={ariaLabel}
       aria-pressed={filled}
     >
@@ -195,11 +223,12 @@ function ResourceIcon({ shape, filled }) {
 }
 
 const marks = (count, className = '', options = {}) => {
-  const { initialFilled = 0, allowGhost = true } = options;
+  const { initialFilled = 0, allowGhost = true, groupId = '' } = options;
   return (
   Array.from({ length: count }, (_, index) => (
     <ClickableMark
-      key={`${className || 'solid'}-${initialFilled}-${allowGhost}-${index}`}
+      key={`${groupId || className || 'solid'}-${initialFilled}-${allowGhost}-${index}`}
+      id={groupId ? `${groupId}:${index}` : undefined}
       initialState={index < initialFilled ? 'filled' : className.includes('ghost') ? 'ghost' : 'solid'}
       ariaLabel={`方格 ${index + 1}`}
       allowGhost={allowGhost}
@@ -208,9 +237,9 @@ const marks = (count, className = '', options = {}) => {
   );
 };
 
-const resourceMarks = (count, shape) =>
+const resourceMarks = (count, shape, groupId = '') =>
   Array.from({ length: count }, (_, index) => (
-    <ResourceMark key={index} shape={shape} ariaLabel={`灵石 ${index + 1}`} />
+    <ResourceMark key={index} id={groupId ? `${groupId}:${index}` : undefined} shape={shape} ariaLabel={`灵石 ${index + 1}`} />
   ));
 
 function getRealmInsightPrefix(realm) {
@@ -259,29 +288,44 @@ function SheetHeader({ title }) {
   );
 }
 
+function PrintValue({ value, placeholder = '', className = '' }) {
+  const text = String(value || '').trim();
+  return (
+    <span className={`printOnly printTextValue${text ? '' : ' is-placeholder'} ${className}`.trim()}>
+      {text || placeholder}
+    </span>
+  );
+}
+
 // 可填写的横线输入框（名称 / 种族 / 归属）。状态提升到 SheetContext，切页不丢失。
 function FillInput({ field, label }) {
   const { texts, setText } = useSheet();
   return (
-    <input
-      className="fillInput"
-      type="text"
-      value={texts[field]}
-      onChange={(event) => setText(field, event.target.value)}
-      aria-label={label}
-    />
+    <>
+      <input
+        className="fillInput printControl"
+        type="text"
+        value={texts[field]}
+        onChange={(event) => setText(field, event.target.value)}
+        aria-label={label}
+      />
+      <PrintValue value={texts[field]} className="fillInput" />
+    </>
   );
 }
 
 function FillTextarea({ field, label }) {
   const { texts, setText } = useSheet();
   return (
-    <textarea
-      className="fillTextarea"
-      value={texts[field]}
-      onChange={(event) => setText(field, event.target.value)}
-      aria-label={label}
-    />
+    <>
+      <textarea
+        className="fillTextarea printControl"
+        value={texts[field]}
+        onChange={(event) => setText(field, event.target.value)}
+        aria-label={label}
+      />
+      <PrintValue value={texts[field]} className="fillTextarea" />
+    </>
   );
 }
 
@@ -366,17 +410,21 @@ function SelectorBox({ category }) {
   const option = index != null ? options[index] : null;
 
   return (
-    <button
-      type="button"
-      className={`selectorBox${option ? ' filled' : ''}`}
-      onClick={() => openLibrary(category)}
-    >
-      {option ? option.name : <span className="selectorPlaceholder">{placeholder}</span>}
-    </button>
+    <>
+      <button
+        type="button"
+        className={`selectorBox printControl${option ? ' filled' : ''}`}
+        onClick={() => openLibrary(category)}
+      >
+        {option ? option.name : <span className="selectorPlaceholder">{placeholder}</span>}
+      </button>
+      <PrintValue value={option ? option.name : ''} placeholder={placeholder} className={`selectorBox${option ? ' filled' : ''}`} />
+    </>
   );
 }
 
 function FieldRow({ label, aside, filled = 0, ghost = 0, wide = false }) {
+  const groupId = `field-${label}`;
   return (
     <div className={`fieldRow${wide ? ' wide' : ''}`}>
       <div className="fieldLabel">{label}</div>
@@ -384,8 +432,8 @@ function FieldRow({ label, aside, filled = 0, ghost = 0, wide = false }) {
       {aside ? <div className="fieldAside">{aside}</div> : null}
       {filled || ghost ? (
         <div className="fieldMarks">
-          {marks(filled)}
-          {marks(ghost, 'ghost')}
+          {marks(filled, '', { groupId: `${groupId}:solid` })}
+          {marks(ghost, 'ghost', { groupId: `${groupId}:ghost` })}
         </div>
       ) : null}
     </div>
@@ -440,8 +488,8 @@ function InfoPanel() {
           <div className="splitFieldSide">
             <span className="fieldAside">真元</span>
             <div className="fieldMarks">
-              {marks(1)}
-              {marks(4, 'ghost')}
+              {marks(1, '', { groupId: 'p1-zhenyuan-solid' })}
+              {marks(4, 'ghost', { groupId: 'p1-zhenyuan-ghost' })}
             </div>
           </div>
         </div>
@@ -484,12 +532,14 @@ function AttributePanel({ title, hint }) {
         <label className="attributeValueField">
           <span>加值</span>
           <input
+            className="printControl"
             type="text"
             value={attributes[title] || ''}
             onChange={(event) => setAttributeValue(title, event.target.value)}
             placeholder="+0"
             aria-label={`${title}加值`}
           />
+          <PrintValue value={attributes[title] || ''} className="attributePrintValue" />
         </label>
       </div>
       <div className="panelHint">{hint}</div>
@@ -681,14 +731,15 @@ function CounterBox({ title, filled, ghost, note, locked = false, overflowCounte
 }
 
 function StatRow({ label, filled, ghost, note }) {
+  const groupId = `p1-stat-${label}`;
   return (
     <div className="statRow">
       <span className="statLabel">
         <span>{label}</span>
       </span>
       <div className="statMarks">
-        {marks(filled)}
-        {marks(ghost, 'ghost')}
+        {marks(filled, '', { groupId: `${groupId}-solid` })}
+        {marks(ghost, 'ghost', { groupId: `${groupId}-ghost` })}
       </div>
       <InlineNote text={note} className="statNote" stacked />
     </div>
@@ -762,7 +813,7 @@ function ResourceStrip() {
         <div key={label} className="resourceGroup">
           <strong>{label}</strong>
           <div className="resourceMarks" style={{ '--resource-columns': columns }}>
-            {resourceMarks(count, shape)}
+            {resourceMarks(count, shape, `p1-resource-${label}`)}
           </div>
         </div>
       ))}
@@ -778,7 +829,7 @@ function ConflictContent() {
       <p>战斗动作　2 轻巧 / 1 全力动作</p>
       <p>
         轮次开始时恢复　拆招次数
-        {marks(1)}
+        {marks(1, '', { groupId: 'conflict-recovery' })}
       </p>
     </div>
   );
@@ -1233,11 +1284,12 @@ function PdfCheck({ label, double = false }) {
   );
 }
 
-function PdfClickableCheck({ label, double = false }) {
+function PdfClickableCheck({ id, label, double = false }) {
+  const groupId = id || `pdf-check-${label || 'blank'}`;
   return (
     <span className="pdfCheckLine interactive">
-      <ClickableMark ariaLabel={label ? `${label} 标记 1` : '标记'} />
-      {double ? <ClickableMark ariaLabel={label ? `${label} 标记 2` : '标记 2'} /> : null}
+      <ClickableMark id={`${groupId}:0`} ariaLabel={label ? `${label} 标记 1` : '标记'} />
+      {double ? <ClickableMark id={`${groupId}:1`} ariaLabel={label ? `${label} 标记 2` : '标记 2'} /> : null}
       {label ? <span>{label}</span> : null}
     </span>
   );
@@ -1252,15 +1304,16 @@ function PdfMarks({ solid = 3, ghost = 3 }) {
   );
 }
 
-function PdfClickableMarks({ solid = 3, ghost = 3, label = '方格' }) {
+function PdfClickableMarks({ solid = 3, ghost = 3, label = '方格', groupId = label }) {
   return (
     <span className="pdfMarks interactive">
       {Array.from({ length: solid }, (_, index) => (
-        <ClickableMark key={`s-${index}`} ariaLabel={`${label} ${index + 1}`} />
+        <ClickableMark key={`s-${index}`} id={`${groupId}:solid:${index}`} ariaLabel={`${label} ${index + 1}`} />
       ))}
       {Array.from({ length: ghost }, (_, index) => (
         <ClickableMark
           key={`g-${index}`}
+          id={`${groupId}:ghost:${index}`}
           initialState="ghost"
           ariaLabel={`${label} 虚线 ${index + 1}`}
         />
@@ -1279,11 +1332,13 @@ function EditableFormulaCell({ prefix, field, ariaLabel }) {
     <span className="formulaCell editable">
       <span>{prefix}</span>
       <input
+        className="printControl"
         type="text"
         value={texts[field] || ''}
         onChange={(event) => setText(field, event.target.value)}
         aria-label={ariaLabel}
       />
+      <PrintValue value={texts[field] || ''} className="formulaPrintValue" />
       <span>】</span>
     </span>
   );
@@ -1292,13 +1347,16 @@ function EditableFormulaCell({ prefix, field, ariaLabel }) {
 function PdfTextInput({ field, label }) {
   const { texts, setText } = useSheet();
   return (
-    <input
-      className="pdfTextInput"
-      type="text"
-      value={texts[field] || ''}
-      onChange={(event) => setText(field, event.target.value)}
-      aria-label={label}
-    />
+    <>
+      <input
+        className="pdfTextInput printControl"
+        type="text"
+        value={texts[field] || ''}
+        onChange={(event) => setText(field, event.target.value)}
+        aria-label={label}
+      />
+      <PrintValue value={texts[field] || ''} className="pdfTextInput" />
+    </>
   );
 }
 
@@ -1318,16 +1376,20 @@ function EditableFeatureTable({ rows, namePrefix, effectPrefix, className = '' }
           <div key={label} className="featureRow">
             <span>{label}</span>
             <input
+              className="printControl"
               type="text"
               value={texts[nameField] || ''}
               onChange={(event) => setText(nameField, event.target.value)}
               aria-label={`${label}名称`}
             />
+            <PrintValue value={texts[nameField] || ''} className="featurePrintValue" />
             <textarea
+              className="printControl"
               value={texts[effectField] || ''}
               onChange={(event) => setText(effectField, event.target.value)}
               aria-label={`${label}效果`}
             />
+            <PrintValue value={texts[effectField] || ''} className="featurePrintValue" />
           </div>
         );
       })}
@@ -1406,11 +1468,11 @@ function PageThree() {
           <div className="pdfTableTitle">阵法升级</div>
           <div className="upgradeIntro">当你拥有阵法后<br />你每次境界提升时<br />都可以标记一项进行升级</div>
           <div className="upgradeChecks">
-            <PdfClickableCheck label="加固阵法 - 破阵命盘刻度 +1" double />
-            <PdfClickableCheck label="增加机关 - 破阵难度 +1" />
-            <PdfClickableCheck label="修习阵法 - 护阵难度 +1" />
-            <PdfClickableCheck label="阵法反噬 - 当对方破阵命盘未推进成功时，可对其触发一个临时特征（需标记 2 次进行升级）" double />
-            <PdfClickableCheck label="阵法修复 - 轮次结束时，破阵命盘会自动擦除 1 格（需标记 2 次进行升级）" double />
+            <PdfClickableCheck id="p3-formation-upgrade-reinforce" label="加固阵法 - 破阵命盘刻度 +1" double />
+            <PdfClickableCheck id="p3-formation-upgrade-trap" label="增加机关 - 破阵难度 +1" />
+            <PdfClickableCheck id="p3-formation-upgrade-study" label="修习阵法 - 护阵难度 +1" />
+            <PdfClickableCheck id="p3-formation-upgrade-backlash" label="阵法反噬 - 当对方破阵命盘未推进成功时，可对其触发一个临时特征（需标记 2 次进行升级）" double />
+            <PdfClickableCheck id="p3-formation-upgrade-repair" label="阵法修复 - 轮次结束时，破阵命盘会自动擦除 1 格（需标记 2 次进行升级）" double />
           </div>
         </section>
 
@@ -1420,11 +1482,11 @@ function PageThree() {
           <div className="formLine"><span>检定加值</span><EditableFormulaCell prefix="2+【" field="followerBonus" ariaLabel="随从检定加值" /></div>
           <div className="formLine split wide">
             <span>种类</span>
-            <PdfClickableCheck label="灵兽（血量格扣除完后会对主人造成一次中度伤害）" />
-            <PdfClickableCheck label="傀儡（血量格扣除完时会扣除主人 1 灵气格）" />
+            <PdfClickableCheck id="p3-follower-kind-beast" label="灵兽（血量格扣除完后会对主人造成一次中度伤害）" />
+            <PdfClickableCheck id="p3-follower-kind-puppet" label="傀儡（血量格扣除完时会扣除主人 1 灵气格）" />
           </div>
-          <div className="formLine"><span>正常血量</span><PdfClickableMarks label="正常血量" /></div>
-          <div className="formLine"><span>险境血量</span><PdfClickableMarks label="险境血量" /></div>
+          <div className="formLine"><span>正常血量</span><PdfClickableMarks label="正常血量" groupId="p3-follower-normal-hp" /></div>
+          <div className="formLine"><span>险境血量</span><PdfClickableMarks label="险境血量" groupId="p3-follower-danger-hp" /></div>
           <div className="thresholdBand">
             {['肉体伤害阈值', '神魂伤害阈值'].map((label) => (
               <div key={label}>
@@ -1447,13 +1509,13 @@ function PageThree() {
           <div className="pdfTableTitle">随从升级</div>
           <div className="upgradeIntro">当你拥有随从后<br />你每次境界提升时<br />都可以标记一项进行升级</div>
           <div className="upgradeChecks twoCol">
-            <PdfClickableCheck label="血量格 +1" double />
-            <PdfClickableCheck label="获得 1 拆招次数（无需消耗灵气）" />
-            <PdfClickableCheck label="肉体中伤与重伤阈值 +1" />
-            <PdfClickableCheck label="护主 - 当你首次血量归零时，灵兽会保护你" />
-            <PdfClickableCheck label="神魂中伤与重伤阈值 +1" />
-            <PdfClickableCheck label="长休时，与灵兽玩耍交流，并获得 1 辐缘点" />
-            <PdfClickableCheck label="检定值 +1" />
+            <PdfClickableCheck id="p3-follower-upgrade-hp" label="血量格 +1" double />
+            <PdfClickableCheck id="p3-follower-upgrade-counter" label="获得 1 拆招次数（无需消耗灵气）" />
+            <PdfClickableCheck id="p3-follower-upgrade-body" label="肉体中伤与重伤阈值 +1" />
+            <PdfClickableCheck id="p3-follower-upgrade-guard" label="护主 - 当你首次血量归零时，灵兽会保护你" />
+            <PdfClickableCheck id="p3-follower-upgrade-soul" label="神魂中伤与重伤阈值 +1" />
+            <PdfClickableCheck id="p3-follower-upgrade-rest" label="长休时，与灵兽玩耍交流，并获得 1 辐缘点" />
+            <PdfClickableCheck id="p3-follower-upgrade-bonus" label="检定值 +1" />
           </div>
         </section>
 
@@ -1464,7 +1526,7 @@ function PageThree() {
             <div><span /><b>名称</b><b>初始能力</b><b>进阶能力</b></div>
             {['凶杀血脉', '灵法血脉', '铁骨血脉', '愈灵血脉', '缚影血脉', '追风血脉'].map((name, index) => (
               <div key={name}>
-                <PdfClickableCheck label="" />
+                <PdfClickableCheck id={`p3-bloodline-${index}`} label="" />
                 <span>{name}</span>
                 <span>{['所有伤害 +1', '首次使用神通不扣除主人灵气格', '血量格 +1', '习得神通 - 疗愈', '习得神通 - 缚身', '在一个场景中一次，可携带主人进行一次远距离移动'][index]}</span>
                 <span>{['具有优势时，破置值 -1', '可以从道源神通中学习一个', '首次受到的中度伤害无效', '退场时主人不会受到伤害', '对具有异常状态的敌人检定具有优势', '不受缓速影响'][index]}</span>
@@ -1585,6 +1647,30 @@ function PageFive() {
           </div>
         </section>
       </main>
+    </div>
+  );
+}
+
+function renderSheetPage(pageId) {
+  if (pageId === 'p1') return <PageOne />;
+  if (pageId === 'p2') return <PageTwo />;
+  if (pageId === 'p3') return <PageThree />;
+  if (pageId === 'p4') return <PageFour />;
+  return <PageFive />;
+}
+
+function PrintPageRenderer() {
+  const lastPageIndex = pageTabs.length - 1;
+  return (
+    <div className="printPageStack" aria-hidden="true" inert={true}>
+      {pageTabs.map((page, index) => (
+        <section
+          key={page.id}
+          className={`printPage printPage-${page.id}${index === lastPageIndex ? ' lastPrintPage' : ''}`}
+        >
+          {renderSheetPage(page.id)}
+        </section>
+      ))}
     </div>
   );
 }
@@ -1924,7 +2010,7 @@ function App() {
   const [selectedFateTitle, setSelectedFateTitle] = useState(null);
   const [diceEffects, setDiceEffects] = useState(baseDiceEffects);
   const [fortuneOverflow, setFortuneOverflow] = useState(0);
-  const exportPageRefs = useRef({});
+  const [markStates, setMarkStates] = useState({});
 
   const openFateDraw = (title) => {
     const plans = fateDraws[title];
@@ -1985,7 +2071,14 @@ function App() {
     cycleDiceEffect,
     fortuneOverflow,
     setFortuneOverflow,
+    markStates,
+    setMarkStates,
   };
+
+  useEffect(() => {
+    const printRoot = document.querySelector('.printPageStack') || document;
+    return attachPrintLifecycle(printRoot);
+  }, []);
 
   const switchTab = (nextTab) => {
     setTab(nextTab);
@@ -2001,14 +2094,6 @@ function App() {
     return <PageFive />;
   };
 
-  const renderExportPage = (pageId) => {
-    if (pageId === 'p1') return <PageOne />;
-    if (pageId === 'p2') return <PageTwo />;
-    if (pageId === 'p3') return <PageThree />;
-    if (pageId === 'p4') return <PageFour />;
-    return <PageFive />;
-  };
-
   const handleExport = async () => {
     if (exporting) return;
     setExporting(true);
@@ -2017,20 +2102,11 @@ function App() {
     setGuideOpen(false);
 
     try {
-      const visibleSheet = document.querySelector('.stage .sheet');
-      const sheets = pageTabs.map((page) => {
-        if (page.id === tab && visibleSheet) return visibleSheet;
-        return exportPageRefs.current[page.id]?.querySelector('.sheet');
-      }).filter(Boolean);
-
-      if (sheets.length !== pageTabs.length) {
-        throw new Error(`Expected ${pageTabs.length} pages, found ${sheets.length}.`);
-      }
-
-      await exportSheetsAsPdf(sheets, texts.name);
+      const printRoot = document.querySelector('.printPageStack');
+      await printSheetsWithBrowser({ root: printRoot || document });
     } catch (error) {
-      console.error('导出 PDF 失败', error);
-      setExportError(error?.message || '导出失败，请查看控制台错误。');
+      console.error('打印导出失败', error);
+      setExportError(error?.message || '打印导出失败，请查看控制台错误。');
     } finally {
       setExporting(false);
     }
@@ -2070,17 +2146,17 @@ function App() {
               className="toolButton"
               onClick={handleExport}
               disabled={exporting}
-              aria-label={exporting ? '正在导出' : '导出'}
+              aria-label={exporting ? '正在准备打印导出' : '打印导出'}
               aria-busy={exporting}
               aria-describedby={exportError ? 'export-error-popover' : undefined}
-              title={exporting ? '正在导出' : '导出'}
+              title={exporting ? '正在准备打印导出' : '打印导出'}
             >
-              <Download size={20} strokeWidth={2.2} aria-hidden="true" />
-              <span>{exporting ? '生成中' : '导出'}</span>
+              <Printer size={20} strokeWidth={2.2} aria-hidden="true" />
+              <span>{exporting ? '准备中' : '打印'}</span>
             </button>
             {exportError ? (
               <aside id="export-error-popover" className="exportErrorPopover" role="alert">
-                导出失败：{exportError}
+                打印导出失败：{exportError}
               </aside>
             ) : null}
           </div>
@@ -2121,23 +2197,7 @@ function App() {
         </aside>
       </div>
 
-      <div className="exportStack" aria-hidden="true" inert>
-        {pageTabs.map((page) => (
-          <div
-            key={page.id}
-            className="exportPage"
-            ref={(node) => {
-              if (node) {
-                exportPageRefs.current[page.id] = node;
-              } else {
-                delete exportPageRefs.current[page.id];
-              }
-            }}
-          >
-            {renderExportPage(page.id)}
-          </div>
-        ))}
-      </div>
+      <PrintPageRenderer />
 
       <ResourceLibrary />
       <FateDrawModal />

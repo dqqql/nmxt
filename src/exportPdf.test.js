@@ -1,14 +1,33 @@
 import { describe, expect, it, vi } from 'vitest';
-import { canvasToPngPage, createCharacterPdf, getExportFileName, savePdfBytes } from './exportPdf';
+import {
+  attachPrintLifecycle,
+  getExportFileName,
+  printSheetsWithBrowser,
+} from './exportPdf';
 
-function makeCanvas(width, height) {
+function makeClassList() {
+  const values = new Set();
   return {
-    width,
-    height,
-    toBlob: vi.fn((callback, type) => callback({
-      type,
-      arrayBuffer: () => Promise.resolve(new Uint8Array([width % 256, height % 256]).buffer),
-    })),
+    add: vi.fn((name) => values.add(name)),
+    remove: vi.fn((name) => values.delete(name)),
+    contains: (name) => values.has(name),
+  };
+}
+
+function makePrintRoot({ images = [], controls = [], printValues = [] } = {}) {
+  return {
+    ownerDocument: {
+      fonts: { ready: Promise.resolve('fonts-ready') },
+    },
+    querySelectorAll: vi.fn((selector) => {
+      if (selector === 'img') return images;
+      if (selector === 'input, textarea, select') return controls;
+      if (selector === '.print-hide-empty') return [];
+      if (selector === '.print-empty-control, .print-hidden') return controls;
+      if (selector === '.printTextValue') return printValues;
+      if (selector === '.printTextValue.print-empty-text') return printValues;
+      return [];
+    }),
   };
 }
 
@@ -22,91 +41,89 @@ describe('getExportFileName', () => {
   });
 });
 
-describe('createCharacterPdf', () => {
-  it('converts a canvas to a lossless PNG page with its pixel dimensions', async () => {
-    const canvas = makeCanvas(1760, 1245);
-
-    const page = await canvasToPngPage(canvas);
-
-    expect(canvas.toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/png');
-    expect(page).toEqual({
-      width: 1760,
-      height: 1245,
-      bytes: new Uint8Array([224, 221]),
+describe('printSheetsWithBrowser', () => {
+  it('waits for fonts, images, and layout frames before opening the browser print dialog', async () => {
+    const image = {
+      complete: false,
+      addEventListener: vi.fn((event, callback) => {
+        if (event === 'load') queueMicrotask(callback);
+      }),
+    };
+    const root = makePrintRoot({ images: [image] });
+    const print = vi.fn();
+    const rafCallbacks = [];
+    const requestAnimationFrame = vi.fn((callback) => {
+      rafCallbacks.push(callback);
+      return rafCallbacks.length;
     });
-  });
 
-  it('embeds each PNG as one exact-size PDF page in order', async () => {
-    const pngPages = [
-      { width: 1760, height: 1245, bytes: new Uint8Array([1]) },
-      { width: 1200, height: 1600, bytes: new Uint8Array([2]) },
-    ];
-    const drawImage = vi.fn();
-    const addPage = vi.fn((size) => ({ size, drawImage }));
-    const embedPng = vi.fn(async (bytes) => ({ bytes }));
-    const save = vi.fn(async () => new Uint8Array([37, 80, 68, 70]));
-    const create = vi.fn(async () => ({ addPage, embedPng, save }));
-    const saveFile = vi.fn();
-
-    const pdfBytes = await createCharacterPdf(pngPages, '云舒', { create }, saveFile);
-
-    expect(create).toHaveBeenCalledTimes(1);
-    expect(embedPng).toHaveBeenNthCalledWith(1, pngPages[0].bytes);
-    expect(embedPng).toHaveBeenNthCalledWith(2, pngPages[1].bytes);
-    expect(addPage).toHaveBeenNthCalledWith(1, [1760, 1245]);
-    expect(addPage).toHaveBeenNthCalledWith(2, [1200, 1600]);
-    expect(drawImage).toHaveBeenNthCalledWith(1, { bytes: pngPages[0].bytes }, {
-      x: 0,
-      y: 0,
-      width: 1760,
-      height: 1245,
+    const pending = printSheetsWithBrowser({
+      root,
+      window: { print },
+      requestAnimationFrame,
     });
-    expect(drawImage).toHaveBeenNthCalledWith(2, { bytes: pngPages[1].bytes }, {
-      x: 0,
-      y: 0,
-      width: 1200,
-      height: 1600,
-    });
-    expect(save).toHaveBeenCalledWith({ useObjectStreams: true });
-    expect(saveFile).toHaveBeenCalledWith(new Uint8Array([37, 80, 68, 70]), '云舒.pdf');
-    expect(pdfBytes).toEqual(new Uint8Array([37, 80, 68, 70]));
-  });
 
-  it('rejects an empty PNG page list', async () => {
-    await expect(createCharacterPdf([], '云舒', { create: vi.fn() })).rejects.toThrow('No pages were captured for export.');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(print).not.toHaveBeenCalled();
+    rafCallbacks.shift()();
+    expect(print).not.toHaveBeenCalled();
+    rafCallbacks.shift()();
+    await pending;
+
+    expect(root.querySelectorAll).toHaveBeenCalledWith('img');
+    expect(image.addEventListener).toHaveBeenCalledWith('load', expect.any(Function), { once: true });
+    expect(image.addEventListener).toHaveBeenCalledWith('error', expect.any(Function), { once: true });
+    expect(requestAnimationFrame).toHaveBeenCalledTimes(2);
+    expect(print).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('savePdfBytes', () => {
-  it('starts a download and revokes the object URL after the browser has a chance to consume it', () => {
-    const click = vi.fn();
-    const remove = vi.fn();
-    const link = {};
-    const appendChild = vi.fn();
-    const revokeObjectURL = vi.fn();
-    const setTimeout = vi.fn(function setTimeoutMock(callback) {
-      expect(this).toBe(globalThis);
-      callback();
-    });
-
-    savePdfBytes(new Uint8Array([37, 80, 68, 70]), '云舒.pdf', {
-      document: {
-        body: { appendChild },
-        createElement: vi.fn(() => Object.assign(link, { click, remove })),
+describe('attachPrintLifecycle', () => {
+  it('marks empty controls before printing and restores them after printing', () => {
+    const emptyControl = {
+      value: '',
+      classList: makeClassList(),
+      style: {
+        borderColor: '',
       },
-      URL: {
-        createObjectURL: vi.fn(() => 'blob:pdf'),
-        revokeObjectURL,
+    };
+    const filledControl = {
+      value: '云舒',
+      classList: makeClassList(),
+      style: {
+        borderColor: '',
       },
-      setTimeout,
+    };
+    const emptyText = {
+      textContent: '',
+      classList: makeClassList(),
+    };
+    const filledText = {
+      textContent: '云舒',
+      classList: makeClassList(),
+    };
+    const root = makePrintRoot({
+      controls: [emptyControl, filledControl],
+      printValues: [emptyText, filledText],
     });
+    const targetWindow = new EventTarget();
 
-    expect(link.href).toBe('blob:pdf');
-    expect(link.download).toBe('云舒.pdf');
-    expect(appendChild).toHaveBeenCalledWith(link);
-    expect(click).toHaveBeenCalledTimes(1);
-    expect(remove).toHaveBeenCalledTimes(1);
-    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 1000);
-    expect(revokeObjectURL).toHaveBeenCalledWith('blob:pdf');
+    const detach = attachPrintLifecycle(root, targetWindow);
+
+    targetWindow.dispatchEvent(new Event('beforeprint'));
+    expect(emptyControl.classList.contains('print-empty-control')).toBe(true);
+    expect(emptyControl.style.borderColor).toBe('transparent');
+    expect(filledControl.classList.contains('print-empty-control')).toBe(false);
+    expect(emptyText.classList.contains('print-empty-text')).toBe(true);
+    expect(filledText.classList.contains('print-empty-text')).toBe(false);
+
+    targetWindow.dispatchEvent(new Event('afterprint'));
+    expect(emptyControl.classList.contains('print-empty-control')).toBe(false);
+    expect(emptyControl.style.borderColor).toBe('');
+    expect(emptyText.classList.contains('print-empty-text')).toBe(false);
+
+    detach();
+    targetWindow.dispatchEvent(new Event('beforeprint'));
+    expect(emptyControl.classList.contains('print-empty-control')).toBe(false);
   });
 });

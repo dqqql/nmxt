@@ -1,13 +1,31 @@
 const DEFAULT_FILE_NAME = '逆命仙途角色卡';
 const INVALID_FILE_CHARS = /[<>:"/\\|?*\u0000-\u001f]+/g;
-const EXPORT_SCALE = 3;
 
-function nextFrame() {
-  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+function getOwnerDocument(root) {
+  if (root?.nodeType === 9) return root;
+  if (root?.ownerDocument) return root.ownerDocument;
+  return typeof document !== 'undefined' ? document : null;
+}
+
+function queryAll(root, selector) {
+  if (!root?.querySelectorAll) return [];
+  return Array.from(root.querySelectorAll(selector));
+}
+
+function nextFrame(requestAnimationFrameImpl) {
+  if (typeof requestAnimationFrameImpl !== 'function') {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    requestAnimationFrameImpl(() => {
+      requestAnimationFrameImpl(resolve);
+    });
+  });
 }
 
 async function waitForImages(root) {
-  const images = Array.from(root.querySelectorAll('img'));
+  const images = queryAll(root, 'img');
   await Promise.all(images.map((image) => {
     if (image.complete) return Promise.resolve();
     return new Promise((resolve) => {
@@ -28,97 +46,85 @@ export function getExportFileName(characterName) {
   return `${sanitized || DEFAULT_FILE_NAME}.pdf`;
 }
 
-export function savePdfBytes(bytes, fileName, env = {
-  document,
-  URL,
-  setTimeout,
-}) {
-  const blob = new Blob([bytes], { type: 'application/pdf' });
-  const url = env.URL.createObjectURL(blob);
-  const link = env.document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  env.document.body.appendChild(link);
-  link.click();
-  link.remove();
-  const schedule = env.setTimeout || globalThis.setTimeout;
-  schedule.call(globalThis, () => env.URL.revokeObjectURL(url), 1000);
+export async function waitForPrintAssets(root, env = {}) {
+  const ownerDocument = getOwnerDocument(root);
+  const requestAnimationFrameImpl = env.requestAnimationFrame
+    || globalThis.requestAnimationFrame?.bind(globalThis);
+
+  if (ownerDocument?.fonts?.ready) {
+    await ownerDocument.fonts.ready;
+  }
+
+  await waitForImages(root);
+  await nextFrame(requestAnimationFrameImpl);
 }
 
-export async function canvasToPngPage(canvas) {
-  const blob = await new Promise((resolve, reject) => {
-    canvas.toBlob((result) => {
-      if (result) {
-        resolve(result);
-      } else {
-        reject(new Error('Failed to capture PNG page.'));
-      }
-    }, 'image/png');
+export function preparePrint(root) {
+  queryAll(root, 'input, textarea, select').forEach((control) => {
+    const value = String(control.value || '').trim();
+    if (!value) {
+      control.classList?.add('print-empty-control');
+      if (control.style) control.style.borderColor = 'transparent';
+    }
   });
 
-  return {
-    width: canvas.width,
-    height: canvas.height,
-    bytes: new Uint8Array(await blob.arrayBuffer()),
+  queryAll(root, '.printTextValue').forEach((element) => {
+    if (!String(element.textContent || '').trim()) {
+      element.classList?.add('print-empty-text');
+    }
+  });
+
+  queryAll(root, '.print-hide-empty').forEach((element) => {
+    if (!String(element.textContent || '').trim()) {
+      element.classList?.add('print-hidden');
+    }
+  });
+}
+
+export function restorePrint(root) {
+  queryAll(root, '.print-empty-control, .print-hidden').forEach((element) => {
+    element.classList?.remove('print-empty-control');
+    element.classList?.remove('print-hidden');
+    if (element.style) element.style.borderColor = '';
+  });
+
+  queryAll(root, '.printTextValue.print-empty-text').forEach((element) => {
+    element.classList?.remove('print-empty-text');
+  });
+}
+
+export function attachPrintLifecycle(root, targetWindow = globalThis.window) {
+  if (!root || !targetWindow?.addEventListener) {
+    return () => {};
+  }
+
+  const handleBeforePrint = () => preparePrint(root);
+  const handleAfterPrint = () => restorePrint(root);
+
+  targetWindow.addEventListener('beforeprint', handleBeforePrint);
+  targetWindow.addEventListener('afterprint', handleAfterPrint);
+
+  return () => {
+    targetWindow.removeEventListener('beforeprint', handleBeforePrint);
+    targetWindow.removeEventListener('afterprint', handleAfterPrint);
   };
 }
 
-export async function createCharacterPdf(pngPages, characterName = '', PdfDocumentCtor, saveFile = savePdfBytes) {
-  if (!pngPages.length) {
-    throw new Error('No pages were captured for export.');
-  }
-  if (!PdfDocumentCtor?.create) {
-    throw new Error('PDF renderer is not available.');
-  }
+export async function printSheetsWithBrowser(options = {}) {
+  const printWindow = options.window || globalThis.window;
+  const root = options.root
+    || getOwnerDocument(null)?.querySelector?.('.printPageStack')
+    || getOwnerDocument(null);
 
-  const pdf = await PdfDocumentCtor.create();
-
-  for (const pngPage of pngPages) {
-    const image = await pdf.embedPng(pngPage.bytes);
-    const page = pdf.addPage([pngPage.width, pngPage.height]);
-    page.drawImage(image, {
-      x: 0,
-      y: 0,
-      width: pngPage.width,
-      height: pngPage.height,
-    });
+  if (!root) {
+    throw new Error('Print root is not available.');
+  }
+  if (typeof printWindow?.print !== 'function') {
+    throw new Error('Browser print is not available.');
   }
 
-  const pdfBytes = await pdf.save({ useObjectStreams: true });
-  saveFile(pdfBytes, getExportFileName(characterName));
-  return pdfBytes;
-}
-
-export async function captureElement(element, renderer) {
-  const html2canvas = renderer || (await import('html2canvas')).default;
-  await waitForImages(element);
-
-  return html2canvas(element, {
-    backgroundColor: '#ffffff',
-    logging: false,
-    scale: EXPORT_SCALE,
-    useCORS: true,
-    windowWidth: element.scrollWidth,
-    windowHeight: element.scrollHeight,
+  await waitForPrintAssets(root, {
+    requestAnimationFrame: options.requestAnimationFrame,
   });
-}
-
-export async function exportSheetsAsPdf(elements, characterName) {
-  const [{ default: html2canvas }, { PDFDocument }] = await Promise.all([
-    import('html2canvas'),
-    import('pdf-lib'),
-  ]);
-
-  if (document.fonts?.ready) {
-    await document.fonts.ready;
-  }
-  await nextFrame();
-
-  const pngPages = [];
-  for (const element of elements) {
-    const canvas = await captureElement(element, html2canvas);
-    pngPages.push(await canvasToPngPage(canvas));
-  }
-
-  return createCharacterPdf(pngPages, characterName, PDFDocument);
+  printWindow.print();
 }

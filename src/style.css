@@ -148,28 +148,6 @@ textarea {
   box-shadow: none;
 }
 
-.exportStack {
-  position: fixed;
-  top: 0;
-  left: -20000px;
-  z-index: -1;
-  width: max-content;
-  pointer-events: none;
-}
-
-.exportPage {
-  width: max-content;
-}
-
-.exportPage + .exportPage {
-  margin-top: 24px;
-}
-
-.exportStack .sheet {
-  margin: 0;
-  box-shadow: none;
-}
-
 .exportAction {
   position: relative;
 }
@@ -4978,5 +4956,225 @@ body {
     min-height: 100vh;
     box-shadow: none;
     break-after: page;
+  }
+}
+
+/* ===== Browser-native print export ===== */
+.printPageStack,
+.printOnly {
+  display: none !important;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  :root {
+    --print-sheet-width: 1760px;
+    --print-a4-page-width: 297mm;
+    --print-a4-page-height: 210mm;
+    --print-scale: 0.6378;
+  }
+
+  html,
+  body,
+  #root {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .appShell,
+  .pageTabs,
+  .toolRail,
+  .libraryOverlay,
+  .fateDrawOverlay,
+  .hintPopover,
+  .buildGuidePopover,
+  .exportErrorPopover {
+    display: none !important;
+  }
+
+  .printPageStack {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  .printPage {
+    position: relative;
+    display: block;
+    width: var(--print-a4-page-width);
+    height: var(--print-a4-page-height);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #fff;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .printPage.lastPrintPage {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .printPage .sheet {
+    width: var(--print-sheet-width) !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    transform: scale(var(--print-scale)) !important;
+    transform-origin: top left !important;
+  }
+
+  .printPage .sheetPageOne {
+    height: 990px !important;
+    min-height: 0 !important;
+  }
+
+  .printPage .pdfSheet {
+    width: var(--print-sheet-width) !important;
+    height: 1245px !important;
+    min-height: 0 !important;
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  .printPage .sheetScaler,
+  .stage {
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .printControl,
+  .portraitInput,
+  .portraitRemove,
+  .portraitReplace,
+  .coreToggle,
+  .overflowCounterBtn,
+  .infoHintButton,
+  .infoBubble {
+    display: none !important;
+  }
+
+  .printOnly {
+    display: block !important;
+  }
+
+  .selectorBox.printOnly {
+    display: flex !important;
+    cursor: default !important;
+  }
+
+  .attributePrintValue {
+    display: grid !important;
+    place-items: center;
+    width: 56px;
+    min-height: 28px;
+    border: 1.5px solid #b8b3b0;
+    background: #fff;
+    color: var(--ink);
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0 4px;
+    text-align: center;
+  }
+
+  .formulaCell.editable {
+    grid-template-columns: auto 30px auto;
+  }
+
+  .formulaPrintValue {
+    display: inline-grid !important;
+    place-items: center;
+    width: 30px;
+    min-width: 0;
+    height: 22px;
+    color: #181818;
+    font-family: var(--font-serif);
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .fillTextarea.printOnly,
+  .pdfTextInput.printOnly {
+    white-space: pre-wrap;
+    overflow: hidden;
+  }
+
+  .featureRow > .featurePrintValue {
+    display: flex !important;
+    align-items: center;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    padding: 7px 10px;
+    border-right: 3px solid var(--pdf-line);
+    background: #fff;
+    color: #181818;
+    font-family: var(--font-serif);
+    font-size: 14px;
+    line-height: 1.35;
+    white-space: pre-wrap;
+    overflow: hidden;
+  }
+
+  .featureRow > .featurePrintValue:last-child {
+    border-right: 0;
+  }
+
+  .printTextValue.is-placeholder,
+  .printTextValue.print-empty-text {
+    color: transparent !important;
+  }
+
+  .printPage .talentEmptyRune {
+    display: block !important;
+  }
+
+  .printPage .talentEmptyHint {
+    display: inline !important;
+  }
+
+  .print-empty-control {
+    color: transparent !important;
+    border-color: transparent !important;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    box-shadow: none !important;
+    caret-color: transparent !important;
+  }
+
+  button {
+    cursor: default !important;
   }
 }
