@@ -36,7 +36,6 @@ describe('random card state', () => {
   it('randomizes selections, shuffles attributes, and draws talents without animation', () => {
     const draws = [];
     const randomValues = [
-      0.99, // realm -> last
       0, // origin -> first
       0.51, // source -> second
       0.34, // method -> second
@@ -59,7 +58,7 @@ describe('random card state', () => {
     });
 
     expect(result.selections).toEqual({
-      realm: 2,
+      realm: 0,
       origin: 0,
       source: 1,
       method: 1,

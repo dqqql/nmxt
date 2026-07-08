@@ -1,4 +1,4 @@
-const selectionCategories = ['realm', 'origin', 'source', 'method', 'dao'];
+const randomSelectionCategories = ['origin', 'source', 'method', 'dao'];
 const attributeTitles = ['仙躯', '身法', '神魂', '灵蕴'];
 const fateTitlesByValue = {
   '-3': '逆命叁',
@@ -24,6 +24,12 @@ function shuffled(values, random) {
   return next;
 }
 
+function getFixedRealmIndex(realms) {
+  if (!realms?.length) return null;
+  const index = realms.findIndex((realm) => realm.name === '练气前期');
+  return index >= 0 ? index : 0;
+}
+
 export function fateValueToTitle(value) {
   return fateTitlesByValue[value] || '';
 }
@@ -34,9 +40,12 @@ export function createRandomCardState({
   random = Math.random,
   drawPlan,
 }) {
-  const selections = Object.fromEntries(
-    selectionCategories.map((category) => [category, pickIndex(options[category]?.length || 0, random)]),
-  );
+  const selections = {
+    realm: getFixedRealmIndex(options.realm),
+    ...Object.fromEntries(
+      randomSelectionCategories.map((category) => [category, pickIndex(options[category]?.length || 0, random)]),
+    ),
+  };
   const attributeValues = shuffled(['3', '2', '1', '0'], random);
   const attributes = Object.fromEntries(
     attributeTitles.map((title, index) => [title, attributeValues[index]]),
