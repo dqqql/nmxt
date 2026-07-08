@@ -1,6 +1,6 @@
 import React, { useState, useContext, createContext, useEffect, useLayoutEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChevronLeft, ChevronRight, CircleAlert, Info, ListChecks, Minus, Plus, Printer, Settings, Star, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleAlert, Info, ListChecks, Minus, Plus, Printer, Settings, Shuffle, Star, X } from 'lucide-react';
 import {
   realmOptions,
   originOptions,
@@ -30,6 +30,7 @@ import {
   toggleMarkGhost,
   updateKeyedMarkState,
 } from './interactiveState';
+import { createRandomCardState } from './randomCardState';
 import './style.css';
 
 function getFateState(title) {
@@ -1011,11 +1012,15 @@ function CombatPanel() {
         </div>
         <div className="combatSkill">
           <b>法门增益一</b>
-          <AutoFitText>{buffs[0] || ''}</AutoFitText>
+          <AutoFitText className="combatBoostText" fitOptions={{ minRatio: 0.42, minPx: 6 }}>
+            {buffs[0] || ''}
+          </AutoFitText>
         </div>
         <div className="combatSkill">
           <b>法门增益二</b>
-          <AutoFitText>{buffs[1] || ''}</AutoFitText>
+          <AutoFitText className="combatBoostText" fitOptions={{ minRatio: 0.42, minPx: 6 }}>
+            {buffs[1] || ''}
+          </AutoFitText>
         </div>
       </div>
     </section>
@@ -1984,6 +1989,7 @@ function App() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
+  const [randomNotice, setRandomNotice] = useState(false);
   const [library, setLibrary] = useState(null);
   const [selections, setSelections] = useState({ realm: null, origin: null, source: null, method: null, dao: null });
   const [texts, setTexts] = useState({
@@ -2014,6 +2020,7 @@ function App() {
   const [diceEffects, setDiceEffects] = useState(baseDiceEffects);
   const [fortuneOverflow, setFortuneOverflow] = useState(0);
   const [markStates, setMarkStates] = useState({});
+  const randomNoticeTimer = useRef(null);
 
   const openFateDraw = (title) => {
     const plans = fateDraws[title];
@@ -2083,6 +2090,10 @@ function App() {
     return attachPrintLifecycle(printRoot);
   }, []);
 
+  useEffect(() => () => {
+    if (randomNoticeTimer.current) clearTimeout(randomNoticeTimer.current);
+  }, []);
+
   const switchTab = (nextTab) => {
     setTab(nextTab);
     setHintOpen(false);
@@ -2113,6 +2124,31 @@ function App() {
     } finally {
       setExporting(false);
     }
+  };
+
+  const handleRandomGenerate = () => {
+    const result = createRandomCardState({
+      options: {
+        realm: realmOptions,
+        origin: originOptions,
+        source: sourceOptions,
+        method: methodOptions,
+        dao: daoOptions,
+      },
+      fateDraws,
+      drawPlan: drawByPlan,
+    });
+
+    setSelections(result.selections);
+    setAttributes(result.attributes);
+    setSelectedFateTitle(result.selectedFateTitle);
+    setDiceEffects(getFateState(result.selectedFateTitle).diceEffects);
+    setDrawnTalents(result.drawnTalents);
+    setFateDraw(null);
+    setLibrary(null);
+    setRandomNotice(true);
+    if (randomNoticeTimer.current) clearTimeout(randomNoticeTimer.current);
+    randomNoticeTimer.current = setTimeout(() => setRandomNotice(false), 1800);
   };
 
   return (
@@ -2197,6 +2233,18 @@ function App() {
             </button>
             {guideOpen ? <BuildGuidePopover onClose={() => setGuideOpen(false)} /> : null}
           </div>
+          <div className="randomAction">
+            <button
+              type="button"
+              className="toolButton randomButton"
+              onClick={handleRandomGenerate}
+              aria-label="随机生成"
+              title="随机生成"
+            >
+              <Shuffle size={20} strokeWidth={2.2} aria-hidden="true" />
+              <span>随机生成</span>
+            </button>
+          </div>
         </aside>
       </div>
 
@@ -2204,6 +2252,11 @@ function App() {
 
       <ResourceLibrary />
       <FateDrawModal />
+      {randomNotice ? (
+        <aside className="randomToast" role="status" aria-live="polite">
+          随机生成完成！
+        </aside>
+      ) : null}
     </SheetContext.Provider>
   );
 }
