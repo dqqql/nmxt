@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "title": "问卷车卡",
+  "description": "回答这些问题，生成一张可用的逆命仙途角色卡。",
+  "questions": [
+    {
+      "id": "realm-starting-point",
+      "title": "这名角色踏上仙途时，更像处在哪个阶段？",
+      "type": "single",
+      "required": true,
+      "mapsTo": "realm",
+      "options": [
+        {
+          "id": "fresh",
+          "label": "刚入仙门，仍在摸索灵气流转",
+          "targets": ["练气前期", "练气中期"]
+        },
+        {
+          "id": "settled",
+          "label": "已有根基，能独立处理多数危机",
+          "targets": ["练气后期", "筑基前期"]
+        },
+        {
+          "id": "seasoned",
+          "label": "道途已有名声，举手投足皆有威势",
+          "targets": ["筑基中期", "筑基后期", "金丹期"]
+        }
+      ]
+    },
+    {
+      "id": "origin-background",
+      "title": "你的来处更接近哪一种？",
+      "type": "single",
+      "required": true,
+      "mapsTo": "origin",
+      "options": [
+        {
+          "id": "sect",
+          "label": "师承清楚，有宗门或家族依凭",
+          "targets": ["宗门弟子", "修真世族", "名门望族"]
+        },
+        {
+          "id": "ordinary",
+          "label": "从凡俗烟火中一步步走上仙路",
+          "targets": ["寒门学子", "书香门第", "商贾之后"]
+        },
+        {
+          "id": "wandering",
+          "label": "命途漂泊，靠自己在乱世里活下来",
+          "targets": ["市井奇人", "无名弃儿", "流民之后", "将门世家"]
+        }
+      ]
+    },
+    {
+      "id": "source-instinct",
+      "title": "冲突逼近时，你最本能的反应是什么？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "source",
+      "options": [
+        {
+          "id": "endure",
+          "label": "稳住阵脚，等局势重新生长",
+          "targets": ["木道源", "土道源"]
+        },
+        {
+          "id": "strike",
+          "label": "抢先出手，用锋芒或烈焰打开缺口",
+          "targets": ["金道源", "火道源", "雷道源"]
+        },
+        {
+          "id": "flow",
+          "label": "顺势变化，诱导对手露出破绽",
+          "targets": ["水道源", "时空道源", "幻梦道源"]
+        },
+        {
+          "id": "rule",
+          "label": "借助更高秩序或古老力量压制局面",
+          "targets": ["星宿道源", "律法道源", "古兽道源", "圣灵道源"]
+        }
+      ]
+    },
+    {
+      "id": "method-style",
+      "title": "你更喜欢怎样使用力量？",
+      "type": "single",
+      "required": true,
+      "mapsTo": "method",
+      "options": [
+        {
+          "id": "direct",
+          "label": "亲自上阵，以身体、剑或术法正面破局",
+          "targets": ["剑修", "体修", "法修"]
+        },
+        {
+          "id": "subtle",
+          "label": "用神魂、符箓或阵法掌控节奏",
+          "targets": ["魂修", "符修", "阵修"]
+        },
+        {
+          "id": "companion",
+          "label": "依靠造物、灵兽或伙伴协同作战",
+          "targets": ["傀修", "兽修"]
+        }
+      ]
+    },
+    {
+      "id": "dao-pursuit",
+      "title": "你追求的大道更看重什么？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "dao",
+      "options": [
+        {
+          "id": "protect",
+          "label": "守护、信念与众生之间的牵连",
+          "targets": ["护佑之道", "香火之道", "红尘之道"]
+        },
+        {
+          "id": "overcome",
+          "label": "在战斗、苦难或霸道中越过极限",
+          "targets": ["修罗之道", "坚韧之道", "霸王之道"]
+        },
+        {
+          "id": "clarity",
+          "label": "冷静、制衡与对变化的精准把握",
+          "targets": ["无情之道", "制衡之道", "妙法之道"]
+        },
+        {
+          "id": "cycle",
+          "label": "生死轮转，理解终局并向死而生",
+          "targets": ["往生之道"]
+        }
+      ]
+    },
+    {
+      "id": "fate-tendency",
+      "title": "你觉得命运对这名角色更像什么？",
+      "type": "single",
+      "required": true,
+      "mapsTo": "fate",
+      "options": [
+        {
+          "id": "plain",
+          "label": "平凡开局，未来靠自己一步步争取",
+          "targets": ["平平无奇"]
+        },
+        {
+          "id": "favored",
+          "label": "天命垂青，但越强的馈赠越伴随代价",
+          "targets": ["天命壹", "天命贰", "天命叁"]
+        },
+        {
+          "id": "defiant",
+          "label": "逆命而行，先被命运压低再翻身",
+          "targets": ["逆命壹", "逆命贰", "逆命叁"]
+        }
+      ]
+    }
+  ]
+}

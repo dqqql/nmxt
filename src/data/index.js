@@ -15,6 +15,7 @@ import attributes from './attributes.json';
 import spellGroupsData from './spellGroups.json';
 import resourcesData from './resources.json';
 import buildGuide from './buildGuide.json';
+import questionnaire from './questionnaire/questions.json';
 
 // —— 资源库五大分类 ——
 export const realmOptions = realms;        // 境界
@@ -41,6 +42,7 @@ export const attributeDefs = attributes;    // 四属性：仙躯 / 身法 / 神
 export const spellGroups = spellGroupsData; // 术法分组：神通 / 秘法 / 功法 / 灵宝
 export const resourceGroups = resourcesData;// 灵石资源
 export const buildGuideSteps = buildGuide;  // 建卡指引
+export const questionnaireConfig = questionnaire; // 问卷车卡
 
 // —— 抽卡逻辑（非文本，保留在代码中）——
 // 从池中无重复随机抽取 n 个。

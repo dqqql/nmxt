@@ -21,6 +21,7 @@ import {
   spellGroups,
   resourceGroups,
   buildGuideSteps,
+  questionnaireConfig,
 } from './data';
 import gameLogo from './assets/game-logo.png';
 import { attachPrintLifecycle, printSheetsWithBrowser } from './exportPdf';
@@ -31,6 +32,14 @@ import {
   updateKeyedMarkState,
 } from './interactiveState';
 import { createRandomCardState } from './randomCardState';
+import {
+  QUESTIONNAIRE_DRAFT_KEY,
+  QUESTIONNAIRE_RESULT_KEY,
+  createEmptyAnswers,
+  createQuestionnaireCardState,
+  resolveQuestionnaireResult,
+  validateQuestionnaireAnswers,
+} from './questionnaireState';
 import './style.css';
 
 function getFateState(title) {
@@ -1983,13 +1992,172 @@ function FateDrawModal() {
   );
 }
 
+function readJsonStorage(key, fallback) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJsonStorage(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // localStorage may be unavailable in private or restricted contexts.
+  }
+}
+
+function removeStorage(key) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // localStorage may be unavailable in private or restricted contexts.
+  }
+}
+
+function getQuestionnaireLibraries() {
+  return {
+    realm: realmOptions.map((option) => option.name),
+    origin: originOptions.map((option) => option.name),
+    source: sourceOptions.map((option) => option.name),
+    method: methodOptions.map((option) => option.name),
+    dao: daoOptions.map((option) => option.name),
+    fate: Object.keys(fateDraws),
+  };
+}
+
+function QuestionnairePage() {
+  const [answers, setAnswers] = useState(() => ({
+    ...createEmptyAnswers(questionnaireConfig),
+    ...readJsonStorage(QUESTIONNAIRE_DRAFT_KEY, {}),
+  }));
+  const [errors, setErrors] = useState([]);
+  const firstErrorRef = useRef(null);
+
+  useEffect(() => {
+    writeJsonStorage(QUESTIONNAIRE_DRAFT_KEY, answers);
+  }, [answers]);
+
+  useEffect(() => {
+    if (errors.length > 0 && firstErrorRef.current) {
+      firstErrorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [errors]);
+
+  const updateSingle = (questionId, optionId) => {
+    setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+    setErrors((prev) => prev.filter((id) => id !== questionId));
+  };
+
+  const updateMultiple = (questionId, optionId) => {
+    setAnswers((prev) => {
+      const current = Array.isArray(prev[questionId]) ? prev[questionId] : [];
+      const next = current.includes(optionId)
+        ? current.filter((id) => id !== optionId)
+        : [...current, optionId];
+      return { ...prev, [questionId]: next };
+    });
+    setErrors((prev) => prev.filter((id) => id !== questionId));
+  };
+
+  const submit = (event) => {
+    event.preventDefault();
+    const nextErrors = validateQuestionnaireAnswers(questionnaireConfig, answers);
+    setErrors(nextErrors);
+    if (nextErrors.length > 0) return;
+
+    const result = resolveQuestionnaireResult({
+      questionnaire: questionnaireConfig,
+      answers,
+      libraries: getQuestionnaireLibraries(),
+    });
+    writeJsonStorage(QUESTIONNAIRE_RESULT_KEY, result);
+    removeStorage(QUESTIONNAIRE_DRAFT_KEY);
+    window.location.href = '/';
+  };
+
+  const goHome = () => {
+    window.location.href = '/';
+  };
+
+  return (
+    <main className="questionnaireShell">
+      <form className="questionnairePaper" onSubmit={submit}>
+        <header className="questionnaireHeader">
+          <div>
+            <span className="questionnaireKicker">逆命仙途</span>
+            <h1>{questionnaireConfig.title}</h1>
+            <p>{questionnaireConfig.description}</p>
+          </div>
+          <button type="button" className="questionnaireBack" onClick={goHome}>
+            返回主界面
+          </button>
+        </header>
+
+        <div className="questionnaireList">
+          {questionnaireConfig.questions.map((question, index) => {
+            const value = answers[question.id];
+            const isMultiple = question.type === 'multiple';
+            const hasError = errors.includes(question.id);
+            return (
+              <section
+                key={question.id}
+                ref={hasError && errors[0] === question.id ? firstErrorRef : null}
+                className={`questionnaireQuestion${hasError ? ' hasError' : ''}`}
+              >
+                <header className="questionHeader">
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <div>
+                    <h2>{question.title}</h2>
+                    <small>{isMultiple ? '可多选' : '单选'}{question.required === false ? ' / 可跳过' : ' / 必答'}</small>
+                  </div>
+                </header>
+                <div className="questionOptions">
+                  {question.options.map((option) => {
+                    const checked = isMultiple
+                      ? Array.isArray(value) && value.includes(option.id)
+                      : value === option.id;
+                    return (
+                      <label key={option.id} className={`questionnaireOption${checked ? ' selected' : ''}`}>
+                        <input
+                          type={isMultiple ? 'checkbox' : 'radio'}
+                          name={question.id}
+                          value={option.id}
+                          checked={checked}
+                          onChange={() => (isMultiple
+                            ? updateMultiple(question.id, option.id)
+                            : updateSingle(question.id, option.id))}
+                        />
+                        <span className="optionMark" aria-hidden="true" />
+                        <span>{option.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {hasError ? <p className="questionError">请选择至少一项。</p> : null}
+              </section>
+            );
+          })}
+        </div>
+
+        <footer className="questionnaireFooter">
+          <span>填写记录会自动保存在本机，提交后清除。</span>
+          <button type="submit" className="questionnaireSubmit">生成角色卡</button>
+        </footer>
+      </form>
+    </main>
+  );
+}
+
 function App() {
   const [tab, setTab] = useState('p1');
   const [hintOpen, setHintOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
-  const [randomNotice, setRandomNotice] = useState(false);
+  const [noticeMessage, setNoticeMessage] = useState('');
   const [library, setLibrary] = useState(null);
   const [selections, setSelections] = useState({ realm: null, origin: null, source: null, method: null, dao: null });
   const [texts, setTexts] = useState({
@@ -2094,6 +2262,36 @@ function App() {
     if (randomNoticeTimer.current) clearTimeout(randomNoticeTimer.current);
   }, []);
 
+  useEffect(() => {
+    const result = readJsonStorage(QUESTIONNAIRE_RESULT_KEY, null);
+    if (!result) return;
+
+    const cardState = createQuestionnaireCardState({
+      result,
+      options: {
+        realm: realmOptions,
+        origin: originOptions,
+        source: sourceOptions,
+        method: methodOptions,
+        dao: daoOptions,
+      },
+      fateDraws,
+      drawPlan: drawByPlan,
+    });
+
+    setSelections(cardState.selections);
+    setAttributes(cardState.attributes);
+    setSelectedFateTitle(cardState.selectedFateTitle);
+    setDiceEffects(getFateState(cardState.selectedFateTitle).diceEffects);
+    setDrawnTalents(cardState.drawnTalents);
+    setFateDraw(null);
+    setLibrary(null);
+    removeStorage(QUESTIONNAIRE_RESULT_KEY);
+    setNoticeMessage('问卷车卡完成！');
+    if (randomNoticeTimer.current) clearTimeout(randomNoticeTimer.current);
+    randomNoticeTimer.current = setTimeout(() => setNoticeMessage(''), 2200);
+  }, []);
+
   const switchTab = (nextTab) => {
     setTab(nextTab);
     setHintOpen(false);
@@ -2146,9 +2344,9 @@ function App() {
     setDrawnTalents(result.drawnTalents);
     setFateDraw(null);
     setLibrary(null);
-    setRandomNotice(true);
+    setNoticeMessage('随机生成完成！');
     if (randomNoticeTimer.current) clearTimeout(randomNoticeTimer.current);
-    randomNoticeTimer.current = setTimeout(() => setRandomNotice(false), 1800);
+    randomNoticeTimer.current = setTimeout(() => setNoticeMessage(''), 1800);
   };
 
   return (
@@ -2221,17 +2419,14 @@ function App() {
           <div className="guideAction">
             <button
               type="button"
-              className={`toolButton${guideOpen ? ' on' : ''}`}
-              onClick={() => setGuideOpen((open) => !open)}
-              aria-label="建卡指引"
-              aria-expanded={guideOpen}
-              aria-controls="build-guide-popover"
-              title="建卡指引"
+              className="toolButton"
+              onClick={() => { window.location.href = '/wj'; }}
+              aria-label="问卷车卡"
+              title="问卷车卡"
             >
               <ListChecks size={20} strokeWidth={2.2} aria-hidden="true" />
-              <span>建卡指引</span>
+              <span>问卷车卡</span>
             </button>
-            {guideOpen ? <BuildGuidePopover onClose={() => setGuideOpen(false)} /> : null}
           </div>
           <div className="randomAction">
             <button
@@ -2252,13 +2447,15 @@ function App() {
 
       <ResourceLibrary />
       <FateDrawModal />
-      {randomNotice ? (
+      {noticeMessage ? (
         <aside className="randomToast" role="status" aria-live="polite">
-          随机生成完成！
+          {noticeMessage}
         </aside>
       ) : null}
     </SheetContext.Provider>
   );
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(
+  window.location.pathname === '/wj' ? <QuestionnairePage /> : <App />,
+);
