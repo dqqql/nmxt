@@ -3386,19 +3386,33 @@ body {
 }
 
 .tierBadge {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 999px;
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  min-height: 24px;
+  border: 1.5px solid currentColor;
+  background: #fff;
   font-size: 14px;
   font-weight: 800;
-  letter-spacing: 1px;
-  color: #fff;
+  letter-spacing: 0;
+  line-height: 1;
+  color: #24201f;
+  white-space: nowrap;
 }
-.tierBadge.tier-fan { background: var(--tier-fan); }
-.tierBadge.tier-ren { background: var(--tier-ren); }
-.tierBadge.tier-di { background: var(--tier-di); }
-.tierBadge.tier-tian { background: var(--tier-tian); }
-.tierBadge.tier-xian { background: var(--tier-xian); }
+.tierBadge > span {
+  display: grid;
+  place-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+}
+.tierBadge > span + span {
+  border-left: 1.5px solid currentColor;
+}
+.tierBadge.tier-fan { color: #5f5a56; }
+.tierBadge.tier-ren { color: #1c6f41; }
+.tierBadge.tier-di { color: #1f5c9a; }
+.tierBadge.tier-tian { color: #5d3694; }
+.tierBadge.tier-xian { color: #8a6110; }
 
 /* ===== 已填入卡面的天赋天谴格 ===== */
 .talentBox.filled {
@@ -3848,6 +3862,28 @@ body {
 }
 
 @media print {
+  .tierBadge {
+    background: #fff !important;
+    color: #1f1f1f !important;
+    border-color: #1f1f1f !important;
+    border-width: 2px !important;
+    font-weight: 900 !important;
+  }
+
+  .tierBadge > span + span {
+    border-left-color: #1f1f1f !important;
+    border-left-width: 2px !important;
+  }
+
+  .talentBox.kind-talent,
+  .talentBox.kind-punishment {
+    background: #fff !important;
+  }
+
+  .talentBox.filled {
+    box-shadow: inset 3px 0 0 #1f1f1f !important;
+  }
+
   .talentEmptyRune,
   .talentEmptyHint { display: none; }
   .talentBox.empty .effectFill { border-top: 1px solid #dedbd8; }

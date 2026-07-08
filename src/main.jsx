@@ -660,7 +660,10 @@ function TalentBoard() {
             <div className="talentMeta">
               <span>品阶</span>
               <div className="lineFill text">
-                <span className={`tierBadge tier-${meta.tone}`}>{meta.label}{kindLabel}</span>
+                <span className={`tierBadge tier-${meta.tone}`}>
+                  <span>{kindLabel}</span>
+                  <span>{meta.label}</span>
+                </span>
               </div>
             </div>
             <div className="talentEffect">
