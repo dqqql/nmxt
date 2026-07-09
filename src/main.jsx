@@ -1,6 +1,6 @@
 import React, { useState, useContext, createContext, useEffect, useLayoutEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChevronLeft, ChevronRight, CircleAlert, Info, ListChecks, Minus, Plus, Printer, Settings, Shuffle, Star, X } from 'lucide-react';
+import { ChevronRight, CircleAlert, Info, ListChecks, Minus, Plus, Printer, Settings, Shuffle, Star, X } from 'lucide-react';
 import {
   realmOptions,
   originOptions,
@@ -20,7 +20,6 @@ import {
   attributeDefs,
   spellGroups,
   resourceGroups,
-  buildGuideSteps,
   questionnaireConfig,
 } from './data';
 import gameLogo from './assets/game-logo.png';
@@ -32,6 +31,18 @@ import {
   updateKeyedMarkState,
 } from './interactiveState';
 import { createRandomCardState } from './randomCardState';
+import {
+  getFirstRealmInsight,
+  getUnlockedMethodAttackBuffs,
+} from './methodProgression';
+import {
+  applyAttributeIncrease,
+  createUpgradeStep,
+  getDefaultRealmIndex,
+  getNextRealmIndex,
+  getNonCoreAttributeChoices,
+  getTreasureOptions,
+} from './realmUpgrade';
 import {
   QUESTIONNAIRE_DRAFT_KEY,
   QUESTIONNAIRE_RESULT_KEY,
@@ -252,28 +263,38 @@ const resourceMarks = (count, shape, groupId = '') =>
     <ResourceMark key={index} id={groupId ? `${groupId}:${index}` : undefined} shape={shape} ariaLabel={`灵石 ${index + 1}`} />
   ));
 
-function getRealmInsightPrefix(realm) {
-  if (!realm?.name) return '练气';
-  if (realm.name.startsWith('筑基') || realm.name.startsWith('金丹')) return '筑基';
-  return '练气';
-}
-
-function getFirstRealmInsight(method, realm) {
-  if (!method?.insights?.length) return null;
-  const prefix = getRealmInsightPrefix(realm);
-  return method.insights.find((card) => card.name.startsWith(prefix)) || method.insights[0];
-}
-
-function formatInsightCard(card) {
-  return card ? `${card.name}：${card.text}` : '';
-}
-
 function getRealmMultiplier(realm) {
   if (!realm?.name) return 0;
   if (realm.name.startsWith('金丹')) return 3;
   if (realm.name.startsWith('筑基')) return 2;
   if (realm.name.startsWith('练气')) return 1;
   return 0;
+}
+
+function uniqueCards(cards) {
+  const seen = new Set();
+  return (cards || []).filter((card) => {
+    if (!card?.name || seen.has(card.name)) return false;
+    seen.add(card.name);
+    return true;
+  });
+}
+
+function incrementTextNumber(value, amount = 1) {
+  const current = String(value || '').match(/[+-]?\d+/)?.[0];
+  return String((current ? Number(current) : 0) + amount);
+}
+
+function fillNextMark(store, groupId, count) {
+  const next = { ...store };
+  for (let index = 0; index < count; index += 1) {
+    const key = `${groupId}:${index}`;
+    if (!next[key]?.filled) {
+      next[key] = { filled: true, ghost: true };
+      break;
+    }
+  }
+  return next;
 }
 
 function InfoHint({ text, label = '说明' }) {
@@ -451,7 +472,7 @@ function FieldRow({ label, aside, filled = 0, ghost = 0, wide = false }) {
 }
 
 function InfoPanel() {
-  const { current } = useSheet();
+  const { current, upgradeRealm } = useSheet();
   const realm = current.realm;
   const realmMultiplier = getRealmMultiplier(realm);
 
@@ -480,9 +501,16 @@ function InfoPanel() {
         </div>
 
         <div className="splitFieldRow">
-          <div className="splitFieldMain selectorField">
+          <div className="splitFieldMain realmUpgradeField">
             <span className="fieldLabel">境界</span>
-            <SelectorBox category="realm" />
+            <div className="realmUpgradeControl">
+              <FilledText value={realm ? realm.name : '练气前期'} placeholder="练气前期" />
+              <button type="button" className="realmUpgradeButton printControl" onClick={upgradeRealm}>
+                <ChevronRight size={14} strokeWidth={2.6} aria-hidden="true" />
+                <span>升级</span>
+              </button>
+              <PrintValue value={realm ? realm.name : '练气前期'} placeholder="练气前期" className="realmPrintValue" />
+            </div>
           </div>
           <div className="splitFieldSide">
             <span className="fieldAside">境界乘值</span>
@@ -759,12 +787,17 @@ function StatRow({ label, filled, ghost, note }) {
   );
 }
 
-function DamageThreshold({ title, value }) {
+function DamageThreshold({ title, value, allBonus = 0, mediumBonus = 0, heavyBonus = 0 }) {
   const [light = '', medium = '', heavy = ''] = value ? value.match(/\d+/g) || [] : [];
-  const [thresholdValues, setThresholdValues] = useState([light, medium, heavy]);
+  const adjusted = [
+    light ? String(Number(light) + allBonus) : '',
+    medium ? String(Number(medium) + allBonus + mediumBonus) : '',
+    heavy ? String(Number(heavy) + allBonus + heavyBonus) : '',
+  ];
+  const [thresholdValues, setThresholdValues] = useState(adjusted);
   useEffect(() => {
-    setThresholdValues([light, medium, heavy]);
-  }, [light, medium, heavy]);
+    setThresholdValues(adjusted);
+  }, [adjusted[0], adjusted[1], adjusted[2]]);
 
   const updateThreshold = (index, nextValue) => {
     setThresholdValues((current) => current.map((entry, currentIndex) => (
@@ -848,165 +881,10 @@ function ConflictContent() {
   );
 }
 
-function BuildGuidePopover({ onClose }) {
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [currentGuideStep, setCurrentGuideStep] = useState(0);
-  const dragRef = useRef(null);
-  const currentStep = buildGuideSteps[currentGuideStep];
-  const canShowPrevious = currentGuideStep > 0;
-  const canShowNext = currentGuideStep < buildGuideSteps.length - 1;
-
-  useEffect(() => {
-    const drag = (event) => {
-      const activeDrag = dragRef.current;
-      if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
-
-      setOffset({
-        x: activeDrag.offset.x + event.clientX - activeDrag.startX,
-        y: activeDrag.offset.y + event.clientY - activeDrag.startY,
-      });
-    };
-
-    const stopDrag = (event) => {
-      if (dragRef.current?.pointerId === event.pointerId) {
-        dragRef.current = null;
-      }
-    };
-
-    window.addEventListener('pointermove', drag);
-    window.addEventListener('pointerup', stopDrag);
-    window.addEventListener('pointercancel', stopDrag);
-
-    return () => {
-      window.removeEventListener('pointermove', drag);
-      window.removeEventListener('pointerup', stopDrag);
-      window.removeEventListener('pointercancel', stopDrag);
-    };
-  }, []);
-
-  const startDrag = (event) => {
-    if (event.button !== 0) return;
-
-    dragRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      offset,
-    };
-    event.preventDefault();
-  };
-
-  return (
-    <aside
-      id="build-guide-popover"
-      className="buildGuidePopover"
-      style={{ '--guide-x': `${offset.x}px`, '--guide-y': `${offset.y}px` }}
-      aria-label="建卡指引"
-    >
-      <header
-        className="buildGuideHeader"
-        onPointerDown={startDrag}
-      >
-        <div>
-          <h2>建卡指引</h2>
-          <span>拖动标题栏移动</span>
-        </div>
-        <button
-          type="button"
-          className="buildGuideClose"
-          onClick={onClose}
-          onPointerDown={(event) => event.stopPropagation()}
-          aria-label="关闭建卡指引"
-        >
-          <X size={16} strokeWidth={2.4} aria-hidden="true" />
-        </button>
-      </header>
-
-      <div className="buildGuideBody">
-        <section key={currentStep.title} className="guideStep">
-            <div className="guideStepIndex">{String(currentGuideStep + 1).padStart(2, '0')}</div>
-            <div className="guideStepContent">
-              <h3>{currentStep.title}</h3>
-              <p>
-                <strong>{currentStep.target}</strong>
-                <span>{currentStep.summary}</span>
-              </p>
-              {currentStep.tiers ? (
-                <div className="guideTierList">
-                  {currentStep.tiers.map((tier) => (
-                    <div key={tier.name} className="guideTier">
-                      <b>{tier.name}</b>
-                      <span>
-                        <mark>{tier.movement}</mark>
-                        <em>{tier.perception}</em>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-              {currentStep.entries ? (
-                <div className="guideEntryList">
-                  {currentStep.entries.map((entry) => (
-                    <div key={entry.name} className="guideEntry">
-                      <b>{entry.name}</b>
-                      <span>{entry.detail}</span>
-                      <em>
-                        <strong>{entry.effectName}</strong>
-                        {entry.effect}
-                      </em>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-              {currentStep.coreValues ? (
-                <div className="guideCoreList">
-                  {currentStep.coreValues.map((item) => (
-                    <div key={`${item.label}-${item.value}`} className={`guideCoreItem${item.primary ? ' primary' : ''}`}>
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
-                      <em>{item.note}</em>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </section>
-      </div>
-      <footer className="buildGuideFooter">
-        <button
-          type="button"
-          className="guidePageButton"
-          onClick={() => setCurrentGuideStep((step) => Math.max(step - 1, 0))}
-          disabled={!canShowPrevious}
-          aria-label="上一步"
-          title="上一步"
-        >
-          <ChevronLeft size={16} strokeWidth={2.4} aria-hidden="true" />
-        </button>
-        <span>{currentGuideStep + 1} / {buildGuideSteps.length}</span>
-        <button
-          type="button"
-          className="guideNextButton"
-          onClick={() => setCurrentGuideStep((step) => Math.min(step + 1, buildGuideSteps.length - 1))}
-          disabled={!canShowNext}
-        >
-          {canShowNext ? (
-            <>
-              <span>下一步</span>
-              <ChevronRight size={16} strokeWidth={2.4} aria-hidden="true" />
-            </>
-          ) : '最后一步'}
-        </button>
-      </footer>
-    </aside>
-  );
-}
-
 function CombatPanel() {
   const { current } = useSheet();
   const method = current.method;
-  const realmInsight = getFirstRealmInsight(method, current.realm);
-  const buffs = method ? [formatInsightCard(realmInsight)] : [];
+  const buffs = getUnlockedMethodAttackBuffs(method, current.realm);
 
   return (
     <section className="combatPanel">
@@ -1120,7 +998,7 @@ function PortraitPanel() {
 }
 
 function PageOne() {
-  const { current, fateState, fortuneOverflow, setFortuneOverflow } = useSheet();
+  const { current, fateState, fortuneOverflow, setFortuneOverflow, thresholdBonuses } = useSheet();
   const source = current.source;
   const origin = current.origin;
   const dao = current.dao;
@@ -1225,8 +1103,20 @@ function PageOne() {
                 ghost={0}
                 note={'【全力动作】恢复一半的灵气格（向下取整）\n并【回气】所有资源'}
               />
-              <DamageThreshold title="肉体伤害阈值" value={source ? source.bodyThreshold : null} />
-              <DamageThreshold title="神魂伤害阈值" value={source ? source.soulThreshold : null} />
+              <DamageThreshold
+                title="肉体伤害阈值"
+                value={source ? source.bodyThreshold : null}
+                allBonus={thresholdBonuses.all}
+                mediumBonus={thresholdBonuses.bodyMedium}
+                heavyBonus={thresholdBonuses.bodyHeavy}
+              />
+              <DamageThreshold
+                title="神魂伤害阈值"
+                value={source ? source.soulThreshold : null}
+                allBonus={thresholdBonuses.all}
+                mediumBonus={thresholdBonuses.soulMedium}
+                heavyBonus={thresholdBonuses.soulHeavy}
+              />
             </section>
             <CombatPanel />
           </section>
@@ -1308,6 +1198,34 @@ function PdfClickableCheck({ id, label, double = false }) {
       <ClickableMark id={`${groupId}:0`} ariaLabel={label ? `${label} 标记 1` : '标记'} />
       {double ? <ClickableMark id={`${groupId}:1`} ariaLabel={label ? `${label} 标记 2` : '标记 2'} /> : null}
       {label ? <span>{label}</span> : null}
+    </span>
+  );
+}
+
+function PdfActionCheck({ id, label, action }) {
+  const { markStates, setMarkStates, triggerBreakthroughOption } = useSheet();
+  const markId = `${id}:0`;
+  const state = markStates[markId] || createMarkState('solid');
+
+  const toggle = () => {
+    const nextFilled = !state.filled;
+    setMarkStates((store) => ({
+      ...store,
+      [markId]: { ...(store[markId] || createMarkState('solid')), filled: nextFilled },
+    }));
+    if (nextFilled) triggerBreakthroughOption(action);
+  };
+
+  return (
+    <span className="pdfCheckLine interactive">
+      <button
+        type="button"
+        className={`mark ${state.filled ? 'filled' : ''}`.trim()}
+        onClick={toggle}
+        aria-label={`${label} 标记`}
+        aria-pressed={state.filled}
+      />
+      <span>{label}</span>
     </span>
   );
 }
@@ -1415,16 +1333,19 @@ function EditableFeatureTable({ rows, namePrefix, effectPrefix, className = '' }
 }
 
 function PageTwo() {
-  const { current } = useSheet();
+  const { current, upgradeCards } = useSheet();
   const source = current.source;
   const method = current.method;
   const realm = current.realm;
   const selectedInsights = method ? [getFirstRealmInsight(method, realm)].filter(Boolean) : [];
 
   const prefillFor = (title) => {
-    if (title === '神通') return source ? source.skills.slice(0, 3) : [];
-    if (title === '秘法') return source ? source.arts.slice(0, 2) : [];
-    if (title === '感悟') return selectedInsights;
+    if (title === '神通') return uniqueCards([...(source ? source.skills.slice(0, 3) : []), ...upgradeCards.skills]);
+    if (title === '秘法') return uniqueCards([...(source ? source.arts.slice(0, 2) : []), ...upgradeCards.arts]);
+    if (title === '感悟') return uniqueCards([...selectedInsights, ...upgradeCards.insights]);
+    if (title === '本源感悟') return uniqueCards(upgradeCards.originInsights);
+    if (title === '功法') return uniqueCards([...upgradeCards.daoMethods, ...upgradeCards.extraMethods]);
+    if (title === '灵宝') return uniqueCards(upgradeCards.treasures);
     return [];
   };
 
@@ -1588,13 +1509,13 @@ function BreakthroughPanel({ title, stages }) {
           核心属性 +1<br />所有阈值 +3<br />灵气格 +2<br />升级你的法门至进阶
         </div>
         <div className="resultChecks">
-          <PdfCheck label="正常血量格 +1 并所有中伤阈值 +1" />
-          <PdfCheck label="将两个非核心属性 +1" />
-          <PdfCheck label="险境血量格 +1 并所有重伤阈值 +1" />
-          <PdfCheck label={`获取一个${title === '练气期' ? '练气期' : '筑基期'}凡阶灵宝`} />
-          <PdfCheck label="灵气格 +1" />
-          <PdfCheck label="储物格 +1" />
-          <PdfCheck label="不再升级法门，改为修习额外一个法门" />
+          <PdfActionCheck id={`${title}-normal-health`} action="normal-health" label="正常血量格 +1 并所有中伤阈值 +1" />
+          <PdfActionCheck id={`${title}-non-core-attributes`} action="non-core-attributes" label="将两个非核心属性 +1" />
+          <PdfActionCheck id={`${title}-danger-health`} action="danger-health" label="险境血量格 +1 并所有重伤阈值 +1" />
+          <PdfActionCheck id={`${title}-treasure`} action={title === '练气期' ? 'qi-treasure' : 'foundation-treasure'} label={`获取一个${title === '练气期' ? '练气期' : '筑基期'}凡阶灵宝`} />
+          <PdfActionCheck id={`${title}-spirit`} action="spirit" label="灵气格 +1" />
+          <PdfActionCheck id={`${title}-storage`} action="storage" label="储物格 +1" />
+          <PdfActionCheck id={`${title}-extra-method`} action="extra-method" label="不再升级法门，改为修习额外一个法门" />
         </div>
       </div>
     </section>
@@ -1740,6 +1661,137 @@ function ResourceLibrary() {
             </button>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function UpgradeSelectionModal() {
+  const {
+    upgradePrompt,
+    setUpgradePrompt,
+    appendUpgradeCards,
+  } = useSheet();
+  const [selected, setSelected] = useState({});
+
+  useEffect(() => {
+    setSelected({});
+  }, [upgradePrompt]);
+
+  if (!upgradePrompt) return null;
+
+  const sections = upgradePrompt.sections || [];
+  const selectCard = (section, card) => {
+    setSelected((prev) => ({ ...prev, [section.key]: card }));
+  };
+  const ready = sections.every((section) => selected[section.key]);
+  const confirm = () => {
+    const byTarget = {};
+    sections.forEach((section) => {
+      const card = selected[section.key];
+      if (!card) return;
+      byTarget[section.target] = [...(byTarget[section.target] || []), card];
+    });
+    appendUpgradeCards(byTarget);
+    setUpgradePrompt(null);
+  };
+
+  return (
+    <div className="libraryOverlay" onClick={() => setUpgradePrompt(null)} role="presentation">
+      <div className="libraryModal methodInsightModal upgradeModal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={upgradePrompt.title}>
+        <header className="libraryHeader">
+          <h2>升级选择<span className="librarySep">·</span>{upgradePrompt.title}</h2>
+          <button type="button" className="libraryClose" onClick={() => setUpgradePrompt(null)} aria-label="关闭">
+            <X size={18} strokeWidth={2.4} aria-hidden="true" />
+          </button>
+        </header>
+        <div className="libraryToolbar">
+          <button type="button" className="libraryBack" onClick={() => setUpgradePrompt(null)}>稍后再选</button>
+          <div className="libraryChoiceSummary">
+            {sections.map((section) => (
+              <span key={section.key}>{section.title}：{selected[section.key]?.name || '未选择'}</span>
+            ))}
+          </div>
+          <button type="button" className="libraryDone" onClick={confirm} disabled={!ready}>填入卡面</button>
+        </div>
+        <div className="libraryInsightScroll">
+          {sections.map((section) => (
+            <section key={section.key} className="libraryChoiceSection">
+              <div className="librarySectionTitle">
+                <h3>{section.title}</h3>
+                <span>{section.hint}</span>
+              </div>
+              <div className="libraryGrid libraryInsightGrid">
+                {section.options.map((option) => (
+                  <button
+                    key={option.name}
+                    type="button"
+                    className={`libraryCard${selected[section.key]?.name === option.name ? ' selected' : ''}`}
+                    onClick={() => selectCard(section, option)}
+                  >
+                    <div className="libraryCardTitle">{option.name}</div>
+                    <div className="libraryCardBody">{option.text || option.desc || option.effect || ''}</div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AttributeChoiceModal() {
+  const {
+    attributeChoicePrompt,
+    setAttributeChoicePrompt,
+    confirmAttributeChoices,
+  } = useSheet();
+  const [selected, setSelected] = useState([]);
+
+  useEffect(() => {
+    setSelected([]);
+  }, [attributeChoicePrompt]);
+
+  if (!attributeChoicePrompt) return null;
+
+  const toggle = (title) => {
+    setSelected((prev) => {
+      if (prev.includes(title)) return prev.filter((entry) => entry !== title);
+      if (prev.length >= 2) return prev;
+      return [...prev, title];
+    });
+  };
+
+  return (
+    <div className="libraryOverlay" onClick={() => setAttributeChoicePrompt(null)} role="presentation">
+      <div className="libraryModal attributeChoiceModal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="选择非核心属性">
+        <header className="libraryHeader">
+          <h2>属性分配<span className="librarySep">·</span>两个非核心属性 +1</h2>
+          <button type="button" className="libraryClose" onClick={() => setAttributeChoicePrompt(null)} aria-label="关闭">
+            <X size={18} strokeWidth={2.4} aria-hidden="true" />
+          </button>
+        </header>
+        <div className="attributeChoiceGrid">
+          {attributeChoicePrompt.choices.map((choice) => (
+            <button
+              key={choice.title}
+              type="button"
+              className={`attributeChoiceCard${selected.includes(choice.title) ? ' selected' : ''}`}
+              onClick={() => toggle(choice.title)}
+            >
+              <span>{choice.title}</span>
+              <strong>当前 {choice.value || '0'}</strong>
+            </button>
+          ))}
+        </div>
+        <footer className="attributeChoiceFooter">
+          <span>已选择 {selected.length}/2</span>
+          <button type="button" className="libraryDone" onClick={() => confirmAttributeChoices(selected)} disabled={selected.length !== 2}>
+            确认分配
+          </button>
+        </footer>
       </div>
     </div>
   );
@@ -2152,14 +2204,14 @@ function QuestionnairePage() {
 }
 
 function App() {
+  const defaultRealmIndex = getDefaultRealmIndex(realmOptions);
   const [tab, setTab] = useState('p1');
   const [hintOpen, setHintOpen] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
   const [noticeMessage, setNoticeMessage] = useState('');
   const [library, setLibrary] = useState(null);
-  const [selections, setSelections] = useState({ realm: null, origin: null, source: null, method: null, dao: null });
+  const [selections, setSelections] = useState({ realm: defaultRealmIndex, origin: null, source: null, method: null, dao: null });
   const [texts, setTexts] = useState({
     name: '',
     race: '',
@@ -2188,6 +2240,24 @@ function App() {
   const [diceEffects, setDiceEffects] = useState(baseDiceEffects);
   const [fortuneOverflow, setFortuneOverflow] = useState(0);
   const [markStates, setMarkStates] = useState({});
+  const [thresholdBonuses, setThresholdBonuses] = useState({
+    all: 0,
+    bodyMedium: 0,
+    soulMedium: 0,
+    bodyHeavy: 0,
+    soulHeavy: 0,
+  });
+  const [upgradeCards, setUpgradeCards] = useState({
+    skills: [],
+    arts: [],
+    insights: [],
+    originInsights: [],
+    daoMethods: [],
+    treasures: [],
+    extraMethods: [],
+  });
+  const [upgradePrompt, setUpgradePrompt] = useState(null);
+  const [attributeChoicePrompt, setAttributeChoicePrompt] = useState(null);
   const randomNoticeTimer = useRef(null);
 
   const openFateDraw = (title) => {
@@ -2195,6 +2265,11 @@ function App() {
     if (plans) setFateDraw({ title, plans });
   };
   const closeFateDraw = () => setFateDraw(null);
+  const showNotice = (message, duration = 2400) => {
+    setNoticeMessage(message);
+    if (randomNoticeTimer.current) clearTimeout(randomNoticeTimer.current);
+    randomNoticeTimer.current = setTimeout(() => setNoticeMessage(''), duration);
+  };
 
   const openLibrary = (category) => {
     setLibrary(category);
@@ -2205,6 +2280,139 @@ function App() {
   const setText = (field, value) => setTexts((prev) => ({ ...prev, [field]: value }));
   const setAttributeValue = (field, value) => setAttributes((prev) => ({ ...prev, [field]: value }));
   const toggleCoreAttribute = (field) => setCoreAttribute((current) => (current === field ? null : field));
+  const appendUpgradeCards = (cardsByTarget) => {
+    setUpgradeCards((prev) => {
+      const next = { ...prev };
+      Object.entries(cardsByTarget || {}).forEach(([target, cards]) => {
+        next[target] = uniqueCards([...(next[target] || []), ...(cards || [])]);
+      });
+      return next;
+    });
+  };
+  const applyRealmBreakthroughEffects = (step) => {
+    setThresholdBonuses((prev) => ({ ...prev, all: prev.all + 3 }));
+    setMarkStates((store) => {
+      let next = fillNextMark(store, 'p1-stat-灵气-ghost', 4);
+      next = fillNextMark(next, 'p1-stat-灵气-ghost', 4);
+      if (step.id === 'foundation-early') {
+        next = fillNextMark(next, 'p1-zhenyuan-ghost', 4);
+      }
+      return next;
+    });
+    if (step.id === 'foundation-early' && coreAttribute) {
+      setAttributes((prev) => ({
+        ...prev,
+        [coreAttribute]: incrementTextNumber(prev[coreAttribute], 1),
+      }));
+    }
+  };
+  const upgradeRealm = () => {
+    const currentIndex = selections.realm ?? defaultRealmIndex;
+    const nextIndex = getNextRealmIndex(realmOptions, currentIndex);
+    if (nextIndex == null || nextIndex === currentIndex) {
+      showNotice('已是当前版本最高境界。');
+      return;
+    }
+
+    const fromRealmName = realmOptions[currentIndex]?.name;
+    const nextRealmName = realmOptions[nextIndex]?.name;
+    const step = createUpgradeStep({
+      fromRealmName,
+      nextRealmName,
+      source: current.source,
+      method: current.method,
+      dao: current.dao,
+    });
+
+    setSelections((prev) => ({ ...prev, realm: nextIndex }));
+    if (step.autoEffects.includes('realm-breakthrough')) {
+      applyRealmBreakthroughEffects(step);
+    }
+    if (step.selectionPrompt?.sections?.length) {
+      setUpgradePrompt(step.selectionPrompt);
+    }
+    showNotice(step.toast);
+  };
+  const openTreasurePrompt = (stage) => {
+    setUpgradePrompt({
+      title: `${stage === 'foundation' ? '筑基' : '练气'}凡阶灵宝`,
+      sections: [{
+        key: `${stage}-treasure`,
+        title: `${stage === 'foundation' ? '筑基' : '练气'}凡阶灵宝`,
+        hint: '临时占位池，稍后可替换为正式灵宝数据',
+        limit: 1,
+        target: 'treasures',
+        options: getTreasureOptions(stage),
+      }],
+    });
+  };
+  const triggerBreakthroughOption = (action) => {
+    if (action === 'normal-health') {
+      setMarkStates((store) => fillNextMark(store, 'p1-stat-正常血量-ghost', 4));
+      setThresholdBonuses((prev) => ({
+        ...prev,
+        bodyMedium: prev.bodyMedium + 1,
+        soulMedium: prev.soulMedium + 1,
+      }));
+      showNotice('正常血量格 +1，所有中伤阈值 +1。');
+      return;
+    }
+    if (action === 'danger-health') {
+      setMarkStates((store) => fillNextMark(store, 'p1-stat-险境血量-ghost', 4));
+      setThresholdBonuses((prev) => ({
+        ...prev,
+        bodyHeavy: prev.bodyHeavy + 1,
+        soulHeavy: prev.soulHeavy + 1,
+      }));
+      showNotice('险境血量格 +1，所有重伤阈值 +1。');
+      return;
+    }
+    if (action === 'spirit') {
+      setMarkStates((store) => fillNextMark(store, 'p1-stat-灵气-ghost', 4));
+      showNotice('灵气格 +1。');
+      return;
+    }
+    if (action === 'storage') {
+      setMarkStates((store) => fillNextMark(store, 'p1-stat-储物格-ghost', 5));
+      showNotice('储物格 +1。');
+      return;
+    }
+    if (action === 'non-core-attributes') {
+      const choices = getNonCoreAttributeChoices(attributes, coreAttribute);
+      if (choices.length < 2) {
+        showNotice('请先完成属性分配并标记核心属性。');
+        return;
+      }
+      setAttributeChoicePrompt({ choices });
+      return;
+    }
+    if (action === 'qi-treasure') {
+      openTreasurePrompt('qi');
+      return;
+    }
+    if (action === 'foundation-treasure') {
+      openTreasurePrompt('foundation');
+      return;
+    }
+    if (action === 'extra-method') {
+      setUpgradePrompt({
+        title: '额外修习法门',
+        sections: [{
+          key: 'extra-method',
+          title: '额外法门',
+          hint: '选择一个额外修习的法门作为记录',
+          limit: 1,
+          target: 'extraMethods',
+          options: methodOptions,
+        }],
+      });
+    }
+  };
+  const confirmAttributeChoices = (titles) => {
+    setAttributes((prev) => applyAttributeIncrease(prev, titles));
+    setAttributeChoicePrompt(null);
+    showNotice(`已将 ${titles.join('、')} 各 +1。`);
+  };
   const cycleDiceEffect = (index) => {
     setDiceEffects((prev) => prev.map((effect, currentIndex) => {
       if (currentIndex !== index) return effect;
@@ -2251,6 +2459,16 @@ function App() {
     setFortuneOverflow,
     markStates,
     setMarkStates,
+    thresholdBonuses,
+    upgradeCards,
+    upgradeRealm,
+    upgradePrompt,
+    setUpgradePrompt,
+    appendUpgradeCards,
+    attributeChoicePrompt,
+    setAttributeChoicePrompt,
+    confirmAttributeChoices,
+    triggerBreakthroughOption,
   };
 
   useEffect(() => {
@@ -2279,23 +2497,22 @@ function App() {
       drawPlan: drawByPlan,
     });
 
-    setSelections(cardState.selections);
+    setSelections({ ...cardState.selections, realm: defaultRealmIndex });
     setAttributes(cardState.attributes);
+    setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });
+    setUpgradeCards({ skills: [], arts: [], insights: [], originInsights: [], daoMethods: [], treasures: [], extraMethods: [] });
     setSelectedFateTitle(cardState.selectedFateTitle);
     setDiceEffects(getFateState(cardState.selectedFateTitle).diceEffects);
     setDrawnTalents(cardState.drawnTalents);
     setFateDraw(null);
     setLibrary(null);
     removeStorage(QUESTIONNAIRE_RESULT_KEY);
-    setNoticeMessage('问卷车卡完成！');
-    if (randomNoticeTimer.current) clearTimeout(randomNoticeTimer.current);
-    randomNoticeTimer.current = setTimeout(() => setNoticeMessage(''), 2200);
+    showNotice('问卷车卡完成！', 2200);
   }, []);
 
   const switchTab = (nextTab) => {
     setTab(nextTab);
     setHintOpen(false);
-    setGuideOpen(false);
   };
 
   const renderPage = () => {
@@ -2311,7 +2528,6 @@ function App() {
     setExporting(true);
     setExportError('');
     setHintOpen(false);
-    setGuideOpen(false);
 
     try {
       const printRoot = document.querySelector('.printPageStack');
@@ -2337,16 +2553,18 @@ function App() {
       drawPlan: drawByPlan,
     });
 
-    setSelections(result.selections);
+    setSelections({ ...result.selections, realm: defaultRealmIndex });
     setAttributes(result.attributes);
+    setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });
+    setUpgradeCards({ skills: [], arts: [], insights: [], originInsights: [], daoMethods: [], treasures: [], extraMethods: [] });
+    setUpgradePrompt(null);
+    setAttributeChoicePrompt(null);
     setSelectedFateTitle(result.selectedFateTitle);
     setDiceEffects(getFateState(result.selectedFateTitle).diceEffects);
     setDrawnTalents(result.drawnTalents);
     setFateDraw(null);
     setLibrary(null);
-    setNoticeMessage('随机生成完成！');
-    if (randomNoticeTimer.current) clearTimeout(randomNoticeTimer.current);
-    randomNoticeTimer.current = setTimeout(() => setNoticeMessage(''), 1800);
+    showNotice('随机生成完成！', 1800);
   };
 
   return (
@@ -2416,7 +2634,7 @@ function App() {
               </aside>
             ) : null}
           </div>
-          <div className="guideAction">
+          <div className="questionnaireAction">
             <button
               type="button"
               className="toolButton"
@@ -2446,6 +2664,8 @@ function App() {
       <PrintPageRenderer />
 
       <ResourceLibrary />
+      <UpgradeSelectionModal />
+      <AttributeChoiceModal />
       <FateDrawModal />
       {noticeMessage ? (
         <aside className="randomToast" role="status" aria-live="polite">

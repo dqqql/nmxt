@@ -14,7 +14,6 @@ import fate from './fate.json';
 import attributes from './attributes.json';
 import spellGroupsData from './spellGroups.json';
 import resourcesData from './resources.json';
-import buildGuide from './buildGuide.json';
 import questionnaire from './questionnaire/questions.json';
 
 // —— 资源库五大分类 ——
@@ -41,7 +40,6 @@ export const fateDraws = fate.fateDraws;
 export const attributeDefs = attributes;    // 四属性：仙躯 / 身法 / 神魂 / 灵蕴
 export const spellGroups = spellGroupsData; // 术法分组：神通 / 秘法 / 功法 / 灵宝
 export const resourceGroups = resourcesData;// 灵石资源
-export const buildGuideSteps = buildGuide;  // 建卡指引
 export const questionnaireConfig = questionnaire; // 问卷车卡
 
 // —— 抽卡逻辑（非文本，保留在代码中）——
