@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
+  aggregateUpgradeChoices,
   applyAttributeIncrease,
   createUpgradeStep,
   getDefaultRealmIndex,
+  getInitialSourceArts,
+  getInitialSourceSkills,
+  getMaxReachedRealmAfterSelection,
   getNextRealmIndex,
   getNonCoreAttributeChoices,
+  getReachableRealmOptions,
+  getSourceUpgradeArts,
+  getSourceUpgradeSkills,
+  pruneUpgradeChoicesForRealm,
 } from './realmUpgrade';
 
 const realms = [
@@ -64,8 +72,8 @@ describe('realm upgrade rules', () => {
 
     expect(step.selectionPrompt.title).toBe('练气中期升级选项');
     expect(step.selectionPrompt.sections.map((section) => section.key)).toEqual(['source-skill', 'treasure']);
-    expect(step.selectionPrompt.sections[0].options).toHaveLength(2);
-    expect(step.selectionPrompt.sections[1].options[0].name).toContain('占位');
+    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual(['金罡斩']);
+    expect(step.selectionPrompt.sections[1].options[0].name).toBe('玄龟甲');
   });
 
   it('opens qi insight and qi dao method choices when reaching qi late', () => {
@@ -94,6 +102,47 @@ describe('realm upgrade rules', () => {
     expect(step.autoEffects).toContain('realm-breakthrough');
     expect(step.selectionPrompt.sections[0].key).toBe('origin-insight');
     expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual(['筑基本源·剑光分化']);
+  });
+
+  it('keeps upgrade prompts visible even when the matching source data is missing', () => {
+    const step = createUpgradeStep({
+      fromRealmName: '练气中期',
+      nextRealmName: '练气后期',
+      source: null,
+      method: null,
+      dao: null,
+    });
+
+    expect(step.selectionPrompt.sections.map((section) => section.key)).toEqual(['method-insight', 'dao-method']);
+    expect(step.selectionPrompt.sections[0].options).toEqual([]);
+  });
+
+  it('prefills only initial source skill and initial source art', () => {
+    expect(getInitialSourceSkills(source).map((card) => card.name)).toEqual(['金芒术']);
+    expect(getInitialSourceArts(source).map((card) => card.name)).toEqual(['金芒破元斩']);
+    expect(getSourceUpgradeSkills(source).map((card) => card.name)).toEqual(['金罡斩']);
+    expect(getSourceUpgradeArts(source)).toEqual([]);
+  });
+
+  it('keeps only card choices at or below the selected realm when rolling realm back', () => {
+    const choices = [
+      { realmIndex: 1, target: 'skills', card: { name: '中期神通', text: 'A' } },
+      { realmIndex: 2, target: 'insights', card: { name: '后期感悟', text: 'B' } },
+      { realmIndex: 3, target: 'originInsights', card: { name: '筑基本源', text: 'C' } },
+    ];
+
+    expect(pruneUpgradeChoicesForRealm(choices, 1)).toEqual([choices[0]]);
+    expect(aggregateUpgradeChoices(choices, 2).originInsights).toEqual([]);
+    expect(aggregateUpgradeChoices(choices, 2).insights).toEqual([choices[1].card]);
+  });
+
+  it('exposes only reached realms for manual realm selection', () => {
+    expect(getReachableRealmOptions(realms, 2).map((realm) => realm.name)).toEqual(['练气前期', '练气中期', '练气后期']);
+  });
+
+  it('shrinks reached realm history when selecting an earlier realm', () => {
+    expect(getMaxReachedRealmAfterSelection(3, 1)).toBe(1);
+    expect(getReachableRealmOptions(realms, getMaxReachedRealmAfterSelection(3, 1)).map((realm) => realm.name)).toEqual(['练气前期', '练气中期']);
   });
 
   it('sorts non-core attribute choices by current assigned values before applying increases', () => {

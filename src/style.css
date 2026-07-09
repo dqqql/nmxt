@@ -176,6 +176,10 @@ textarea {
   position: relative;
 }
 
+.saveAction {
+  position: relative;
+}
+
 .randomAction {
   position: relative;
 }
@@ -763,6 +767,26 @@ textarea {
 .realmUpgradeButton:focus-visible {
   background: #16864d;
   border-color: #16864d;
+}
+
+.realmDisplayButton {
+  min-width: 0;
+  width: 100%;
+  padding: 0 10px;
+  border: 1px solid #cfc8c0;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.realmDisplayButton:hover,
+.realmDisplayButton:focus-visible {
+  border-color: #16864d;
+  box-shadow: inset 0 0 0 1px #16864d;
 }
 
 .realmPrintValue {
@@ -3433,6 +3457,62 @@ body {
   white-space: pre-wrap;
 }
 
+.libraryEmptyState {
+  display: block;
+  width: 100%;
+  break-inside: avoid;
+  padding: 14px;
+  border: 1px dashed #c8c0b8;
+  background: #faf8f5;
+  color: #6b6660;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.realmHistoryModal {
+  width: min(520px, 100%);
+}
+
+.realmHistoryGrid {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+
+.realmHistoryCard {
+  display: grid;
+  gap: 5px;
+  padding: 11px 12px;
+  border: 1px solid #c4bfbb;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  text-align: left;
+  cursor: pointer;
+}
+
+.realmHistoryCard:hover,
+.realmHistoryCard:focus-visible {
+  border-color: #16864d;
+}
+
+.realmHistoryCard.selected {
+  border-color: #16864d;
+  box-shadow: inset 0 0 0 2px #16864d;
+}
+
+.realmHistoryCard span {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.realmHistoryCard small {
+  color: #6b6660;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .attributeChoiceModal {
   width: min(620px, 100%);
 }
@@ -3492,6 +3572,117 @@ body {
   font-weight: 800;
 }
 
+.saveArchiveModal {
+  width: min(720px, 100%);
+}
+
+.saveArchiveToolbar {
+  display: grid;
+  grid-template-columns: max-content max-content 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid #d8d2cc;
+  background: #f7f4f0;
+}
+
+.saveArchiveToolbar span {
+  color: #6b6660;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.saveArchiveToolbar .libraryBack:disabled {
+  border-color: #c9c3bf;
+  background: #e5e1dd;
+  color: #827b76;
+  cursor: not-allowed;
+}
+
+.saveSlotList {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  overflow: auto;
+}
+
+.saveSlotCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid #c4bfbb;
+  background: #fff;
+}
+
+.saveSlotCard.active {
+  border-color: #16864d;
+  box-shadow: inset 0 0 0 2px #16864d;
+}
+
+.saveSlotMain {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.saveSlotMain input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid #d8d2cc;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.saveSlotMain input:focus {
+  outline: 0;
+  border-bottom-color: #16864d;
+}
+
+.saveSlotMain small {
+  color: #6b6660;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.saveSlotActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saveDeleteButton {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d7c2c2;
+  background: #fff6f6;
+  color: #8a2d2d;
+  cursor: pointer;
+}
+
+.saveDeleteButton:hover,
+.saveDeleteButton:focus-visible {
+  border-color: #8a2d2d;
+  background: #f6e0e0;
+}
+
+.saveEmptyState {
+  padding: 18px;
+  border: 1px dashed #c8c0b8;
+  background: #faf8f5;
+  color: #6b6660;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+}
+
 @media (max-width: 560px) {
   .libraryGrid {
     column-width: auto;
@@ -3508,6 +3699,15 @@ body {
 
   .attributeChoiceGrid {
     grid-template-columns: 1fr;
+  }
+
+  .saveArchiveToolbar,
+  .saveSlotCard {
+    grid-template-columns: 1fr;
+  }
+
+  .saveSlotActions {
+    justify-content: flex-start;
   }
 }
 

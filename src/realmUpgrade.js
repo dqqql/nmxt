@@ -1,28 +1,50 @@
 const qiTreasurePlaceholders = [
   {
-    name: '练气凡阶灵宝（占位）',
-    text: '占位数据：选择后先填入灵宝栏，完整灵宝库到位后会替换为正式条目。',
+    name: '玄龟甲',
+    text: '灵器。一片巴掌大小、质地温润如玉的黑色龟甲。当你受到严重伤害时减少 1 血量格的扣除，骰 1D6 如果为 3 及以上，则还可继续使用；破损后本次聚会结束前无法再次使用。',
   },
   {
-    name: '护身玉佩（占位）',
-    text: '占位数据：一次休息一次，受到伤害时可让伤害下降一级。',
+    name: '引灵佩',
+    text: '灵器。一枚青白玉佩，中心有一点天然灵光缓缓流转。内部存有 1 灵气格供使用，休息时补充。',
   },
   {
-    name: '聚灵珠（占位）',
-    text: '占位数据：一次休息一次，恢复 1 灵气格。',
+    name: '御风印',
+    text: '灵器。一张淡青色印章，以朱砂绘制风纹。一次聚会一次，进行一次困难检定，成功则可以立刻从此场景离开。',
+  },
+  {
+    name: '匿踪纱',
+    text: '灵器。一块轻薄如烟、近乎透明的纱巾。一次聚会一次，扣除 1 灵气格，短暂在本场景隐藏自身踪迹；快速移动或攻击时隐匿失效，对方通过神识探查你的检定获得劣势。',
   },
 ];
 
 const foundationTreasurePlaceholders = [
   {
-    name: '筑基灵宝（占位）',
-    text: '占位数据：选择后先填入灵宝栏，完整灵宝库到位后会替换为正式条目。',
+    name: '分光剑',
+    text: '灵器。一柄剑身细长、寒光内敛的长剑。【气尽】无需动作地使用一次普通攻击。',
   },
   {
-    name: '御风环（占位）',
-    text: '占位数据：一次场景一次，移动距离提升一个等级。',
+    name: '同心结',
+    text: '灵器。一对特殊红线绳结。你选定一个自愿单位，距离不超过一个旅行日时可互相感应情绪与位置；任意一人受到伤害时，一次双方会面一次，对方可以为你分担一次伤害。',
+  },
+  {
+    name: '寻宝鼠',
+    text: '灵宠。一只通体银灰色、对灵气和宝光异常敏感的鼠类灵兽。每次到达新场景时骰 2D6，大于等于 10 则找到一些线索或有用物品。',
+  },
+  {
+    name: '地心灵乳',
+    text: '灵材。盛放在小玉瓶中的乳白色液体。每次休息两次，你可以使用轻巧动作饮用灵乳恢复 2 血量格；同一场景中再次饮用效果降低为 1 血量格。',
   },
 ];
+
+const emptyUpgradeCards = {
+  skills: [],
+  arts: [],
+  insights: [],
+  originInsights: [],
+  daoMethods: [],
+  treasures: [],
+  extraMethods: [],
+};
 
 export function getTreasureOptions(stage = 'qi') {
   return stage === 'foundation' ? foundationTreasurePlaceholders : qiTreasurePlaceholders;
@@ -38,8 +60,10 @@ function cardsForRealm(cards = [], prefix) {
 }
 
 function cardSections(sections) {
-  const next = sections.filter((section) => section.options?.length);
-  return next.length ? next : null;
+  return sections.map((section) => ({
+    ...section,
+    options: section.options || [],
+  }));
 }
 
 function numberFromAttribute(value) {
@@ -57,6 +81,49 @@ export function getNextRealmIndex(realms = [], currentIndex) {
   if (!realms.length) return null;
   if (currentIndex == null || currentIndex < 0) return getDefaultRealmIndex(realms);
   return Math.min(currentIndex + 1, realms.length - 1);
+}
+
+export function getReachableRealmOptions(realms = [], maxReachedIndex = 0) {
+  return realms.slice(0, Math.max(0, maxReachedIndex) + 1);
+}
+
+export function getMaxReachedRealmAfterSelection(maxReachedIndex, selectedRealmIndex) {
+  return Math.min(maxReachedIndex, selectedRealmIndex);
+}
+
+export function getInitialSourceSkills(source) {
+  return source?.skills?.[0] ? [source.skills[0]] : [];
+}
+
+export function getInitialSourceArts(source) {
+  return source?.arts?.[0] ? [source.arts[0]] : [];
+}
+
+export function getSourceUpgradeSkills(source) {
+  return source?.skills?.slice(1) || [];
+}
+
+export function getSourceUpgradeArts(source) {
+  return source?.arts?.slice(1) || [];
+}
+
+export function pruneUpgradeChoicesForRealm(choices = [], realmIndex) {
+  return choices.filter((choice) => choice.realmIndex <= realmIndex);
+}
+
+export function aggregateUpgradeChoices(choices = [], realmIndex = Number.POSITIVE_INFINITY) {
+  const next = Object.fromEntries(Object.entries(emptyUpgradeCards).map(([key, value]) => [key, [...value]]));
+  const seen = new Set();
+  choices
+    .filter((choice) => choice.realmIndex <= realmIndex)
+    .forEach((choice) => {
+      if (!choice?.target || !choice.card) return;
+      const key = `${choice.target}:${choice.card.name}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      next[choice.target] = [...(next[choice.target] || []), choice.card];
+    });
+  return next;
 }
 
 export function applyAttributeIncrease(attributes, titles) {
@@ -102,7 +169,7 @@ export function createUpgradeStep({
             hint: source ? `来自 ${source.name}` : '请先选择道源',
             limit: 1,
             target: 'skills',
-            options: source?.skills || [],
+            options: getSourceUpgradeSkills(source),
           },
           {
             key: 'treasure',
@@ -181,7 +248,7 @@ export function createUpgradeStep({
             hint: source ? `来自 ${source.name}` : '请先选择道源',
             limit: 1,
             target: 'skills',
-            options: source?.skills || [],
+            options: getSourceUpgradeSkills(source),
           },
           {
             key: 'source-art',
@@ -189,7 +256,7 @@ export function createUpgradeStep({
             hint: source ? `来自 ${source.name}` : '请先选择道源',
             limit: 1,
             target: 'arts',
-            options: source?.arts || [],
+            options: getSourceUpgradeArts(source),
           },
         ]),
       },

@@ -1,6 +1,6 @@
-import React, { useState, useContext, createContext, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useContext, createContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChevronRight, CircleAlert, Info, ListChecks, Minus, Plus, Printer, Settings, Shuffle, Star, X } from 'lucide-react';
+import { ChevronRight, CircleAlert, Info, ListChecks, Minus, Plus, Printer, Save, Settings, Shuffle, Star, Trash2, X } from 'lucide-react';
 import {
   realmOptions,
   originOptions,
@@ -36,12 +36,18 @@ import {
   getUnlockedMethodAttackBuffs,
 } from './methodProgression';
 import {
+  aggregateUpgradeChoices,
   applyAttributeIncrease,
   createUpgradeStep,
   getDefaultRealmIndex,
+  getInitialSourceArts,
+  getInitialSourceSkills,
+  getMaxReachedRealmAfterSelection,
   getNextRealmIndex,
   getNonCoreAttributeChoices,
+  getReachableRealmOptions,
   getTreasureOptions,
+  pruneUpgradeChoicesForRealm,
 } from './realmUpgrade';
 import {
   QUESTIONNAIRE_DRAFT_KEY,
@@ -51,6 +57,12 @@ import {
   resolveQuestionnaireResult,
   validateQuestionnaireAnswers,
 } from './questionnaireState';
+import {
+  deleteSaveSlot,
+  normalizeSaveSlots,
+  renameSaveSlot,
+  saveSlot,
+} from './saveArchive';
 import './style.css';
 
 function getFateState(title) {
@@ -106,6 +118,38 @@ const selectorPanelHints = {
   method: '修仙者使用力量的方式',
   dao: '修仙者们性格与倾向产生的特殊风格',
 };
+
+const CARD_AUTOSAVE_KEY = 'nmxt.card.autosave.v1';
+const CARD_SAVE_SLOTS_KEY = 'nmxt.card.saveSlots.v1';
+const CARD_ACTIVE_SAVE_SLOT_KEY = 'nmxt.card.activeSaveSlot.v1';
+
+const defaultTexts = {
+  name: '',
+  race: '',
+  belong: '',
+  daoHeart: '',
+  identity: '',
+  formationName: '',
+  formationBonus: '',
+  formationGuardDifficulty: '',
+  formationBreakDifficulty: '',
+  formationFeatureName0: '阵攻',
+  formationFeatureEffect0: '【初始特征】轻巧动作，对场景内 2 个敌人进行攻击，造成少量伤害',
+  followerName: '',
+  followerBonus: '',
+  followerMoveEffect0: '轻巧动作，【核心属性】点伤害，本回合中主人对这个目标的下一次检定具有优势',
+  followerMoveEffect1: '轻巧动作，【核心属性 +2】点伤害，命中未拆招成功目标，施加【脆弱】（二选一）',
+};
+
+const defaultAttributes = { '仙躯': '', '身法': '', '神魂': '', '灵蕴': '' };
+const defaultThresholdBonuses = {
+  all: 0,
+  bodyMedium: 0,
+  soulMedium: 0,
+  bodyHeavy: 0,
+  soulHeavy: 0,
+};
+
 const LIBRARY = {
   realm: { label: '境界', placeholder: '点击选择境界', options: realmOptions },
   origin: { label: '出身', placeholder: '点击选择出身', options: originOptions },
@@ -472,7 +516,7 @@ function FieldRow({ label, aside, filled = 0, ghost = 0, wide = false }) {
 }
 
 function InfoPanel() {
-  const { current, upgradeRealm } = useSheet();
+  const { current, canSelectReachedRealm, openRealmHistory, upgradeRealm } = useSheet();
   const realm = current.realm;
   const realmMultiplier = getRealmMultiplier(realm);
 
@@ -504,7 +548,13 @@ function InfoPanel() {
           <div className="splitFieldMain realmUpgradeField">
             <span className="fieldLabel">境界</span>
             <div className="realmUpgradeControl">
-              <FilledText value={realm ? realm.name : '练气前期'} placeholder="练气前期" />
+              {canSelectReachedRealm ? (
+                <button type="button" className="realmDisplayButton printControl" onClick={openRealmHistory}>
+                  {realm ? realm.name : '练气前期'}
+                </button>
+              ) : (
+                <FilledText value={realm ? realm.name : '练气前期'} placeholder="练气前期" />
+              )}
               <button type="button" className="realmUpgradeButton printControl" onClick={upgradeRealm}>
                 <ChevronRight size={14} strokeWidth={2.6} aria-hidden="true" />
                 <span>升级</span>
@@ -1340,8 +1390,8 @@ function PageTwo() {
   const selectedInsights = method ? [getFirstRealmInsight(method, realm)].filter(Boolean) : [];
 
   const prefillFor = (title) => {
-    if (title === '神通') return uniqueCards([...(source ? source.skills.slice(0, 3) : []), ...upgradeCards.skills]);
-    if (title === '秘法') return uniqueCards([...(source ? source.arts.slice(0, 2) : []), ...upgradeCards.arts]);
+    if (title === '神通') return uniqueCards([...getInitialSourceSkills(source), ...upgradeCards.skills]);
+    if (title === '秘法') return uniqueCards([...getInitialSourceArts(source), ...upgradeCards.arts]);
     if (title === '感悟') return uniqueCards([...selectedInsights, ...upgradeCards.insights]);
     if (title === '本源感悟') return uniqueCards(upgradeCards.originInsights);
     if (title === '功法') return uniqueCards([...upgradeCards.daoMethods, ...upgradeCards.extraMethods]);
@@ -1722,7 +1772,7 @@ function UpgradeSelectionModal() {
                 <span>{section.hint}</span>
               </div>
               <div className="libraryGrid libraryInsightGrid">
-                {section.options.map((option) => (
+                {section.options.length ? section.options.map((option) => (
                   <button
                     key={option.name}
                     type="button"
@@ -1732,9 +1782,49 @@ function UpgradeSelectionModal() {
                     <div className="libraryCardTitle">{option.name}</div>
                     <div className="libraryCardBody">{option.text || option.desc || option.effect || ''}</div>
                   </button>
-                ))}
+                )) : (
+                  <div className="libraryEmptyState">{section.hint || '当前没有可选资源，请先补全前置选择。'}</div>
+                )}
               </div>
             </section>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RealmHistoryModal() {
+  const {
+    current,
+    realmHistoryOpen,
+    reachableRealms,
+    selectReachedRealm,
+    setRealmHistoryOpen,
+  } = useSheet();
+
+  if (!realmHistoryOpen) return null;
+
+  return (
+    <div className="libraryOverlay" onClick={() => setRealmHistoryOpen(false)} role="presentation">
+      <div className="libraryModal realmHistoryModal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="选择已到达境界">
+        <header className="libraryHeader">
+          <h2>境界<span className="librarySep">·</span>已到达</h2>
+          <button type="button" className="libraryClose" onClick={() => setRealmHistoryOpen(false)} aria-label="关闭">
+            <X size={18} strokeWidth={2.4} aria-hidden="true" />
+          </button>
+        </header>
+        <div className="realmHistoryGrid">
+          {reachableRealms.map((realm, index) => (
+            <button
+              key={realm.name}
+              type="button"
+              className={`realmHistoryCard${current.realm?.name === realm.name ? ' selected' : ''}`}
+              onClick={() => selectReachedRealm(index)}
+            >
+              <span>{realm.name}</span>
+              <small>{realm.ability}</small>
+            </button>
           ))}
         </div>
       </div>
@@ -1792,6 +1882,73 @@ function AttributeChoiceModal() {
             确认分配
           </button>
         </footer>
+      </div>
+    </div>
+  );
+}
+
+function SaveArchiveModal() {
+  const {
+    saveOpen,
+    setSaveOpen,
+    saveSlots,
+    activeSaveSlotId,
+    handleSaveCurrent,
+    loadSaveSlot,
+    renameSlot,
+    removeSaveSlot,
+  } = useSheet();
+
+  if (!saveOpen) return null;
+
+  const full = saveSlots.length >= 10;
+
+  return (
+    <div className="libraryOverlay" onClick={() => setSaveOpen(false)} role="presentation">
+      <div className="libraryModal saveArchiveModal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label="存档管理">
+        <header className="libraryHeader">
+          <h2>存档<span className="librarySep">·</span>{saveSlots.length}/10</h2>
+          <button type="button" className="libraryClose" onClick={() => setSaveOpen(false)} aria-label="关闭">
+            <X size={18} strokeWidth={2.4} aria-hidden="true" />
+          </button>
+        </header>
+        <div className="saveArchiveToolbar">
+          <button type="button" className="libraryDone" onClick={() => handleSaveCurrent()}>
+            保存当前
+          </button>
+          <button type="button" className="libraryBack" onClick={() => handleSaveCurrent({ forceNew: true })} disabled={full}>
+            新建存档
+          </button>
+          <span>当前工作区会自动缓存；手动存档最多 10 个。</span>
+        </div>
+        <div className="saveSlotList">
+          {saveSlots.length ? saveSlots.map((slot) => (
+            <section key={slot.id} className={`saveSlotCard${slot.id === activeSaveSlotId ? ' active' : ''}`}>
+              <div className="saveSlotMain">
+                <input
+                  type="text"
+                  value={slot.name}
+                  onChange={(event) => renameSlot(slot.id, event.target.value)}
+                  aria-label={`${slot.name} 名称`}
+                />
+                <small>
+                  {slot.id === activeSaveSlotId ? '当前存档 · ' : ''}
+                  更新于 {new Date(slot.updatedAt).toLocaleString('zh-CN')}
+                </small>
+              </div>
+              <div className="saveSlotActions">
+                <button type="button" className="libraryDone" onClick={() => loadSaveSlot(slot.id)}>
+                  切换
+                </button>
+                <button type="button" className="saveDeleteButton" onClick={() => removeSaveSlot(slot.id)} aria-label={`删除 ${slot.name}`}>
+                  <Trash2 size={15} strokeWidth={2.4} aria-hidden="true" />
+                </button>
+              </div>
+            </section>
+          )) : (
+            <div className="saveEmptyState">还没有手动存档。点击“保存当前”创建第一个存档。</div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -2205,60 +2362,41 @@ function QuestionnairePage() {
 
 function App() {
   const defaultRealmIndex = getDefaultRealmIndex(realmOptions);
+  const autosavedCard = readJsonStorage(CARD_AUTOSAVE_KEY, null);
   const [tab, setTab] = useState('p1');
   const [hintOpen, setHintOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
   const [noticeMessage, setNoticeMessage] = useState('');
   const [library, setLibrary] = useState(null);
-  const [selections, setSelections] = useState({ realm: defaultRealmIndex, origin: null, source: null, method: null, dao: null });
-  const [texts, setTexts] = useState({
-    name: '',
-    race: '',
-    belong: '',
-    daoHeart: '',
-    identity: '',
-    formationName: '',
-    formationBonus: '',
-    formationGuardDifficulty: '',
-    formationBreakDifficulty: '',
-    formationFeatureName0: '阵攻',
-    formationFeatureEffect0: '【初始特征】轻巧动作，对场景内 2 个敌人进行攻击，造成少量伤害',
-    followerName: '',
-    followerBonus: '',
-    followerMoveEffect0: '轻巧动作，【核心属性】点伤害，本回合中主人对这个目标的下一次检定具有优势',
-    followerMoveEffect1: '轻巧动作，【核心属性 +2】点伤害，命中未拆招成功目标，施加【脆弱】（二选一）',
-  });
-  const [attributes, setAttributes] = useState({ '仙躯': '', '身法': '', '神魂': '', '灵蕴': '' });
-  const [coreAttribute, setCoreAttribute] = useState(null);
+  const [saveSlots, setSaveSlots] = useState(() => normalizeSaveSlots(readJsonStorage(CARD_SAVE_SLOTS_KEY, [])));
+  const [activeSaveSlotId, setActiveSaveSlotId] = useState(() => readJsonStorage(CARD_ACTIVE_SAVE_SLOT_KEY, null));
+  const [selections, setSelections] = useState(autosavedCard?.selections || { realm: defaultRealmIndex, origin: null, source: null, method: null, dao: null });
+  const [texts, setTexts] = useState({ ...defaultTexts, ...(autosavedCard?.texts || {}) });
+  const [attributes, setAttributes] = useState({ ...defaultAttributes, ...(autosavedCard?.attributes || {}) });
+  const [coreAttribute, setCoreAttribute] = useState(autosavedCard?.coreAttribute || null);
   // 抽卡弹窗目标：{ title, plans } 或 null。drawnTalents 为已填入卡面的天赋 / 天谴。
   const [fateDraw, setFateDraw] = useState(null);
-  const [drawnTalents, setDrawnTalents] = useState([]);
+  const [drawnTalents, setDrawnTalents] = useState(autosavedCard?.drawnTalents || []);
   // 立绘图片（data URL），切页不丢失。
-  const [portrait, setPortrait] = useState(null);
-  const [selectedFateTitle, setSelectedFateTitle] = useState(null);
-  const [diceEffects, setDiceEffects] = useState(baseDiceEffects);
-  const [fortuneOverflow, setFortuneOverflow] = useState(0);
-  const [markStates, setMarkStates] = useState({});
-  const [thresholdBonuses, setThresholdBonuses] = useState({
-    all: 0,
-    bodyMedium: 0,
-    soulMedium: 0,
-    bodyHeavy: 0,
-    soulHeavy: 0,
-  });
-  const [upgradeCards, setUpgradeCards] = useState({
-    skills: [],
-    arts: [],
-    insights: [],
-    originInsights: [],
-    daoMethods: [],
-    treasures: [],
-    extraMethods: [],
-  });
+  const [portrait, setPortrait] = useState(autosavedCard?.portrait || null);
+  const [selectedFateTitle, setSelectedFateTitle] = useState(autosavedCard?.selectedFateTitle || null);
+  const [diceEffects, setDiceEffects] = useState(autosavedCard?.diceEffects || baseDiceEffects);
+  const [fortuneOverflow, setFortuneOverflow] = useState(autosavedCard?.fortuneOverflow || 0);
+  const [markStates, setMarkStates] = useState(autosavedCard?.markStates || {});
+  const [thresholdBonuses, setThresholdBonuses] = useState({ ...defaultThresholdBonuses, ...(autosavedCard?.thresholdBonuses || {}) });
+  const [upgradeChoices, setUpgradeChoices] = useState(autosavedCard?.upgradeChoices || []);
+  const [maxRealmIndexReached, setMaxRealmIndexReached] = useState(autosavedCard?.maxRealmIndexReached ?? defaultRealmIndex);
+  const [realmHistoryOpen, setRealmHistoryOpen] = useState(false);
   const [upgradePrompt, setUpgradePrompt] = useState(null);
   const [attributeChoicePrompt, setAttributeChoicePrompt] = useState(null);
   const randomNoticeTimer = useRef(null);
+  const currentRealmIndex = selections.realm ?? defaultRealmIndex;
+  const upgradeCards = useMemo(
+    () => aggregateUpgradeChoices(upgradeChoices, currentRealmIndex),
+    [upgradeChoices, currentRealmIndex],
+  );
 
   const openFateDraw = (title) => {
     const plans = fateDraws[title];
@@ -2281,13 +2419,13 @@ function App() {
   const setAttributeValue = (field, value) => setAttributes((prev) => ({ ...prev, [field]: value }));
   const toggleCoreAttribute = (field) => setCoreAttribute((current) => (current === field ? null : field));
   const appendUpgradeCards = (cardsByTarget) => {
-    setUpgradeCards((prev) => {
-      const next = { ...prev };
-      Object.entries(cardsByTarget || {}).forEach(([target, cards]) => {
-        next[target] = uniqueCards([...(next[target] || []), ...(cards || [])]);
-      });
-      return next;
-    });
+    const realmIndex = upgradePrompt?.realmIndex ?? currentRealmIndex;
+    setUpgradeChoices((prev) => [
+      ...prev,
+      ...Object.entries(cardsByTarget || {}).flatMap(([target, cards]) => (
+        (cards || []).map((card) => ({ realmIndex, target, card }))
+      )),
+    ]);
   };
   const applyRealmBreakthroughEffects = (step) => {
     setThresholdBonuses((prev) => ({ ...prev, all: prev.all + 3 }));
@@ -2325,17 +2463,32 @@ function App() {
     });
 
     setSelections((prev) => ({ ...prev, realm: nextIndex }));
+    setMaxRealmIndexReached((value) => Math.max(value, nextIndex));
     if (step.autoEffects.includes('realm-breakthrough')) {
       applyRealmBreakthroughEffects(step);
     }
     if (step.selectionPrompt?.sections?.length) {
-      setUpgradePrompt(step.selectionPrompt);
+      setUpgradePrompt({ ...step.selectionPrompt, realmIndex: nextIndex });
     }
     showNotice(step.toast);
+  };
+  const openRealmHistory = () => setRealmHistoryOpen(true);
+  const selectReachedRealm = (realmIndex) => {
+    setSelections((prev) => ({ ...prev, realm: realmIndex }));
+    setUpgradePrompt(null);
+    setRealmHistoryOpen(false);
+    if (realmIndex < currentRealmIndex) {
+      setUpgradeChoices((prev) => pruneUpgradeChoicesForRealm(prev, realmIndex));
+      setMaxRealmIndexReached((value) => getMaxReachedRealmAfterSelection(value, realmIndex));
+      showNotice(`已回退至${realmOptions[realmIndex]?.name || '所选境界'}，高境界选择已清除。`);
+      return;
+    }
+    showNotice(`已切换至${realmOptions[realmIndex]?.name || '所选境界'}。`);
   };
   const openTreasurePrompt = (stage) => {
     setUpgradePrompt({
       title: `${stage === 'foundation' ? '筑基' : '练气'}凡阶灵宝`,
+      realmIndex: currentRealmIndex,
       sections: [{
         key: `${stage}-treasure`,
         title: `${stage === 'foundation' ? '筑基' : '练气'}凡阶灵宝`,
@@ -2397,6 +2550,7 @@ function App() {
     if (action === 'extra-method') {
       setUpgradePrompt({
         title: '额外修习法门',
+        realmIndex: currentRealmIndex,
         sections: [{
           key: 'extra-method',
           title: '额外法门',
@@ -2429,6 +2583,81 @@ function App() {
     dao: selections.dao != null ? daoOptions[selections.dao] : null,
   };
   const fateState = getFateState(selectedFateTitle);
+  const createCardSnapshot = () => ({
+    version: 1,
+    selections,
+    texts,
+    attributes,
+    coreAttribute,
+    drawnTalents,
+    portrait,
+    selectedFateTitle,
+    diceEffects,
+    fortuneOverflow,
+    markStates,
+    thresholdBonuses,
+    upgradeChoices,
+    maxRealmIndexReached,
+  });
+  const restoreCardSnapshot = (snapshot) => {
+    if (!snapshot) return;
+    setSelections(snapshot.selections || { realm: defaultRealmIndex, origin: null, source: null, method: null, dao: null });
+    setTexts({ ...defaultTexts, ...(snapshot.texts || {}) });
+    setAttributes({ ...defaultAttributes, ...(snapshot.attributes || {}) });
+    setCoreAttribute(snapshot.coreAttribute || null);
+    setDrawnTalents(snapshot.drawnTalents || []);
+    setPortrait(snapshot.portrait || null);
+    setSelectedFateTitle(snapshot.selectedFateTitle || null);
+    setDiceEffects(snapshot.diceEffects || baseDiceEffects);
+    setFortuneOverflow(snapshot.fortuneOverflow || 0);
+    setMarkStates(snapshot.markStates || {});
+    setThresholdBonuses({ ...defaultThresholdBonuses, ...(snapshot.thresholdBonuses || {}) });
+    setUpgradeChoices(snapshot.upgradeChoices || []);
+    setMaxRealmIndexReached(snapshot.maxRealmIndexReached ?? defaultRealmIndex);
+    setFateDraw(null);
+    setLibrary(null);
+    setUpgradePrompt(null);
+    setAttributeChoicePrompt(null);
+    setRealmHistoryOpen(false);
+  };
+  const persistSaveSlots = (nextSlots) => {
+    setSaveSlots(nextSlots);
+    writeJsonStorage(CARD_SAVE_SLOTS_KEY, nextSlots);
+  };
+  const setActiveSlot = (slotId) => {
+    setActiveSaveSlotId(slotId);
+    writeJsonStorage(CARD_ACTIVE_SAVE_SLOT_KEY, slotId);
+  };
+  const handleSaveCurrent = ({ forceNew = false } = {}) => {
+    try {
+      const snapshot = createCardSnapshot();
+      const nextSlots = saveSlot(saveSlots, {
+        activeSlotId: forceNew ? null : activeSaveSlotId,
+        snapshot,
+      });
+      persistSaveSlots(nextSlots);
+      setActiveSlot(forceNew || !activeSaveSlotId ? nextSlots[0]?.id : activeSaveSlotId);
+      showNotice(forceNew || !activeSaveSlotId ? '已创建新存档。' : '当前存档已更新。');
+    } catch (error) {
+      showNotice(error?.message || '存档失败。', 2600);
+    }
+  };
+  const loadSaveSlot = (slotId) => {
+    const slot = saveSlots.find((entry) => entry.id === slotId);
+    if (!slot) return;
+    restoreCardSnapshot(slot.snapshot);
+    setActiveSlot(slot.id);
+    setSaveOpen(false);
+    showNotice(`已切换至「${slot.name}」。`);
+  };
+  const renameSlot = (slotId, name) => {
+    persistSaveSlots(renameSaveSlot(saveSlots, slotId, name));
+  };
+  const removeSaveSlot = (slotId) => {
+    persistSaveSlots(deleteSaveSlot(saveSlots, slotId));
+    if (activeSaveSlotId === slotId) setActiveSlot(null);
+    showNotice('存档已删除。');
+  };
 
   const contextValue = {
     selections,
@@ -2460,8 +2689,22 @@ function App() {
     markStates,
     setMarkStates,
     thresholdBonuses,
+    saveOpen,
+    setSaveOpen,
+    saveSlots,
+    activeSaveSlotId,
+    handleSaveCurrent,
+    loadSaveSlot,
+    renameSlot,
+    removeSaveSlot,
     upgradeCards,
     upgradeRealm,
+    canSelectReachedRealm: maxRealmIndexReached > defaultRealmIndex,
+    openRealmHistory,
+    realmHistoryOpen,
+    setRealmHistoryOpen,
+    reachableRealms: getReachableRealmOptions(realmOptions, maxRealmIndexReached),
+    selectReachedRealm,
     upgradePrompt,
     setUpgradePrompt,
     appendUpgradeCards,
@@ -2475,6 +2718,24 @@ function App() {
     const printRoot = document.querySelector('.printPageStack') || document;
     return attachPrintLifecycle(printRoot);
   }, []);
+
+  useEffect(() => {
+    writeJsonStorage(CARD_AUTOSAVE_KEY, createCardSnapshot());
+  }, [
+    selections,
+    texts,
+    attributes,
+    coreAttribute,
+    drawnTalents,
+    portrait,
+    selectedFateTitle,
+    diceEffects,
+    fortuneOverflow,
+    markStates,
+    thresholdBonuses,
+    upgradeChoices,
+    maxRealmIndexReached,
+  ]);
 
   useEffect(() => () => {
     if (randomNoticeTimer.current) clearTimeout(randomNoticeTimer.current);
@@ -2500,7 +2761,10 @@ function App() {
     setSelections({ ...cardState.selections, realm: defaultRealmIndex });
     setAttributes(cardState.attributes);
     setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });
-    setUpgradeCards({ skills: [], arts: [], insights: [], originInsights: [], daoMethods: [], treasures: [], extraMethods: [] });
+    setUpgradeChoices([]);
+    setMaxRealmIndexReached(defaultRealmIndex);
+    setRealmHistoryOpen(false);
+    setActiveSlot(null);
     setSelectedFateTitle(cardState.selectedFateTitle);
     setDiceEffects(getFateState(cardState.selectedFateTitle).diceEffects);
     setDrawnTalents(cardState.drawnTalents);
@@ -2556,7 +2820,10 @@ function App() {
     setSelections({ ...result.selections, realm: defaultRealmIndex });
     setAttributes(result.attributes);
     setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });
-    setUpgradeCards({ skills: [], arts: [], insights: [], originInsights: [], daoMethods: [], treasures: [], extraMethods: [] });
+    setUpgradeChoices([]);
+    setMaxRealmIndexReached(defaultRealmIndex);
+    setRealmHistoryOpen(false);
+    setActiveSlot(null);
     setUpgradePrompt(null);
     setAttributeChoicePrompt(null);
     setSelectedFateTitle(result.selectedFateTitle);
@@ -2595,6 +2862,18 @@ function App() {
             <Settings size={20} strokeWidth={2.2} aria-hidden="true" />
             <span>设置</span>
           </button>
+          <div className="saveAction">
+            <button
+              type="button"
+              className="toolButton"
+              onClick={() => setSaveOpen(true)}
+              aria-label="存档"
+              title="存档"
+            >
+              <Save size={20} strokeWidth={2.2} aria-hidden="true" />
+              <span>存档</span>
+            </button>
+          </div>
           <div className="exportAction">
             <button
               type="button"
@@ -2665,7 +2944,9 @@ function App() {
 
       <ResourceLibrary />
       <UpgradeSelectionModal />
+      <RealmHistoryModal />
       <AttributeChoiceModal />
+      <SaveArchiveModal />
       <FateDrawModal />
       {noticeMessage ? (
         <aside className="randomToast" role="status" aria-live="polite">
