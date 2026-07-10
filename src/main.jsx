@@ -1,6 +1,6 @@
 import React, { useState, useContext, createContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChevronRight, CircleAlert, Info, ListChecks, Minus, Plus, Printer, Save, Settings, Shuffle, Star, Trash2, X } from 'lucide-react';
+import { ChevronRight, CircleAlert, Info, ListChecks, Map, Minus, Plus, Printer, Save, Settings, Shuffle, Star, Trash2, X } from 'lucide-react';
 import {
   realmOptions,
   originOptions,
@@ -57,6 +57,19 @@ import {
   resolveQuestionnaireResult,
   validateQuestionnaireAnswers,
 } from './questionnaireState';
+import {
+  GUIDE_STEPS,
+  GUIDED_DRAFTS_KEY,
+  GUIDED_RESULT_KEY,
+  clearGuideDraft,
+  clampGuideStep,
+  createEmptyGuideDraft,
+  createGuidedCardResult,
+  getGuideDraft,
+  mergeRandomCardIntoGuideDraft,
+  setGuideDraft,
+  validateGuideValues,
+} from './guidedCardState';
 import {
   deleteSaveSlot,
   normalizeSaveSlots,
@@ -2360,6 +2373,10 @@ function QuestionnairePage() {
   );
 }
 
+function GuidedCardPage() {
+  return <main className="guideShell">引导车卡</main>;
+}
+
 function App() {
   const defaultRealmIndex = getDefaultRealmIndex(realmOptions);
   const autosavedCard = readJsonStorage(CARD_AUTOSAVE_KEY, null);
@@ -2774,6 +2791,31 @@ function App() {
     showNotice('问卷车卡完成！', 2200);
   }, []);
 
+  useEffect(() => {
+    const result = readJsonStorage(GUIDED_RESULT_KEY, null);
+    const snapshot = result?.snapshot;
+    if (!snapshot) return;
+
+    setSelections({ ...snapshot.selections, realm: defaultRealmIndex });
+    setTexts({ ...defaultTexts, ...(snapshot.texts || {}) });
+    setAttributes({ ...defaultAttributes, ...(snapshot.attributes || {}) });
+    setCoreAttribute(snapshot.coreAttribute || null);
+    setThresholdBonuses({ ...defaultThresholdBonuses, ...(snapshot.thresholdBonuses || {}) });
+    setUpgradeChoices(snapshot.upgradeChoices || []);
+    setMaxRealmIndexReached(snapshot.maxRealmIndexReached ?? defaultRealmIndex);
+    setRealmHistoryOpen(false);
+    setActiveSlot(null);
+    setUpgradePrompt(null);
+    setAttributeChoicePrompt(null);
+    setSelectedFateTitle(snapshot.selectedFateTitle || null);
+    setDiceEffects(snapshot.diceEffects || baseDiceEffects);
+    setDrawnTalents(snapshot.drawnTalents || []);
+    setFateDraw(null);
+    setLibrary(null);
+    removeStorage(GUIDED_RESULT_KEY);
+    showNotice('引导车卡完成！', 2200);
+  }, []);
+
   const switchTab = (nextTab) => {
     setTab(nextTab);
     setHintOpen(false);
@@ -2925,16 +2967,16 @@ function App() {
               <span>问卷车卡</span>
             </button>
           </div>
-          <div className="randomAction">
+          <div className="guidedAction">
             <button
               type="button"
-              className="toolButton randomButton"
-              onClick={handleRandomGenerate}
-              aria-label="随机生成"
-              title="随机生成"
+              className="toolButton"
+              onClick={() => { window.location.href = '/guide'; }}
+              aria-label="引导车卡"
+              title="引导车卡"
             >
-              <Shuffle size={20} strokeWidth={2.2} aria-hidden="true" />
-              <span>随机生成</span>
+              <Map size={20} strokeWidth={2.2} aria-hidden="true" />
+              <span>引导车卡</span>
             </button>
           </div>
         </aside>
@@ -2957,6 +2999,8 @@ function App() {
   );
 }
 
+const path = window.location.pathname;
+
 createRoot(document.getElementById('root')).render(
-  window.location.pathname === '/wj' ? <QuestionnairePage /> : <App />,
+  path === '/wj' ? <QuestionnairePage /> : path === '/guide' ? <GuidedCardPage /> : <App />,
 );
