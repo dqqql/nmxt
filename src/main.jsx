@@ -2408,7 +2408,6 @@ function GuideInfoStep({ values, onChange }) {
         <span>01</span>
         <div>
           <h2>角色基本信息</h2>
-          <p>这些字段会直接写入主卡面，先把角色的轮廓立起来。</p>
         </div>
       </header>
 
@@ -2430,13 +2429,7 @@ function GuideInfoStep({ values, onChange }) {
 }
 
 function GuideOptionStep({ title, category, options, value, onChange }) {
-  const [activeIndex, setActiveIndex] = useState(null);
-
-  useEffect(() => {
-    setActiveIndex(null);
-  }, [value]);
-
-  const detailIndex = activeIndex ?? value ?? 0;
+  const detailIndex = value ?? 0;
   const detail = options[detailIndex] || options[0] || null;
   const detailRows = detail ? [
     { label: '描述', value: detail.desc },
@@ -2455,33 +2448,25 @@ function GuideOptionStep({ title, category, options, value, onChange }) {
         <span>{String(GUIDE_STEPS.findIndex((item) => item.id === category) + 1).padStart(2, '0')}</span>
         <div>
           <h2>选择{title}</h2>
-          <p>先选一个方向，右侧细节会帮助你快速比对。</p>
         </div>
       </header>
 
       <div className="guideOptionLayout">
-        <div className="guideOptionGrid" role="list" aria-label={`${title}选项`}>
-          {options.map((option, index) => {
-            const selected = value === index;
-            const active = detailIndex === index;
-            return (
-              <button
-                key={`${category}-${option.name}`}
-                type="button"
-                className={`guideOptionCard${selected ? ' selected' : ''}${active ? ' active' : ''}`}
-                onClick={() => onChange(index)}
-                onMouseEnter={() => setActiveIndex(index)}
-                onMouseLeave={() => setActiveIndex(null)}
-                onFocus={() => setActiveIndex(index)}
-                onBlur={() => setActiveIndex(null)}
-                aria-pressed={selected}
-              >
-                <span>{String(index + 1).padStart(2, '0')}</span>
-                <strong>{option.name}</strong>
-              </button>
-            );
-          })}
-        </div>
+        <label className="guideOptionDropdown">
+          <span>{title}</span>
+          <select
+            className="guideOptionSelect"
+            value={value ?? ''}
+            onChange={(event) => onChange(Number(event.target.value))}
+          >
+            <option value="" disabled>-- 请选择 --</option>
+            {options.map((option, index) => (
+              <option key={`${category}-${option.name}`} value={index}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <aside className="guideDetailCard">
           {detail ? (
@@ -2532,45 +2517,120 @@ function GuideOptionStep({ title, category, options, value, onChange }) {
 }
 
 function GuideAttributeStep({ values, coreAttribute, onAttributeChange, onCoreChange }) {
+  const attributeValueChips = ['0', '1', '2', '3'];
+  const assignedValues = new Set(guideAttributeTitles.map((title) => String(values[title] ?? '').trim()).filter(Boolean));
+  const availableValues = attributeValueChips.filter((value) => !assignedValues.has(value));
+
+  const beginDragAttributeValue = (event, value, sourceTitle = '') => {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', value);
+    event.dataTransfer.setData('application/x-guide-attribute-value', JSON.stringify({ value, sourceTitle }));
+  };
+
+  const dropAttributeValue = (event, targetTitle) => {
+    event.preventDefault();
+    const payload = event.dataTransfer.getData('application/x-guide-attribute-value');
+    const fallbackValue = event.dataTransfer.getData('text/plain');
+    let parsed = {};
+    try {
+      parsed = payload ? JSON.parse(payload) : {};
+    } catch {
+      parsed = {};
+    }
+    const draggedValue = String(parsed.value ?? fallbackValue ?? '').trim();
+    const sourceTitle = parsed.sourceTitle || '';
+    if (!attributeValueChips.includes(draggedValue)) return;
+    if (sourceTitle === targetTitle) return;
+
+    const targetValue = String(values[targetTitle] ?? '').trim();
+    if (sourceTitle) onAttributeChange(sourceTitle, targetValue);
+    onAttributeChange(targetTitle, draggedValue);
+  };
+
   return (
     <section className="guideStepSection guideAttributeStep">
       <header className="guideSectionHeader">
         <span>03</span>
         <div>
           <h2>分配四维属性</h2>
-          <p>输入整数数值，并标记一个核心属性作为角色的强项。</p>
         </div>
       </header>
+
+      <div className="guideAttributeChipBank" aria-label="可拖拽属性数值">
+        {availableValues.map((value) => (
+          <button
+            key={value}
+            type="button"
+            className="guideAttributeChip"
+            draggable
+            onDragStart={(event) => beginDragAttributeValue(event, value)}
+            aria-label={`拖拽数值 ${value}`}
+          >
+            {value}
+          </button>
+        ))}
+      </div>
 
       <div className="guideAttributeList">
         {guideAttributeTitles.map((title) => {
           const hint = attributeDefs.find((item) => item.title === title)?.hint;
           const selected = coreAttribute === title;
+          const assignedValue = String(values[title] ?? '').trim();
           return (
-            <div key={title} className={`guideAttributeRow${selected ? ' isCore' : ''}`}>
+            <div
+              key={title}
+              className={`guideAttributeRow${selected ? ' isCore' : ''}`}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => dropAttributeValue(event, title)}
+            >
               <div className="guideAttributeMeta">
-                <strong>{title}</strong>
+                <div className="guideAttributePanelTitle">
+                  <strong>{title}</strong>
+                  <button
+                    type="button"
+                    className={`guideCoreToggle${selected ? ' selected' : ''}`}
+                    onClick={() => onCoreChange(selected ? null : title)}
+                    aria-pressed={selected}
+                    aria-label={`${title}${selected ? '已设为核心属性' : '设为核心属性'}`}
+                  >
+                    <Star size={15} strokeWidth={2.4} aria-hidden="true" />
+                  </button>
+                </div>
                 {hint ? <span>{hint}</span> : null}
               </div>
 
               <div className="guideAttributeControls">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={values[title] || ''}
-                  onChange={(event) => onAttributeChange(title, event.target.value)}
-                  aria-label={`${title}数值`}
-                />
-                <button
-                  type="button"
-                  className={`guideCoreToggle${selected ? ' selected' : ''}`}
-                  onClick={() => onCoreChange(selected ? null : title)}
-                  aria-pressed={selected}
-                  aria-label={`${title}${selected ? '已设为核心属性' : '设为核心属性'}`}
-                >
-                  <Star size={16} strokeWidth={2.2} aria-hidden="true" />
-                  <span>{selected ? '核心属性' : '设为核心'}</span>
-                </button>
+                <div className={`guideAttributeDropZone${assignedValue ? ' filled' : ''}`}>
+                  {assignedValue ? (
+                    <button
+                      type="button"
+                      className="guideAttributeChip placed"
+                      draggable
+                      onDragStart={(event) => beginDragAttributeValue(event, assignedValue, title)}
+                      aria-label={`拖拽${title}数值 ${assignedValue}`}
+                    >
+                      {assignedValue}
+                    </button>
+                  ) : (
+                    <span>拖入数值</span>
+                  )}
+                  <input
+                    type="hidden"
+                    value={assignedValue}
+                    onChange={(event) => onAttributeChange(title, event.target.value)}
+                    aria-label={`${title}数值`}
+                  />
+                </div>
+                {assignedValue ? (
+                  <button
+                    type="button"
+                    className="guideAttributeClear"
+                    onClick={() => onAttributeChange(title, '')}
+                    aria-label={`清除${title}数值`}
+                  >
+                    清除
+                  </button>
+                ) : null}
               </div>
             </div>
           );
@@ -2587,7 +2647,6 @@ function GuideFateStep({ value, onChange }) {
         <span>07</span>
         <div>
           <h2>选择因果值</h2>
-          <p>因果值会决定命格标题，并影响之后的抽卡结果。</p>
         </div>
       </header>
 
@@ -2627,6 +2686,65 @@ function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) 
     { label: '道心', value: values.daoHeart || '未填写' },
     { label: '身份', value: values.identity || '未填写' },
   ];
+  const selectedSummaries = [
+    {
+      title: '02 出身',
+      heading: selected.origin?.name || '未选择',
+      items: [
+        { label: '描述', value: selected.origin?.desc },
+        { label: '效果', value: selected.origin?.effect },
+      ],
+    },
+    {
+      title: '04 道源',
+      heading: selected.source?.name || '未选择',
+      items: [
+        { label: '描述', value: selected.source?.desc },
+        { label: '能力', value: selected.source?.ability },
+      ],
+    },
+    {
+      title: '05 法门',
+      heading: selected.method?.name || '未选择',
+      items: [
+        { label: '描述', value: selected.method?.desc },
+        { label: '攻击增益', value: selected.method?.attackBuffs?.slice(0, 2).join('；') },
+      ],
+    },
+    {
+      title: '06 大道',
+      heading: selected.dao?.name || '未选择',
+      items: [
+        { label: '描述', value: selected.dao?.desc },
+        { label: '效果', value: selected.dao?.effect },
+      ],
+    },
+  ];
+  const previewCards = [
+    {
+      title: '01 信息',
+      heading: values.name || '未命名角色',
+      items: previewGroups,
+    },
+    selectedSummaries[0],
+    {
+      title: '03 分配属性',
+      heading: values.coreAttribute || '未设置核心属性',
+      items: [
+        ...guideAttributeTitles.map((title) => ({ label: title, value: values.attributes?.[title] || '未填写' })),
+        { label: '核心属性', value: values.coreAttribute || '未设置' },
+      ],
+    },
+    ...selectedSummaries.slice(1),
+    {
+      title: '07 因果值',
+      heading: selected.fateTitle || '未选择命格',
+      items: [
+        { label: '因果值', value: values.fateValue > 0 ? `+${values.fateValue}` : String(values.fateValue) },
+        { label: '命格', value: selected.fateTitle || '未选择' },
+      ],
+    },
+  ];
 
   return (
     <section className="guideStepSection guidePreviewStep">
@@ -2634,91 +2752,42 @@ function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) 
         <span>08</span>
         <div>
           <h2>预览与确认</h2>
-          <p>最后检查一遍信息。你可以在这里随机补齐一版，也可以直接确认写入主卡。</p>
         </div>
       </header>
 
-      <div className="guidePreviewStack">
-        <article className="guidePreviewCard">
-          <header>
-            <span>角色信息</span>
-            <h3>{values.name || '未命名角色'}</h3>
-          </header>
-          <div className="guidePreviewFields">
-            {previewGroups.map((item) => (
-              <div key={item.label} className="guidePreviewField">
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="guidePreviewCard">
-          <header>
-            <span>构筑摘要</span>
-            <h3>{selected.fateTitle || '未选择命格'}</h3>
-          </header>
-          <div className="guidePreviewSections">
-            <section>
-              <h4>出身</h4>
-              <p>{selected.origin?.name || '未选择'}</p>
-              {selected.origin?.effect ? <small>{selected.origin.effect}</small> : null}
-            </section>
-            <section>
-              <h4>道源</h4>
-              <p>{selected.source?.name || '未选择'}</p>
-              {selected.source?.ability ? <small>{selected.source.ability}</small> : null}
-            </section>
-            <section>
-              <h4>法门</h4>
-              <p>{selected.method?.name || '未选择'}</p>
-              {selected.method?.attackBuffs?.[0] ? <small>{selected.method.attackBuffs[0]}</small> : null}
-            </section>
-            <section>
-              <h4>大道</h4>
-              <p>{selected.dao?.name || '未选择'}</p>
-              {selected.dao?.effect ? <small>{selected.dao.effect}</small> : null}
-            </section>
-          </div>
-        </article>
-
-        <article className="guidePreviewCard">
-          <header>
-            <span>属性与检查</span>
-            <h3>{values.coreAttribute || '未设置核心属性'}</h3>
-          </header>
-          <div className="guidePreviewFields">
-            {guideAttributeTitles.map((title) => (
-              <div key={title} className="guidePreviewField">
-                <span>{title}</span>
-                <strong>{values.attributes?.[title] || '未填写'}</strong>
-              </div>
-            ))}
-            <div className="guidePreviewField">
-              <span>因果值</span>
-              <strong>{values.fateValue > 0 ? `+${values.fateValue}` : String(values.fateValue)}</strong>
+      <div className="guidePreviewMasonry">
+        {previewCards.map((card) => (
+          <article key={card.title} className="guidePreviewCard">
+            <header>
+              <span>{card.title}</span>
+              <h3>{card.heading}</h3>
+            </header>
+            <div className="guidePreviewFields">
+              {card.items.filter((item) => item.value).map((item) => (
+                <div key={item.label} className="guidePreviewField">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
             </div>
-          </div>
-
-          {errors.length > 0 ? (
-            <div className="guidePreviewErrors" role="alert">
-              <h4>还有这些地方需要补完</h4>
-              <ul>
-                {errors.map((item, index) => (
-                  <li key={`${item.field}-${index}`}>
-                    <button type="button" onClick={() => onErrorStep(item.step)}>
-                      {GUIDE_STEPS[item.step]?.label || '对应步骤'}：{item.message}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="guidePreviewStatus">当前填写状态可提交。</p>
-          )}
-        </article>
+          </article>
+        ))}
       </div>
+
+      {errors.length > 0 ? (
+        <div className="guidePreviewErrors" role="alert">
+          <h4>还有这些地方需要补完</h4>
+          <ul>
+            {errors.map((item, index) => (
+              <li key={`${item.field}-${index}`}>
+                <button type="button" onClick={() => onErrorStep(item.step)}>
+                  {GUIDE_STEPS[item.step]?.label || '对应步骤'}：{item.message}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="guidePreviewActions">
         <button type="button" className="guidePreviewRandom" onClick={onRandom}>

@@ -1733,6 +1733,7 @@ textarea {
   padding: 24px 18px 86px;
   background: var(--bg);
   color: var(--ink);
+  font-size: 18px;
 }
 
 .guidePaper {
@@ -1764,6 +1765,7 @@ textarea {
 .guidePreviewErrors,
 .guideFooter,
 .guideField,
+.guideOptionDropdown,
 .guideAttributeMeta,
 .guideAttributeRow,
 .guideFateCard {
@@ -1774,14 +1776,14 @@ textarea {
   display: block;
   margin-bottom: 7px;
   color: #16864d;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 900;
   line-height: 1;
 }
 
 .guideHeader h1 {
   margin: 0;
-  font-size: 34px;
+  font-size: 38px;
   line-height: 1.05;
   letter-spacing: 0;
 }
@@ -1789,18 +1791,18 @@ textarea {
 .guideStepNav {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 10px;
-  padding: 18px 26px;
+  gap: 8px;
+  padding: 12px 22px;
   border-bottom: 1px solid #e3dfdb;
   background: #f7f5f2;
 }
 
 .guideStepNav button {
-  display: grid;
-  gap: 5px;
-  justify-items: start;
-  min-height: 74px;
-  padding: 11px 12px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 8px 10px;
   border: 1px solid #d6d0cb;
   border-radius: 8px;
   background: #fff;
@@ -1820,21 +1822,24 @@ textarea {
 .guidePreviewErrors h4,
 .guidePreviewStatus,
 .guideAttributeMeta span,
-.guideField span {
+.guideField span,
+.guideOptionDropdown span {
   overflow-wrap: anywhere;
 }
 
 .guideStepNav button span {
   color: #7d7672;
-  font-size: 12px;
+  flex: 0 0 auto;
+  font-size: 13px;
   font-weight: 900;
   line-height: 1;
 }
 
 .guideStepNav button b {
-  font-size: 14px;
+  min-width: 0;
+  font-size: 16px;
   font-weight: 800;
-  line-height: 1.35;
+  line-height: 1.2;
 }
 
 .guideStepNav button:hover,
@@ -1862,7 +1867,7 @@ textarea {
 .guideBody {
   display: grid;
   gap: 18px;
-  padding: 22px 26px 28px;
+  padding: 24px 26px 30px;
 }
 
 .guideStepSection {
@@ -1885,30 +1890,28 @@ textarea {
   border-radius: 8px;
   background: #f0ede9;
   color: #5f5a57;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 900;
   line-height: 1;
 }
 
 .guideSectionHeader h2 {
-  margin: 1px 0 7px;
+  margin: 1px 0 0;
   color: #231f20;
-  font-size: 28px;
+  font-size: 32px;
   line-height: 1.15;
   letter-spacing: 0;
 }
 
-.guideSectionHeader p,
 .guideDetailSection p,
 .guideDetailSection li,
 .guidePreviewSections p,
 .guidePreviewSections small,
 .guidePreviewErrors li,
-.guidePreviewStatus,
 .guideAttributeMeta span {
   margin: 0;
   color: #655f5c;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
@@ -1924,15 +1927,17 @@ textarea {
   gap: 8px;
 }
 
-.guideField span {
+.guideField span,
+.guideOptionDropdown span {
   color: #413b3c;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 800;
   line-height: 1.2;
 }
 
 .guideField input,
-.guideAttributeControls input {
+.guideAttributeControls input,
+.guideOptionSelect {
   width: 100%;
   min-width: 0;
   min-height: 44px;
@@ -1941,7 +1946,7 @@ textarea {
   background: #fff;
   color: var(--ink);
   font-family: var(--font-serif);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   line-height: 1.2;
   padding: 10px 12px;
@@ -1953,16 +1958,28 @@ textarea {
 }
 
 .guideField input:focus,
-.guideAttributeControls input:focus {
+.guideAttributeControls input:focus,
+.guideOptionSelect:focus {
   border-color: #16864d;
   box-shadow: inset 0 0 0 1px #16864d;
 }
 
 .guideOptionLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
-  gap: 18px;
-  align-items: start;
+  gap: 16px;
+}
+
+.guideOptionDropdown {
+  display: grid;
+  gap: 8px;
+  max-width: 700px;
+}
+
+.guideOptionSelect {
+  border-radius: 0;
+  background: #fff;
+  appearance: auto;
+  cursor: pointer;
 }
 
 .guideOptionGrid {
@@ -2033,7 +2050,7 @@ textarea {
 .guideDetailCard header span,
 .guidePreviewCard header span {
   color: #16864d;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 900;
   line-height: 1.2;
 }
@@ -2042,7 +2059,7 @@ textarea {
 .guidePreviewCard header h3 {
   margin: 0;
   color: #221e1f;
-  font-size: 24px;
+  font-size: 27px;
   line-height: 1.15;
 }
 
@@ -2060,7 +2077,7 @@ textarea {
 .guidePreviewErrors h4 {
   margin: 0;
   color: #2f2a2b;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 900;
   line-height: 1.2;
 }
@@ -2080,7 +2097,7 @@ textarea {
 .guideDetailSection li strong {
   display: block;
   color: #2f2a2b;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.35;
 }
 
@@ -2091,15 +2108,67 @@ textarea {
 
 .guideAttributeList {
   display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+}
+
+.guideAttributeChipBank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  min-height: 58px;
+  padding: 10px;
+  border: 1px dashed #cfc8c0;
+  border-radius: 8px;
+  background: #fbfaf8;
+}
+
+.guideAttributeChipBank:empty {
+  display: none;
+}
+
+.guideAttributeChip {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  aspect-ratio: 1;
+  border: 1px solid #c9c3bf;
+  border-radius: 8px;
+  background: #fff;
+  color: #241f20;
+  cursor: grab;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.guideAttributeChip:hover,
+.guideAttributeChip:focus-visible {
+  border-color: #16864d;
+  color: #16864d;
+  box-shadow: inset 0 0 0 1px #16864d;
+}
+
+.guideAttributeChip:active {
+  cursor: grabbing;
+}
+
+.guideAttributeChip.placed {
+  width: 64px;
+  border-color: #16864d;
+  background: #edf7f1;
 }
 
 .guideAttributeRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, auto);
-  gap: 16px;
-  align-items: center;
-  padding: 15px 16px;
+  grid-template-rows: auto minmax(92px, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  min-height: 210px;
+  padding: 14px;
   border: 1px solid #dfdad6;
   border-radius: 8px;
   background: #fbfaf8;
@@ -2113,25 +2182,82 @@ textarea {
 
 .guideAttributeMeta {
   display: grid;
-  gap: 4px;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+}
+
+.guideAttributePanelTitle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .guideAttributeMeta strong {
   color: #241f20;
-  font-size: 20px;
+  font-size: 23px;
   line-height: 1.2;
 }
 
 .guideAttributeControls {
   display: grid;
-  grid-template-columns: 120px auto;
-  gap: 10px;
-  align-items: stretch;
+  gap: 8px;
+  justify-items: center;
+  align-content: center;
+  justify-content: stretch;
+  align-items: center;
   min-width: 0;
 }
 
-.guideAttributeControls input {
-  text-align: center;
+.guideAttributeDropZone {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 76px;
+  border: 1.5px dashed #cfc8c0;
+  border-radius: 8px;
+  background: #fff;
+  color: #8b8582;
+  font-size: 15px;
+  font-weight: 800;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.guideAttributeDropZone.filled {
+  border-style: solid;
+  border-color: #b8d2c3;
+  background: #f7fbf8;
+}
+
+.guideAttributeRow:hover .guideAttributeDropZone,
+.guideAttributeRow:focus-within .guideAttributeDropZone {
+  border-color: #16864d;
+  box-shadow: inset 0 0 0 1px #16864d;
+}
+
+.guideAttributeClear {
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid #d8d2ce;
+  border-radius: 8px;
+  background: #fff;
+  color: #625d5a;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.guideAttributeClear:hover,
+.guideAttributeClear:focus-visible {
+  border-color: #16864d;
+  color: #16864d;
+}
+
+/* Hidden field preserves the existing draft data contract while the visible UI uses draggable chips. */
+.guideAttributeDropZone input {
+  display: none;
 }
 
 .guideCoreToggle,
@@ -2146,22 +2272,15 @@ textarea {
 }
 
 .guideCoreToggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: 0;
-  min-height: 44px;
-  padding: 9px 12px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border: 1px solid #c9c3bf;
   background: #fff;
-  color: #302b2c;
-}
-
-.guideCoreToggle span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  line-height: 1.2;
+  color: #8b8582;
 }
 
 .guideCoreToggle:hover,
@@ -2198,13 +2317,13 @@ textarea {
 }
 
 .guideFateCard strong {
-  font-size: 28px;
+  font-size: 32px;
   line-height: 1;
 }
 
 .guideFateCard span {
   color: #625d5a;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   line-height: 1.35;
 }
@@ -2225,10 +2344,16 @@ textarea {
   color: #d6dfd8;
 }
 
-.guidePreviewStack {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+.guidePreviewMasonry {
+  column-count: 3;
+  column-gap: 14px;
+}
+
+.guidePreviewMasonry .guidePreviewCard {
+  display: inline-grid;
+  width: 100%;
+  margin: 0 0 14px;
+  break-inside: avoid;
 }
 
 .guidePreviewFields,
@@ -2254,7 +2379,7 @@ textarea {
 .guidePreviewField span,
 .guidePreviewSections h4 {
   color: #7a736f;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 900;
   line-height: 1.15;
 }
@@ -2262,7 +2387,7 @@ textarea {
 .guidePreviewField strong,
 .guidePreviewSections p {
   color: #241f20;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
@@ -2294,11 +2419,6 @@ textarea {
 .guidePreviewErrors button:focus-visible {
   color: #5f1414;
   text-decoration: underline;
-}
-
-.guidePreviewStatus {
-  color: #11693d;
-  font-weight: 800;
 }
 
 .guidePreviewActions {
@@ -2351,8 +2471,7 @@ textarea {
 }
 
 .guideFooter {
-  position: sticky;
-  bottom: 18px;
+  position: static;
   z-index: 35;
   display: flex;
   align-items: center;
@@ -2372,7 +2491,7 @@ textarea {
 .guideFooter span {
   min-width: 0;
   color: #625d5a;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
   line-height: 1.25;
   text-align: center;
@@ -2383,6 +2502,12 @@ textarea {
   cursor: not-allowed;
   opacity: 0.5;
   box-shadow: none;
+}
+
+@media (max-width: 980px) {
+  .guidePreviewMasonry {
+    column-count: 2;
+  }
 }
 
 @media (max-width: 760px) {
@@ -2405,8 +2530,12 @@ textarea {
   .guideOptionLayout,
   .guideOptionGrid,
   .guideFateGrid,
-  .guidePreviewStack {
+  .guideAttributeList {
     grid-template-columns: 1fr;
+  }
+
+  .guidePreviewMasonry {
+    column-count: 1;
   }
 
   .guideBody {
