@@ -48,6 +48,7 @@ describe('guided card state', () => {
         dao: null,
         fateValue: 0,
         drawnTalents: [],
+        drawnTalentsFateValue: null,
       },
     });
   });
@@ -215,9 +216,10 @@ describe('guided card state', () => {
     expect(next.values.attributes).toEqual({ 仙躯: '0', 身法: '1', 神魂: '2', 灵蕴: '3' });
     expect(next.values.fateValue).toBe(-1);
     expect(next.values.drawnTalents).toEqual([{ name: '平平无奇-随机结果', kind: 'talent' }]);
+    expect(next.values.drawnTalentsFateValue).toBe(-1);
   });
 
-  it('reuses saved drawn talents when creating a guided result', () => {
+  it('reuses saved drawn talents when fateValue still matches the saved random result', () => {
     const drawPlanCalls = [];
     const draft = {
       ...createEmptyGuideDraft(),
@@ -230,6 +232,7 @@ describe('guided card state', () => {
         dao: 0,
         fateValue: 0,
         drawnTalents: [{ name: '已保存的随机天赋', kind: 'talent' }],
+        drawnTalentsFateValue: 0,
       },
     };
 
@@ -248,5 +251,40 @@ describe('guided card state', () => {
 
     expect(result.snapshot.drawnTalents).toEqual([{ name: '已保存的随机天赋', kind: 'talent' }]);
     expect(drawPlanCalls).toEqual([]);
+  });
+
+  it('redraws talents for the current fateValue when saved random talents belong to a stale fateValue', () => {
+    const drawPlanCalls = [];
+    const draft = {
+      ...createEmptyGuideDraft(),
+      values: {
+        ...createEmptyGuideDraft().values,
+        origin: 0,
+        attributes: { 仙躯: '1', 身法: '2', 神魂: '3', 灵蕴: '4' },
+        source: 0,
+        method: 0,
+        dao: 0,
+        fateValue: 2,
+        drawnTalents: [{ name: '旧随机天赋', kind: 'talent' }],
+        drawnTalentsFateValue: 0,
+      },
+    };
+
+    const result = createGuidedCardResult({
+      draft,
+      options,
+      fateDraws,
+      drawPlan: (plan) => {
+        drawPlanCalls.push(plan.label);
+        return [{ name: '当前因果的新结果', kind: 'talent' }];
+      },
+      defaultRealmIndex: 1,
+      getFateState: () => ({ diceEffects: [] }),
+      now: () => new Date('2026-07-10T00:00:00.000Z'),
+    });
+
+    expect(result.snapshot.selectedFateTitle).toBe('天命贰');
+    expect(result.snapshot.drawnTalents).toEqual([{ name: '当前因果的新结果', kind: 'talent' }]);
+    expect(drawPlanCalls).toEqual(['二地阶天赋']);
   });
 });

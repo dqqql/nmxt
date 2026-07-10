@@ -33,3 +33,15 @@ Task 3 re-review fix:
 - Root cause: guided-page `随机生成` was calling `createRandomCardState`, but `mergeRandomCardIntoGuideDraft` only persisted selections / attributes / fate. The random `drawnTalents` payload was dropped from the guide draft.
 - Fixed `src/guidedCardState.js` so guide draft values now include normalized `drawnTalents` with a default empty array, random merge persists `randomState.drawnTalents`, and `createGuidedCardResult` prefers the saved draft `drawnTalents` before falling back to the existing fate-plan redraw path.
 - Added regression coverage in `src/guidedCardState.test.js` proving random merge preserves `drawnTalents` and guided confirm reuses the saved random result instead of re-running `drawPlan`.
+
+Task 3 stale random talents fix:
+- Root cause: after the earlier fix started persisting `drawnTalents`, guided confirm always reused any saved random talents whenever `values.drawnTalents.length > 0`, even if the user later changed `因果值` via the step nav. That let stale random talents / 天谴 override the current fate on confirm.
+- Fixed `src/guidedCardState.js` by adding a normalized `drawnTalentsFateValue` marker to guide draft values, storing the random state's `fateValue` alongside `drawnTalents` in `mergeRandomCardIntoGuideDraft`, and reusing saved `drawnTalents` in `createGuidedCardResult` only when the saved marker still matches the current `values.fateValue`; otherwise it falls back to the current fate's `drawPlan`.
+- Updated `src/guidedCardState.test.js` to cover both branches: saved random talents are preserved when `fateValue` is unchanged, and stale saved talents are ignored when `fateValue` changes so the current fate plan is redrawn.
+
+Build / verification:
+- `npm test -- src/guidedCardState.test.js` -> PASS
+- `npm run build` -> PASS
+
+Notes:
+- Vite still reports the existing `lucide-react` `"use client"` bundling warnings during build, but the build completes successfully.

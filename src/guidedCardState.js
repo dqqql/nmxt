@@ -52,6 +52,16 @@ function normalizeDrawnTalents(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function normalizeFateValueMarker(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  if (!Number.isFinite(Number(value))) {
+    return null;
+  }
+  return Math.trunc(Number(value));
+}
+
 function normalizeGuideValues(values) {
   const source = isPlainObject(values) ? values : {};
   return {
@@ -68,6 +78,7 @@ function normalizeGuideValues(values) {
     dao: normalizeSelection(source.dao),
     fateValue: Number.isFinite(Number(source.fateValue)) ? Math.trunc(Number(source.fateValue)) : 0,
     drawnTalents: normalizeDrawnTalents(source.drawnTalents),
+    drawnTalentsFateValue: normalizeFateValueMarker(source.drawnTalentsFateValue),
   };
 }
 
@@ -112,6 +123,7 @@ export function createEmptyGuideDraft() {
       dao: null,
       fateValue: 0,
       drawnTalents: [],
+      drawnTalentsFateValue: null,
     },
   };
 }
@@ -200,8 +212,10 @@ export function createGuidedCardResult({ draft, options, fateDraws, drawPlan, de
   const selectedFateTitle = fateValueToTitle(values.fateValue);
   const plans = fateDraws?.[selectedFateTitle] || [];
   const selectedPlan = plans[0] || null;
+  const shouldReuseSavedDrawnTalents =
+    values.drawnTalents.length > 0 && values.drawnTalentsFateValue === values.fateValue;
   const drawnTalents =
-    values.drawnTalents.length > 0
+    shouldReuseSavedDrawnTalents
       ? values.drawnTalents
       : selectedPlan && drawPlan
         ? drawPlan(selectedPlan)
@@ -266,6 +280,7 @@ export function mergeRandomCardIntoGuideDraft(draft, randomState) {
 
   if (Object.prototype.hasOwnProperty.call(randomState || {}, 'drawnTalents')) {
     nextValues.drawnTalents = normalizeDrawnTalents(randomState.drawnTalents);
+    nextValues.drawnTalentsFateValue = normalizeFateValueMarker(randomState?.fateValue);
   }
 
   return {
