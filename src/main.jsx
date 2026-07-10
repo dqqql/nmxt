@@ -2430,13 +2430,13 @@ function GuideInfoStep({ values, onChange }) {
 }
 
 function GuideOptionStep({ title, category, options, value, onChange }) {
-  const [activeIndex, setActiveIndex] = useState(value ?? 0);
+  const [activeIndex, setActiveIndex] = useState(null);
 
   useEffect(() => {
-    setActiveIndex(value ?? 0);
+    setActiveIndex(null);
   }, [value]);
 
-  const detailIndex = value ?? activeIndex ?? 0;
+  const detailIndex = activeIndex ?? value ?? 0;
   const detail = options[detailIndex] || options[0] || null;
   const detailRows = detail ? [
     { label: '描述', value: detail.desc },
@@ -2469,12 +2469,11 @@ function GuideOptionStep({ title, category, options, value, onChange }) {
                 key={`${category}-${option.name}`}
                 type="button"
                 className={`guideOptionCard${selected ? ' selected' : ''}${active ? ' active' : ''}`}
-                onClick={() => {
-                  setActiveIndex(index);
-                  onChange(index);
-                }}
+                onClick={() => onChange(index)}
                 onMouseEnter={() => setActiveIndex(index)}
+                onMouseLeave={() => setActiveIndex(null)}
                 onFocus={() => setActiveIndex(index)}
+                onBlur={() => setActiveIndex(null)}
                 aria-pressed={selected}
               >
                 <span>{String(index + 1).padStart(2, '0')}</span>
@@ -3274,7 +3273,6 @@ function App() {
     setUpgradeChoices(snapshot.upgradeChoices || []);
     setMaxRealmIndexReached(snapshot.maxRealmIndexReached ?? defaultRealmIndex);
     setRealmHistoryOpen(false);
-    setActiveSlot(null);
     setUpgradePrompt(null);
     setAttributeChoicePrompt(null);
     setSelectedFateTitle(snapshot.selectedFateTitle || null);
