@@ -80,6 +80,15 @@ function getSlotId(activeSlotId) {
   return activeSlotId ? String(activeSlotId) : 'default';
 }
 
+function normalizeSelectionIndex(value, optionList) {
+  const normalized = normalizeSelection(value);
+  if (normalized === null) {
+    return 0;
+  }
+  const optionsLength = Array.isArray(optionList) ? optionList.length : 0;
+  return normalized >= 0 && normalized < optionsLength ? normalized : 0;
+}
+
 export function createEmptyGuideDraft() {
   return {
     version: 1,
@@ -187,7 +196,7 @@ export function createGuidedCardResult({ draft, options, fateDraws, drawPlan, de
   const selectedPlan = plans[0] || null;
   const drawnTalents = selectedPlan && drawPlan ? drawPlan(selectedPlan) : [];
   const fateState = getFateState ? getFateState(selectedFateTitle) || {} : {};
-  const realmIndex = Number.isFinite(Number(defaultRealmIndex)) ? Math.trunc(Number(defaultRealmIndex)) : 0;
+  const realmIndex = normalizeSelectionIndex(defaultRealmIndex, options?.realm);
   const maxRealmIndexReached = realmIndex;
 
   return {
@@ -196,10 +205,10 @@ export function createGuidedCardResult({ draft, options, fateDraws, drawPlan, de
     snapshot: {
       selections: {
         realm: realmIndex,
-        origin: values.origin,
-        source: values.source,
-        method: values.method,
-        dao: values.dao,
+        origin: normalizeSelectionIndex(values.origin, options?.origin),
+        source: normalizeSelectionIndex(values.source, options?.source),
+        method: normalizeSelectionIndex(values.method, options?.method),
+        dao: normalizeSelectionIndex(values.dao, options?.dao),
       },
       texts,
       attributes,

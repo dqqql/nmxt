@@ -164,6 +164,37 @@ describe('guided card state', () => {
     expect(draws).toEqual(['二地阶天赋']);
   });
 
+  it('normalizes out-of-range selection indexes when creating a guided result', () => {
+    const draft = {
+      ...createEmptyGuideDraft(),
+      values: {
+        ...createEmptyGuideDraft().values,
+        origin: 99,
+        source: null,
+        method: 7,
+        dao: undefined,
+      },
+    };
+
+    const result = createGuidedCardResult({
+      draft,
+      options,
+      fateDraws,
+      drawPlan: () => [],
+      defaultRealmIndex: 8,
+      getFateState: () => ({ diceEffects: [] }),
+      now: () => new Date('2026-07-10T00:00:00.000Z'),
+    });
+
+    expect(result.snapshot.selections).toEqual({
+      realm: 0,
+      origin: 0,
+      source: 0,
+      method: 0,
+      dao: 0,
+    });
+  });
+
   it('merges random card state back into a guide draft while keeping basic text', () => {
     const draft = {
       ...createEmptyGuideDraft(),
