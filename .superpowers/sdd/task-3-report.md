@@ -28,3 +28,8 @@ Build / verification:
 
 Notes:
 - Vite still reports the existing `lucide-react` `"use client"` bundling warnings during build, but the build completes successfully.
+
+Task 3 re-review fix:
+- Root cause: guided-page `随机生成` was calling `createRandomCardState`, but `mergeRandomCardIntoGuideDraft` only persisted selections / attributes / fate. The random `drawnTalents` payload was dropped from the guide draft.
+- Fixed `src/guidedCardState.js` so guide draft values now include normalized `drawnTalents` with a default empty array, random merge persists `randomState.drawnTalents`, and `createGuidedCardResult` prefers the saved draft `drawnTalents` before falling back to the existing fate-plan redraw path.
+- Added regression coverage in `src/guidedCardState.test.js` proving random merge preserves `drawnTalents` and guided confirm reuses the saved random result instead of re-running `drawPlan`.

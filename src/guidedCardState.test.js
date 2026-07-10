@@ -47,6 +47,7 @@ describe('guided card state', () => {
         method: null,
         dao: null,
         fateValue: 0,
+        drawnTalents: [],
       },
     });
   });
@@ -204,6 +205,7 @@ describe('guided card state', () => {
       selections: { realm: 0, origin: 1, source: 0, method: 1, dao: 0 },
       attributes: { 仙躯: '0', 身法: '1', 神魂: '2', 灵蕴: '3' },
       fateValue: -1,
+      drawnTalents: [{ name: '平平无奇-随机结果', kind: 'talent' }],
     });
     expect(next.values.name).toBe('旧名');
     expect(next.values.origin).toBe(1);
@@ -212,5 +214,39 @@ describe('guided card state', () => {
     expect(next.values.dao).toBe(0);
     expect(next.values.attributes).toEqual({ 仙躯: '0', 身法: '1', 神魂: '2', 灵蕴: '3' });
     expect(next.values.fateValue).toBe(-1);
+    expect(next.values.drawnTalents).toEqual([{ name: '平平无奇-随机结果', kind: 'talent' }]);
+  });
+
+  it('reuses saved drawn talents when creating a guided result', () => {
+    const drawPlanCalls = [];
+    const draft = {
+      ...createEmptyGuideDraft(),
+      values: {
+        ...createEmptyGuideDraft().values,
+        origin: 0,
+        attributes: { 仙躯: '1', 身法: '2', 神魂: '3', 灵蕴: '4' },
+        source: 0,
+        method: 0,
+        dao: 0,
+        fateValue: 0,
+        drawnTalents: [{ name: '已保存的随机天赋', kind: 'talent' }],
+      },
+    };
+
+    const result = createGuidedCardResult({
+      draft,
+      options,
+      fateDraws,
+      drawPlan: (plan) => {
+        drawPlanCalls.push(plan.label);
+        return [{ name: '重新抽取的结果', kind: 'talent' }];
+      },
+      defaultRealmIndex: 1,
+      getFateState: () => ({ diceEffects: [] }),
+      now: () => new Date('2026-07-10T00:00:00.000Z'),
+    });
+
+    expect(result.snapshot.drawnTalents).toEqual([{ name: '已保存的随机天赋', kind: 'talent' }]);
+    expect(drawPlanCalls).toEqual([]);
   });
 });

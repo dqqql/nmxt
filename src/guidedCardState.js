@@ -48,6 +48,10 @@ function normalizeCoreAttribute(value) {
   return attributeTitles.includes(value) ? value : null;
 }
 
+function normalizeDrawnTalents(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 function normalizeGuideValues(values) {
   const source = isPlainObject(values) ? values : {};
   return {
@@ -63,6 +67,7 @@ function normalizeGuideValues(values) {
     method: normalizeSelection(source.method),
     dao: normalizeSelection(source.dao),
     fateValue: Number.isFinite(Number(source.fateValue)) ? Math.trunc(Number(source.fateValue)) : 0,
+    drawnTalents: normalizeDrawnTalents(source.drawnTalents),
   };
 }
 
@@ -106,6 +111,7 @@ export function createEmptyGuideDraft() {
       method: null,
       dao: null,
       fateValue: 0,
+      drawnTalents: [],
     },
   };
 }
@@ -194,7 +200,12 @@ export function createGuidedCardResult({ draft, options, fateDraws, drawPlan, de
   const selectedFateTitle = fateValueToTitle(values.fateValue);
   const plans = fateDraws?.[selectedFateTitle] || [];
   const selectedPlan = plans[0] || null;
-  const drawnTalents = selectedPlan && drawPlan ? drawPlan(selectedPlan) : [];
+  const drawnTalents =
+    values.drawnTalents.length > 0
+      ? values.drawnTalents
+      : selectedPlan && drawPlan
+        ? drawPlan(selectedPlan)
+        : [];
   const fateState = getFateState ? getFateState(selectedFateTitle) || {} : {};
   const realmIndex = normalizeSelectionIndex(defaultRealmIndex, options?.realm);
   const maxRealmIndexReached = realmIndex;
@@ -251,6 +262,10 @@ export function mergeRandomCardIntoGuideDraft(draft, randomState) {
 
   if (Number.isFinite(Number(randomState?.fateValue))) {
     nextValues.fateValue = Math.trunc(Number(randomState.fateValue));
+  }
+
+  if (Object.prototype.hasOwnProperty.call(randomState || {}, 'drawnTalents')) {
+    nextValues.drawnTalents = normalizeDrawnTalents(randomState.drawnTalents);
   }
 
   return {
