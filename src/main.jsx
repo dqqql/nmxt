@@ -30,7 +30,7 @@ import {
   toggleMarkGhost,
   updateKeyedMarkState,
 } from './interactiveState';
-import { createRandomCardState } from './randomCardState';
+import { createRandomCardState, fateValueToTitle } from './randomCardState';
 import {
   getFirstRealmInsight,
   getUnlockedMethodAttackBuffs,
@@ -63,7 +63,6 @@ import {
   GUIDED_RESULT_KEY,
   clearGuideDraft,
   clampGuideStep,
-  createEmptyGuideDraft,
   createGuidedCardResult,
   getGuideDraft,
   mergeRandomCardIntoGuideDraft,
@@ -2373,8 +2372,479 @@ function QuestionnairePage() {
   );
 }
 
+const guideAttributeTitles = ['仙躯', '身法', '神魂', '灵蕴'];
+
+function GuideStepNav({ step, onStep }) {
+  return (
+    <nav className="guideStepNav" aria-label="引导车卡步骤">
+      {GUIDE_STEPS.map((item, index) => (
+        <button
+          key={item.id}
+          type="button"
+          className={`${index === step ? 'active' : ''} ${index < step ? 'past' : ''}`.trim()}
+          onClick={() => onStep(index)}
+          aria-current={index === step ? 'step' : undefined}
+        >
+          <span>{String(index + 1).padStart(2, '0')}</span>
+          <b>{item.label}</b>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function GuideInfoStep({ values, onChange }) {
+  const fields = [
+    { field: 'name', label: '名称', placeholder: '输入角色名称' },
+    { field: 'race', label: '种族', placeholder: '如：人族、妖族' },
+    { field: 'belong', label: '归属', placeholder: '宗门、家族、势力或地域' },
+    { field: 'daoHeart', label: '道心', placeholder: '一句话描述修行执念' },
+    { field: 'identity', label: '身份', placeholder: '一句话描述当前身份' },
+  ];
+
+  return (
+    <section className="guideStepSection guideInfoStep">
+      <header className="guideSectionHeader">
+        <span>01</span>
+        <div>
+          <h2>角色基本信息</h2>
+          <p>这些字段会直接写入主卡面，先把角色的轮廓立起来。</p>
+        </div>
+      </header>
+
+      <div className="guideInfoGrid">
+        {fields.map((item) => (
+          <label key={item.field} className="guideField">
+            <span>{item.label}</span>
+            <input
+              type="text"
+              value={values[item.field] || ''}
+              placeholder={item.placeholder}
+              onChange={(event) => onChange(item.field, event.target.value)}
+            />
+          </label>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function GuideOptionStep({ title, category, options, value, onChange }) {
+  const [activeIndex, setActiveIndex] = useState(value ?? 0);
+
+  useEffect(() => {
+    setActiveIndex(value ?? 0);
+  }, [value]);
+
+  const detailIndex = value ?? activeIndex ?? 0;
+  const detail = options[detailIndex] || options[0] || null;
+  const detailRows = detail ? [
+    { label: '描述', value: detail.desc },
+    { label: '效果', value: detail.effect },
+    { label: '能力', value: detail.ability },
+    { label: '增益', value: detail.buff },
+    { label: '肉身阈值', value: detail.bodyThreshold },
+    { label: '神魂阈值', value: detail.soulThreshold },
+  ].filter((item) => item.value) : [];
+  const attackBuffs = Array.isArray(detail?.attackBuffs) ? detail.attackBuffs.slice(0, 2) : [];
+  const insights = Array.isArray(detail?.insights) ? detail.insights.slice(0, 2) : [];
+
+  return (
+    <section className={`guideStepSection guideOptionStep guideOptionStep-${category}`}>
+      <header className="guideSectionHeader">
+        <span>{String(GUIDE_STEPS.findIndex((item) => item.id === category) + 1).padStart(2, '0')}</span>
+        <div>
+          <h2>选择{title}</h2>
+          <p>先选一个方向，右侧细节会帮助你快速比对。</p>
+        </div>
+      </header>
+
+      <div className="guideOptionLayout">
+        <div className="guideOptionGrid" role="list" aria-label={`${title}选项`}>
+          {options.map((option, index) => {
+            const selected = value === index;
+            const active = detailIndex === index;
+            return (
+              <button
+                key={`${category}-${option.name}`}
+                type="button"
+                className={`guideOptionCard${selected ? ' selected' : ''}${active ? ' active' : ''}`}
+                onClick={() => {
+                  setActiveIndex(index);
+                  onChange(index);
+                }}
+                onMouseEnter={() => setActiveIndex(index)}
+                onFocus={() => setActiveIndex(index)}
+                aria-pressed={selected}
+              >
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <strong>{option.name}</strong>
+              </button>
+            );
+          })}
+        </div>
+
+        <aside className="guideDetailCard">
+          {detail ? (
+            <>
+              <header>
+                <span>{title}</span>
+                <h3>{detail.name}</h3>
+              </header>
+              <div className="guideDetailContent">
+                {detailRows.map((item) => (
+                  <section key={item.label} className="guideDetailSection">
+                    <h4>{item.label}</h4>
+                    <p>{item.value}</p>
+                  </section>
+                ))}
+
+                {attackBuffs.length > 0 ? (
+                  <section className="guideDetailSection">
+                    <h4>攻击增益</h4>
+                    <ul>
+                      {attackBuffs.map((entry) => <li key={entry}>{entry}</li>)}
+                    </ul>
+                  </section>
+                ) : null}
+
+                {insights.length > 0 ? (
+                  <section className="guideDetailSection">
+                    <h4>前两项感悟</h4>
+                    <ul>
+                      {insights.map((entry) => (
+                        <li key={entry.name || entry.text}>
+                          <strong>{entry.name}</strong>
+                          <span>{entry.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <p>暂无可展示内容。</p>
+          )}
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function GuideAttributeStep({ values, coreAttribute, onAttributeChange, onCoreChange }) {
+  return (
+    <section className="guideStepSection guideAttributeStep">
+      <header className="guideSectionHeader">
+        <span>03</span>
+        <div>
+          <h2>分配四维属性</h2>
+          <p>输入整数数值，并标记一个核心属性作为角色的强项。</p>
+        </div>
+      </header>
+
+      <div className="guideAttributeList">
+        {guideAttributeTitles.map((title) => {
+          const hint = attributeDefs.find((item) => item.title === title)?.hint;
+          const selected = coreAttribute === title;
+          return (
+            <div key={title} className={`guideAttributeRow${selected ? ' isCore' : ''}`}>
+              <div className="guideAttributeMeta">
+                <strong>{title}</strong>
+                {hint ? <span>{hint}</span> : null}
+              </div>
+
+              <div className="guideAttributeControls">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={values[title] || ''}
+                  onChange={(event) => onAttributeChange(title, event.target.value)}
+                  aria-label={`${title}数值`}
+                />
+                <button
+                  type="button"
+                  className={`guideCoreToggle${selected ? ' selected' : ''}`}
+                  onClick={() => onCoreChange(selected ? null : title)}
+                  aria-pressed={selected}
+                  aria-label={`${title}${selected ? '已设为核心属性' : '设为核心属性'}`}
+                >
+                  <Star size={16} strokeWidth={2.2} aria-hidden="true" />
+                  <span>{selected ? '核心属性' : '设为核心'}</span>
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function GuideFateStep({ value, onChange }) {
+  return (
+    <section className="guideStepSection guideFateStep">
+      <header className="guideSectionHeader">
+        <span>07</span>
+        <div>
+          <h2>选择因果值</h2>
+          <p>因果值会决定命格标题，并影响之后的抽卡结果。</p>
+        </div>
+      </header>
+
+      <div className="guideFateGrid">
+        {[-3, -2, -1, 0, 1, 2, 3].map((entry) => {
+          const selected = value === entry;
+          return (
+            <button
+              key={entry}
+              type="button"
+              className={`guideFateCard${selected ? ' selected' : ''}`}
+              onClick={() => onChange(entry)}
+              aria-pressed={selected}
+            >
+              <strong>{entry > 0 ? `+${entry}` : String(entry)}</strong>
+              <span>{fateValueToTitle(entry)}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) {
+  const selected = {
+    origin: values.origin != null ? originOptions[values.origin] : null,
+    source: values.source != null ? sourceOptions[values.source] : null,
+    method: values.method != null ? methodOptions[values.method] : null,
+    dao: values.dao != null ? daoOptions[values.dao] : null,
+    fateTitle: fateValueToTitle(values.fateValue),
+  };
+  const previewGroups = [
+    { label: '名称', value: values.name || '未填写' },
+    { label: '种族', value: values.race || '未填写' },
+    { label: '归属', value: values.belong || '未填写' },
+    { label: '道心', value: values.daoHeart || '未填写' },
+    { label: '身份', value: values.identity || '未填写' },
+  ];
+
+  return (
+    <section className="guideStepSection guidePreviewStep">
+      <header className="guideSectionHeader">
+        <span>08</span>
+        <div>
+          <h2>预览与确认</h2>
+          <p>最后检查一遍信息。你可以在这里随机补齐一版，也可以直接确认写入主卡。</p>
+        </div>
+      </header>
+
+      <div className="guidePreviewStack">
+        <article className="guidePreviewCard">
+          <header>
+            <span>角色信息</span>
+            <h3>{values.name || '未命名角色'}</h3>
+          </header>
+          <div className="guidePreviewFields">
+            {previewGroups.map((item) => (
+              <div key={item.label} className="guidePreviewField">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="guidePreviewCard">
+          <header>
+            <span>构筑摘要</span>
+            <h3>{selected.fateTitle || '未选择命格'}</h3>
+          </header>
+          <div className="guidePreviewSections">
+            <section>
+              <h4>出身</h4>
+              <p>{selected.origin?.name || '未选择'}</p>
+              {selected.origin?.effect ? <small>{selected.origin.effect}</small> : null}
+            </section>
+            <section>
+              <h4>道源</h4>
+              <p>{selected.source?.name || '未选择'}</p>
+              {selected.source?.ability ? <small>{selected.source.ability}</small> : null}
+            </section>
+            <section>
+              <h4>法门</h4>
+              <p>{selected.method?.name || '未选择'}</p>
+              {selected.method?.attackBuffs?.[0] ? <small>{selected.method.attackBuffs[0]}</small> : null}
+            </section>
+            <section>
+              <h4>大道</h4>
+              <p>{selected.dao?.name || '未选择'}</p>
+              {selected.dao?.effect ? <small>{selected.dao.effect}</small> : null}
+            </section>
+          </div>
+        </article>
+
+        <article className="guidePreviewCard">
+          <header>
+            <span>属性与检查</span>
+            <h3>{values.coreAttribute || '未设置核心属性'}</h3>
+          </header>
+          <div className="guidePreviewFields">
+            {guideAttributeTitles.map((title) => (
+              <div key={title} className="guidePreviewField">
+                <span>{title}</span>
+                <strong>{values.attributes?.[title] || '未填写'}</strong>
+              </div>
+            ))}
+            <div className="guidePreviewField">
+              <span>因果值</span>
+              <strong>{values.fateValue > 0 ? `+${values.fateValue}` : String(values.fateValue)}</strong>
+            </div>
+          </div>
+
+          {errors.length > 0 ? (
+            <div className="guidePreviewErrors" role="alert">
+              <h4>还有这些地方需要补完</h4>
+              <ul>
+                {errors.map((item, index) => (
+                  <li key={`${item.field}-${index}`}>
+                    <button type="button" onClick={() => onErrorStep(item.step)}>
+                      {GUIDE_STEPS[item.step]?.label || '对应步骤'}：{item.message}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="guidePreviewStatus">当前填写状态可提交。</p>
+          )}
+        </article>
+      </div>
+
+      <div className="guidePreviewActions">
+        <button type="button" className="guidePreviewRandom" onClick={onRandom}>
+          <Shuffle size={16} strokeWidth={2.2} aria-hidden="true" />
+          <span>随机生成</span>
+        </button>
+        <button type="button" className="guidePreviewConfirm" onClick={onConfirm}>
+          确认
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function GuidedCardPage() {
-  return <main className="guideShell">引导车卡</main>;
+  const defaultRealmIndex = getDefaultRealmIndex(realmOptions);
+  const activeSlotId = readJsonStorage(CARD_ACTIVE_SAVE_SLOT_KEY, null);
+  const [drafts, setDrafts] = useState(() => readJsonStorage(GUIDED_DRAFTS_KEY, {}));
+  const [draft, setDraft] = useState(() => getGuideDraft(readJsonStorage(GUIDED_DRAFTS_KEY, {}), activeSlotId));
+  const [errors, setErrors] = useState([]);
+  const step = clampGuideStep(draft.step);
+  const values = draft.values;
+
+  const persistDraft = (updater) => {
+    setDraft((current) => {
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      setDrafts((currentDrafts) => {
+        const nextDrafts = setGuideDraft(currentDrafts, activeSlotId, next);
+        writeJsonStorage(GUIDED_DRAFTS_KEY, nextDrafts);
+        return nextDrafts;
+      });
+      return next;
+    });
+  };
+
+  const setStep = (nextStep) => persistDraft((current) => ({ ...current, step: clampGuideStep(nextStep) }));
+  const updateValue = (field, value) => persistDraft((current) => ({
+    ...current,
+    values: { ...current.values, [field]: value },
+  }));
+  const updateAttribute = (field, value) => persistDraft((current) => ({
+    ...current,
+    values: {
+      ...current.values,
+      attributes: { ...current.values.attributes, [field]: value },
+    },
+  }));
+
+  const handleRandomGuide = () => {
+    const result = createRandomCardState({
+      options: {
+        realm: realmOptions,
+        origin: originOptions,
+        source: sourceOptions,
+        method: methodOptions,
+        dao: daoOptions,
+      },
+      fateDraws,
+      drawPlan: drawByPlan,
+    });
+    persistDraft((current) => mergeRandomCardIntoGuideDraft({ ...current, step: GUIDE_STEPS.length - 1 }, result));
+    setErrors([]);
+  };
+
+  const handleConfirmGuide = () => {
+    const nextErrors = validateGuideValues(values);
+    setErrors(nextErrors);
+    if (nextErrors.length > 0) return;
+
+    const result = createGuidedCardResult({
+      draft,
+      options: {
+        realm: realmOptions,
+        origin: originOptions,
+        source: sourceOptions,
+        method: methodOptions,
+        dao: daoOptions,
+      },
+      fateDraws,
+      drawPlan: drawByPlan,
+      defaultRealmIndex,
+      getFateState,
+      now: () => new Date(),
+    });
+    writeJsonStorage(GUIDED_RESULT_KEY, result);
+    const nextDrafts = clearGuideDraft(drafts, activeSlotId);
+    writeJsonStorage(GUIDED_DRAFTS_KEY, nextDrafts);
+    window.location.href = '/';
+  };
+
+  const renderGuideStep = () => {
+    if (step === 0) return <GuideInfoStep values={values} onChange={updateValue} />;
+    if (step === 1) return <GuideOptionStep title="出身" category="origin" options={originOptions} value={values.origin} onChange={(value) => updateValue('origin', value)} />;
+    if (step === 2) return <GuideAttributeStep values={values.attributes} coreAttribute={values.coreAttribute} onAttributeChange={updateAttribute} onCoreChange={(value) => updateValue('coreAttribute', value)} />;
+    if (step === 3) return <GuideOptionStep title="道源" category="source" options={sourceOptions} value={values.source} onChange={(value) => updateValue('source', value)} />;
+    if (step === 4) return <GuideOptionStep title="法门" category="method" options={methodOptions} value={values.method} onChange={(value) => updateValue('method', value)} />;
+    if (step === 5) return <GuideOptionStep title="大道" category="dao" options={daoOptions} value={values.dao} onChange={(value) => updateValue('dao', value)} />;
+    if (step === 6) return <GuideFateStep value={values.fateValue} onChange={(value) => updateValue('fateValue', value)} />;
+    return <GuidePreviewStep values={values} errors={errors} onErrorStep={setStep} onRandom={handleRandomGuide} onConfirm={handleConfirmGuide} />;
+  };
+
+  return (
+    <main className="guideShell">
+      <section className="guidePaper">
+        <header className="guideHeader">
+          <div>
+            <span className="guideKicker">逆命仙途</span>
+            <h1>引导车卡</h1>
+          </div>
+          <button type="button" className="questionnaireBack" onClick={() => { window.location.href = '/'; }}>
+            返回主界面
+          </button>
+        </header>
+        <GuideStepNav step={step} onStep={setStep} />
+        <div className="guideBody">{renderGuideStep()}</div>
+      </section>
+      <footer className="guideFooter">
+        <button type="button" onClick={() => setStep(step - 1)} disabled={step === 0}>上一步</button>
+        <span>{step + 1} / {GUIDE_STEPS.length}</span>
+        {step < GUIDE_STEPS.length - 1 ? (
+          <button type="button" onClick={() => setStep(step + 1)}>下一步</button>
+        ) : null}
+      </footer>
+    </main>
+  );
 }
 
 function App() {
