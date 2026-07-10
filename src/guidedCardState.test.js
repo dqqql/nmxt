@@ -92,6 +92,22 @@ describe('guided card state', () => {
     ]);
   });
 
+  it('rejects invalid or blank 仙躯 values during guide validation', () => {
+    const draft = createEmptyGuideDraft();
+
+    const invalidErrors = validateGuideValues({
+      ...draft.values,
+      attributes: { 仙躯: 'not-an-int', 身法: '1', 神魂: '2', 灵蕴: '3' },
+    });
+    expect(invalidErrors.map((error) => error.field)).toContain('attributes.仙躯');
+
+    const blankErrors = validateGuideValues({
+      ...draft.values,
+      attributes: { 仙躯: '', 身法: '1', 神魂: '2', 灵蕴: '3' },
+    });
+    expect(blankErrors.map((error) => error.field)).toContain('attributes.仙躯');
+  });
+
   it('creates a main-sheet compatible result from a valid guide draft', () => {
     const draft = {
       ...createEmptyGuideDraft(),

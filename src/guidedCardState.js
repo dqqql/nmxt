@@ -145,7 +145,7 @@ export function validateGuideValues(values) {
     });
   }
 
-  for (const title of attributeTitles.slice(1)) {
+  for (const title of attributeTitles) {
     const raw = normalized.attributes[title];
     if (raw === '' || !/^-?\d+$/.test(raw)) {
       errors.push({
