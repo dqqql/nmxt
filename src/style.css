@@ -1723,6 +1723,863 @@ textarea {
   min-height: 0;
 }
 
+/* ===== Guided card builder ===== */
+.guidedAction {
+  position: relative;
+}
+
+.guideShell {
+  min-height: 100vh;
+  padding: 24px 18px 86px;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.guidePaper {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  border: 1px solid #cfcac6;
+  background: #fff;
+  box-shadow: 0 18px 44px #00000018;
+}
+
+.guideHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px 26px;
+  border-bottom: 1px solid #ded9d5;
+  background: #fbfaf8;
+}
+
+.guideHeader > div,
+.guideSectionHeader > div,
+.guideDetailContent,
+.guideDetailSection,
+.guidePreviewCard,
+.guidePreviewCard > header,
+.guidePreviewField,
+.guidePreviewSections section,
+.guidePreviewErrors,
+.guideFooter,
+.guideField,
+.guideOptionDropdown,
+.guideAttributeMeta,
+.guideAttributeRow,
+.guideFateCard {
+  min-width: 0;
+}
+
+.guideKicker {
+  display: block;
+  margin-bottom: 7px;
+  color: #16864d;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.guideHeader h1 {
+  margin: 0;
+  font-size: 38px;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.guideStepNav {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px 22px;
+  border-bottom: 1px solid #e3dfdb;
+  background: #f7f5f2;
+}
+
+.guideStepNav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 8px 10px;
+  border: 1px solid #d6d0cb;
+  border-radius: 8px;
+  background: #fff;
+  color: #342f30;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+}
+
+.guideStepNav button span,
+.guideStepNav button b,
+.guideSectionHeader span,
+.guideDetailCard header span,
+.guidePreviewCard header span,
+.guidePreviewField span,
+.guidePreviewSections h4,
+.guidePreviewErrors h4,
+.guidePreviewStatus,
+.guideAttributeMeta span,
+.guideField span,
+.guideOptionDropdown span {
+  overflow-wrap: anywhere;
+}
+
+.guideStepNav button span {
+  color: #7d7672;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.guideStepNav button b {
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.guideStepNav button:hover,
+.guideStepNav button:focus-visible {
+  border-color: #16864d;
+  box-shadow: inset 0 0 0 1px #16864d;
+}
+
+.guideStepNav button.active {
+  border-color: #252021;
+  background: #252021;
+  color: #fff;
+  box-shadow: 0 8px 20px #00000014;
+}
+
+.guideStepNav button.active span {
+  color: #b7d8c5;
+}
+
+.guideStepNav button.past {
+  border-color: #b8d2c3;
+  background: #f3faf6;
+}
+
+.guideBody {
+  display: grid;
+  gap: 18px;
+  padding: 24px 26px 30px;
+}
+
+.guideStepSection {
+  display: grid;
+  gap: 18px;
+}
+
+.guideSectionHeader {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.guideSectionHeader > span {
+  display: grid;
+  place-items: center;
+  min-height: 54px;
+  border: 1px solid #cfc9c5;
+  border-radius: 8px;
+  background: #f0ede9;
+  color: #5f5a57;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.guideSectionHeader h2 {
+  margin: 1px 0 0;
+  color: #231f20;
+  font-size: 32px;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.guideDetailSection p,
+.guideDetailSection li,
+.guidePreviewSections p,
+.guidePreviewSections small,
+.guidePreviewErrors li,
+.guideAttributeMeta span {
+  margin: 0;
+  color: #655f5c;
+  font-size: 16px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.guideInfoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.guideField {
+  display: grid;
+  gap: 8px;
+}
+
+.guideField span,
+.guideOptionDropdown span {
+  color: #413b3c;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.guideField input,
+.guideAttributeControls input,
+.guideOptionSelect {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #cfc8c0;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 10px 12px;
+}
+
+.guideField input::placeholder,
+.guideAttributeControls input::placeholder {
+  color: #9a928d;
+}
+
+.guideField input:focus,
+.guideAttributeControls input:focus,
+.guideOptionSelect:focus {
+  border-color: #16864d;
+  box-shadow: inset 0 0 0 1px #16864d;
+}
+
+.guideOptionLayout {
+  display: grid;
+  gap: 16px;
+}
+
+.guideOptionDropdown {
+  display: grid;
+  gap: 8px;
+  max-width: 700px;
+}
+
+.guideOptionSelect {
+  border-radius: 0;
+  background: #fff;
+  appearance: auto;
+  cursor: pointer;
+}
+
+.guideOptionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.guideOptionCard {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  min-height: 92px;
+  padding: 14px;
+  border: 1px solid #ddd7d3;
+  border-radius: 8px;
+  background: #fbfaf8;
+  color: #2f2a2b;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.guideOptionCard span {
+  color: #8b847f;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.guideOptionCard strong {
+  min-width: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.guideOptionCard:hover,
+.guideOptionCard:focus-visible,
+.guideOptionCard.active {
+  border-color: #16864d;
+  box-shadow: inset 0 0 0 1px #16864d;
+}
+
+.guideOptionCard.selected {
+  background: #edf7f1;
+  box-shadow: inset 0 0 0 2px #16864d;
+}
+
+.guideDetailCard,
+.guidePreviewCard {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid #ddd8d4;
+  border-radius: 8px;
+  background: #fcfbf9;
+}
+
+.guideDetailCard header,
+.guidePreviewCard > header {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e6e1dd;
+}
+
+.guideDetailCard header span,
+.guidePreviewCard header span {
+  color: #16864d;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.guideDetailCard header h3,
+.guidePreviewCard header h3 {
+  margin: 0;
+  color: #221e1f;
+  font-size: 27px;
+  line-height: 1.15;
+}
+
+.guideDetailContent {
+  display: grid;
+  gap: 14px;
+}
+
+.guideDetailSection {
+  display: grid;
+  gap: 7px;
+}
+
+.guideDetailSection h4,
+.guidePreviewErrors h4 {
+  margin: 0;
+  color: #2f2a2b;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.guideDetailSection ul,
+.guidePreviewErrors ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.guideDetailSection li {
+  padding-left: 2px;
+}
+
+.guideDetailSection li strong {
+  display: block;
+  color: #2f2a2b;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.guideDetailSection li span {
+  display: block;
+  margin-top: 2px;
+}
+
+.guideAttributeList {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.guideAttributeChipBank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  min-height: 58px;
+  padding: 10px;
+  border: 1px dashed #cfc8c0;
+  border-radius: 8px;
+  background: #fbfaf8;
+}
+
+.guideAttributeChipBank:empty {
+  display: none;
+}
+
+.guideAttributeChip {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  aspect-ratio: 1;
+  border: 1px solid #c9c3bf;
+  border-radius: 8px;
+  background: #fff;
+  color: #241f20;
+  cursor: grab;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.guideAttributeChip:hover,
+.guideAttributeChip:focus-visible {
+  border-color: #16864d;
+  color: #16864d;
+  box-shadow: inset 0 0 0 1px #16864d;
+}
+
+.guideAttributeChip:active {
+  cursor: grabbing;
+}
+
+.guideAttributeChip.placed {
+  width: 64px;
+  border-color: #16864d;
+  background: #edf7f1;
+}
+
+.guideAttributeRow {
+  display: grid;
+  grid-template-rows: auto minmax(92px, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  min-height: 210px;
+  padding: 14px;
+  border: 1px solid #dfdad6;
+  border-radius: 8px;
+  background: #fbfaf8;
+}
+
+.guideAttributeRow.isCore {
+  border-color: #16864d;
+  background: #f3faf6;
+  box-shadow: inset 0 0 0 1px #16864d;
+}
+
+.guideAttributeMeta {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+}
+
+.guideAttributePanelTitle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.guideAttributeMeta strong {
+  color: #241f20;
+  font-size: 23px;
+  line-height: 1.2;
+}
+
+.guideAttributeControls {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  align-content: center;
+  justify-content: stretch;
+  align-items: center;
+  min-width: 0;
+}
+
+.guideAttributeDropZone {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 76px;
+  border: 1.5px dashed #cfc8c0;
+  border-radius: 8px;
+  background: #fff;
+  color: #8b8582;
+  font-size: 15px;
+  font-weight: 800;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.guideAttributeDropZone.filled {
+  border-style: solid;
+  border-color: #b8d2c3;
+  background: #f7fbf8;
+}
+
+.guideAttributeRow:hover .guideAttributeDropZone,
+.guideAttributeRow:focus-within .guideAttributeDropZone {
+  border-color: #16864d;
+  box-shadow: inset 0 0 0 1px #16864d;
+}
+
+.guideAttributeClear {
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid #d8d2ce;
+  border-radius: 8px;
+  background: #fff;
+  color: #625d5a;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.guideAttributeClear:hover,
+.guideAttributeClear:focus-visible {
+  border-color: #16864d;
+  color: #16864d;
+}
+
+/* Hidden field preserves the existing draft data contract while the visible UI uses draggable chips. */
+.guideAttributeDropZone input {
+  display: none;
+}
+
+.guideCoreToggle,
+.guidePreviewRandom,
+.guidePreviewConfirm,
+.guideFooter button,
+.guidePreviewErrors button {
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.guideCoreToggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #c9c3bf;
+  background: #fff;
+  color: #8b8582;
+}
+
+.guideCoreToggle:hover,
+.guideCoreToggle:focus-visible {
+  border-color: #16864d;
+  box-shadow: inset 0 0 0 1px #16864d;
+}
+
+.guideCoreToggle.selected {
+  border-color: #1f5f3d;
+  background: #16864d;
+  color: #fff;
+}
+
+.guideFateGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.guideFateCard {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-height: 112px;
+  padding: 14px 10px;
+  border: 1px solid #d8d2ce;
+  border-radius: 8px;
+  background: #fff;
+  color: #312c2d;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.guideFateCard strong {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.guideFateCard span {
+  color: #625d5a;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.guideFateCard:hover,
+.guideFateCard:focus-visible {
+  border-color: #16864d;
+  box-shadow: inset 0 0 0 1px #16864d;
+}
+
+.guideFateCard.selected {
+  border-color: #252021;
+  background: #252021;
+  color: #fff;
+}
+
+.guideFateCard.selected span {
+  color: #d6dfd8;
+}
+
+.guidePreviewMasonry {
+  column-count: 3;
+  column-gap: 14px;
+}
+
+.guidePreviewMasonry .guidePreviewCard {
+  display: inline-grid;
+  width: 100%;
+  margin: 0 0 14px;
+  break-inside: avoid;
+}
+
+.guidePreviewFields,
+.guidePreviewSections {
+  display: grid;
+  gap: 10px;
+}
+
+.guidePreviewField,
+.guidePreviewSections section {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ebe6e2;
+}
+
+.guidePreviewField:last-child,
+.guidePreviewSections section:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.guidePreviewField span,
+.guidePreviewSections h4 {
+  color: #7a736f;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.guidePreviewField strong,
+.guidePreviewSections p {
+  color: #241f20;
+  font-size: 18px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.guidePreviewSections small {
+  display: block;
+  margin-top: 1px;
+}
+
+.guidePreviewErrors {
+  display: grid;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px solid #dfc1c1;
+  border-radius: 8px;
+  background: #fff8f8;
+}
+
+.guidePreviewErrors button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #8f2020;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.guidePreviewErrors button:hover,
+.guidePreviewErrors button:focus-visible {
+  color: #5f1414;
+  text-decoration: underline;
+}
+
+.guidePreviewActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.guidePreviewRandom,
+.guidePreviewConfirm,
+.guideFooter button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 9px 16px;
+  border: 1px solid #252021;
+  background: #252021;
+  color: #fff;
+}
+
+.guidePreviewRandom span,
+.guideFooter button span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.guidePreviewRandom {
+  border-color: #c9c3bf;
+  background: #fff;
+  color: #302b2c;
+}
+
+.guidePreviewRandom:hover,
+.guidePreviewRandom:focus-visible {
+  border-color: #16864d;
+  color: #16864d;
+  box-shadow: 0 0 0 3px #e5f2eb;
+}
+
+.guidePreviewConfirm:hover,
+.guidePreviewConfirm:focus-visible,
+.guideFooter button:hover,
+.guideFooter button:focus-visible {
+  background: #1c1819;
+  box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px #252021;
+}
+
+.guideFooter {
+  position: static;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(1080px, calc(100% - 36px));
+  margin: 0 auto;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 1px solid #d9d4d0;
+  border-radius: 8px;
+  background: rgba(251, 250, 248, 0.96);
+  box-shadow: 0 14px 32px #00000014;
+  backdrop-filter: blur(6px);
+}
+
+.guideFooter span {
+  min-width: 0;
+  color: #625d5a;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.guideFooter button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+@media (max-width: 980px) {
+  .guidePreviewMasonry {
+    column-count: 2;
+  }
+}
+
+@media (max-width: 760px) {
+  .guideShell {
+    padding: 12px 10px 92px;
+  }
+
+  .guideHeader {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px 18px;
+  }
+
+  .guideHeader h1 {
+    font-size: 28px;
+  }
+
+  .guideStepNav,
+  .guideInfoGrid,
+  .guideOptionLayout,
+  .guideOptionGrid,
+  .guideFateGrid,
+  .guideAttributeList {
+    grid-template-columns: 1fr;
+  }
+
+  .guidePreviewMasonry {
+    column-count: 1;
+  }
+
+  .guideBody {
+    padding: 18px;
+  }
+
+  .guideSectionHeader {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .guideSectionHeader > span {
+    min-height: 42px;
+  }
+
+  .guideSectionHeader h2 {
+    font-size: 24px;
+  }
+
+  .guideAttributeRow,
+  .guideAttributeControls {
+    grid-template-columns: 1fr;
+  }
+
+  .guidePreviewActions,
+  .guideFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .guidePreviewRandom,
+  .guidePreviewConfirm,
+  .guideFooter button {
+    width: 100%;
+  }
+
+  .guideFooter {
+    left: 0;
+    right: 0;
+    width: auto;
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+}
+
 @media (max-width: 1440px) {
   :root {
     --sheet-min-width: 1080px;
