@@ -3278,6 +3278,9 @@ function App() {
     setSelectedFateTitle(snapshot.selectedFateTitle || null);
     setDiceEffects(snapshot.diceEffects || baseDiceEffects);
     setDrawnTalents(snapshot.drawnTalents || []);
+    setPortrait(null);
+    setFortuneOverflow(0);
+    setMarkStates({});
     setFateDraw(null);
     setLibrary(null);
     removeStorage(GUIDED_RESULT_KEY);
