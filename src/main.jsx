@@ -72,9 +72,12 @@ import {
 } from './guidedCardState';
 import {
   deleteSaveSlot,
+  ensureInitialSaveSlot,
   normalizeSaveSlots,
   renameSaveSlot,
   saveSlot,
+  startNewSaveSlot,
+  updateSaveSlotSnapshot,
 } from './saveArchive';
 import './style.css';
 
@@ -162,6 +165,44 @@ const defaultThresholdBonuses = {
   bodyHeavy: 0,
   soulHeavy: 0,
 };
+
+function createEmptyCardSnapshot(defaultRealmIndex) {
+  return {
+    version: 1,
+    selections: { realm: defaultRealmIndex, origin: null, source: null, method: null, dao: null },
+    texts: { ...defaultTexts },
+    attributes: { ...defaultAttributes },
+    coreAttribute: null,
+    drawnTalents: [],
+    portrait: null,
+    selectedFateTitle: null,
+    diceEffects: [...baseDiceEffects],
+    fortuneOverflow: 0,
+    markStates: {},
+    thresholdBonuses: { ...defaultThresholdBonuses },
+    upgradeChoices: [],
+    maxRealmIndexReached: defaultRealmIndex,
+  };
+}
+
+function normalizeCardSnapshot(snapshot, defaultRealmIndex) {
+  const empty = createEmptyCardSnapshot(defaultRealmIndex);
+  if (!snapshot) return empty;
+
+  return {
+    ...empty,
+    ...snapshot,
+    selections: { ...empty.selections, ...(snapshot.selections || {}) },
+    texts: { ...empty.texts, ...(snapshot.texts || {}) },
+    attributes: { ...empty.attributes, ...(snapshot.attributes || {}) },
+    diceEffects: snapshot.diceEffects || empty.diceEffects,
+    thresholdBonuses: { ...empty.thresholdBonuses, ...(snapshot.thresholdBonuses || {}) },
+    markStates: snapshot.markStates || empty.markStates,
+    upgradeChoices: snapshot.upgradeChoices || empty.upgradeChoices,
+    drawnTalents: snapshot.drawnTalents || empty.drawnTalents,
+    maxRealmIndexReached: snapshot.maxRealmIndexReached ?? defaultRealmIndex,
+  };
+}
 
 const LIBRARY = {
   realm: { label: '境界', placeholder: '点击选择境界', options: realmOptions },
@@ -2916,6 +2957,26 @@ function GuidedCardPage() {
 function App() {
   const defaultRealmIndex = getDefaultRealmIndex(realmOptions);
   const autosavedCard = readJsonStorage(CARD_AUTOSAVE_KEY, null);
+  const emptyCardSnapshot = createEmptyCardSnapshot(defaultRealmIndex);
+  const initialStateRef = useRef(null);
+  if (!initialStateRef.current) {
+    const storedSaveSlots = normalizeSaveSlots(readJsonStorage(CARD_SAVE_SLOTS_KEY, []));
+    const storedActiveSaveSlotId = readJsonStorage(CARD_ACTIVE_SAVE_SLOT_KEY, null);
+    const initialArchive = ensureInitialSaveSlot(storedSaveSlots, {
+      activeSlotId: storedActiveSaveSlotId,
+      snapshot: autosavedCard || emptyCardSnapshot,
+    });
+    const activeSlotSnapshot = initialArchive.slots.find((slot) => slot.id === initialArchive.activeSlotId)?.snapshot;
+    const initialSnapshot = storedActiveSaveSlotId && autosavedCard
+      ? autosavedCard
+      : activeSlotSnapshot || autosavedCard || emptyCardSnapshot;
+    initialStateRef.current = {
+      saveSlots: initialArchive.slots,
+      activeSaveSlotId: initialArchive.activeSlotId,
+      snapshot: normalizeCardSnapshot(initialSnapshot, defaultRealmIndex),
+    };
+  }
+  const initialState = initialStateRef.current;
   const [tab, setTab] = useState('p1');
   const [hintOpen, setHintOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -2923,24 +2984,24 @@ function App() {
   const [exportError, setExportError] = useState('');
   const [noticeMessage, setNoticeMessage] = useState('');
   const [library, setLibrary] = useState(null);
-  const [saveSlots, setSaveSlots] = useState(() => normalizeSaveSlots(readJsonStorage(CARD_SAVE_SLOTS_KEY, [])));
-  const [activeSaveSlotId, setActiveSaveSlotId] = useState(() => readJsonStorage(CARD_ACTIVE_SAVE_SLOT_KEY, null));
-  const [selections, setSelections] = useState(autosavedCard?.selections || { realm: defaultRealmIndex, origin: null, source: null, method: null, dao: null });
-  const [texts, setTexts] = useState({ ...defaultTexts, ...(autosavedCard?.texts || {}) });
-  const [attributes, setAttributes] = useState({ ...defaultAttributes, ...(autosavedCard?.attributes || {}) });
-  const [coreAttribute, setCoreAttribute] = useState(autosavedCard?.coreAttribute || null);
+  const [saveSlots, setSaveSlots] = useState(() => initialState.saveSlots);
+  const [activeSaveSlotId, setActiveSaveSlotId] = useState(() => initialState.activeSaveSlotId);
+  const [selections, setSelections] = useState(() => initialState.snapshot.selections);
+  const [texts, setTexts] = useState(() => initialState.snapshot.texts);
+  const [attributes, setAttributes] = useState(() => initialState.snapshot.attributes);
+  const [coreAttribute, setCoreAttribute] = useState(() => initialState.snapshot.coreAttribute);
   // 抽卡弹窗目标：{ title, plans } 或 null。drawnTalents 为已填入卡面的天赋 / 天谴。
   const [fateDraw, setFateDraw] = useState(null);
-  const [drawnTalents, setDrawnTalents] = useState(autosavedCard?.drawnTalents || []);
+  const [drawnTalents, setDrawnTalents] = useState(() => initialState.snapshot.drawnTalents);
   // 立绘图片（data URL），切页不丢失。
-  const [portrait, setPortrait] = useState(autosavedCard?.portrait || null);
-  const [selectedFateTitle, setSelectedFateTitle] = useState(autosavedCard?.selectedFateTitle || null);
-  const [diceEffects, setDiceEffects] = useState(autosavedCard?.diceEffects || baseDiceEffects);
-  const [fortuneOverflow, setFortuneOverflow] = useState(autosavedCard?.fortuneOverflow || 0);
-  const [markStates, setMarkStates] = useState(autosavedCard?.markStates || {});
-  const [thresholdBonuses, setThresholdBonuses] = useState({ ...defaultThresholdBonuses, ...(autosavedCard?.thresholdBonuses || {}) });
-  const [upgradeChoices, setUpgradeChoices] = useState(autosavedCard?.upgradeChoices || []);
-  const [maxRealmIndexReached, setMaxRealmIndexReached] = useState(autosavedCard?.maxRealmIndexReached ?? defaultRealmIndex);
+  const [portrait, setPortrait] = useState(() => initialState.snapshot.portrait);
+  const [selectedFateTitle, setSelectedFateTitle] = useState(() => initialState.snapshot.selectedFateTitle);
+  const [diceEffects, setDiceEffects] = useState(() => initialState.snapshot.diceEffects);
+  const [fortuneOverflow, setFortuneOverflow] = useState(() => initialState.snapshot.fortuneOverflow);
+  const [markStates, setMarkStates] = useState(() => initialState.snapshot.markStates);
+  const [thresholdBonuses, setThresholdBonuses] = useState(() => initialState.snapshot.thresholdBonuses);
+  const [upgradeChoices, setUpgradeChoices] = useState(() => initialState.snapshot.upgradeChoices);
+  const [maxRealmIndexReached, setMaxRealmIndexReached] = useState(() => initialState.snapshot.maxRealmIndexReached);
   const [realmHistoryOpen, setRealmHistoryOpen] = useState(false);
   const [upgradePrompt, setUpgradePrompt] = useState(null);
   const [attributeChoicePrompt, setAttributeChoicePrompt] = useState(null);
@@ -3168,20 +3229,20 @@ function App() {
     maxRealmIndexReached,
   });
   const restoreCardSnapshot = (snapshot) => {
-    if (!snapshot) return;
-    setSelections(snapshot.selections || { realm: defaultRealmIndex, origin: null, source: null, method: null, dao: null });
-    setTexts({ ...defaultTexts, ...(snapshot.texts || {}) });
-    setAttributes({ ...defaultAttributes, ...(snapshot.attributes || {}) });
-    setCoreAttribute(snapshot.coreAttribute || null);
-    setDrawnTalents(snapshot.drawnTalents || []);
-    setPortrait(snapshot.portrait || null);
-    setSelectedFateTitle(snapshot.selectedFateTitle || null);
-    setDiceEffects(snapshot.diceEffects || baseDiceEffects);
-    setFortuneOverflow(snapshot.fortuneOverflow || 0);
-    setMarkStates(snapshot.markStates || {});
-    setThresholdBonuses({ ...defaultThresholdBonuses, ...(snapshot.thresholdBonuses || {}) });
-    setUpgradeChoices(snapshot.upgradeChoices || []);
-    setMaxRealmIndexReached(snapshot.maxRealmIndexReached ?? defaultRealmIndex);
+    const next = normalizeCardSnapshot(snapshot, defaultRealmIndex);
+    setSelections(next.selections);
+    setTexts(next.texts);
+    setAttributes(next.attributes);
+    setCoreAttribute(next.coreAttribute);
+    setDrawnTalents(next.drawnTalents);
+    setPortrait(next.portrait);
+    setSelectedFateTitle(next.selectedFateTitle);
+    setDiceEffects(next.diceEffects);
+    setFortuneOverflow(next.fortuneOverflow);
+    setMarkStates(next.markStates);
+    setThresholdBonuses(next.thresholdBonuses);
+    setUpgradeChoices(next.upgradeChoices);
+    setMaxRealmIndexReached(next.maxRealmIndexReached);
     setFateDraw(null);
     setLibrary(null);
     setUpgradePrompt(null);
@@ -3199,20 +3260,39 @@ function App() {
   const handleSaveCurrent = ({ forceNew = false } = {}) => {
     try {
       const snapshot = createCardSnapshot();
+      if (forceNew) {
+        const emptySnapshot = createEmptyCardSnapshot(defaultRealmIndex);
+        const nextArchive = startNewSaveSlot(saveSlots, {
+          activeSlotId: activeSaveSlotId,
+          currentSnapshot: snapshot,
+          emptySnapshot,
+        });
+        persistSaveSlots(nextArchive.slots);
+        setActiveSlot(nextArchive.activeSlotId);
+        restoreCardSnapshot(emptySnapshot);
+        showNotice('已创建新存档。');
+        return;
+      }
+
       const nextSlots = saveSlot(saveSlots, {
-        activeSlotId: forceNew ? null : activeSaveSlotId,
+        activeSlotId: activeSaveSlotId,
         snapshot,
       });
       persistSaveSlots(nextSlots);
-      setActiveSlot(forceNew || !activeSaveSlotId ? nextSlots[0]?.id : activeSaveSlotId);
-      showNotice(forceNew || !activeSaveSlotId ? '已创建新存档。' : '当前存档已更新。');
+      setActiveSlot(!activeSaveSlotId ? nextSlots[0]?.id : activeSaveSlotId);
+      showNotice(!activeSaveSlotId ? '已创建新存档。' : '当前存档已更新。');
     } catch (error) {
       showNotice(error?.message || '存档失败。', 2600);
     }
   };
   const loadSaveSlot = (slotId) => {
-    const slot = saveSlots.find((entry) => entry.id === slotId);
+    const nextSlots = updateSaveSlotSnapshot(saveSlots, {
+      slotId: activeSaveSlotId,
+      snapshot: createCardSnapshot(),
+    });
+    const slot = nextSlots.find((entry) => entry.id === slotId);
     if (!slot) return;
+    persistSaveSlots(nextSlots);
     restoreCardSnapshot(slot.snapshot);
     setActiveSlot(slot.id);
     setSaveOpen(false);
@@ -3281,6 +3361,11 @@ function App() {
     confirmAttributeChoices,
     triggerBreakthroughOption,
   };
+
+  useEffect(() => {
+    writeJsonStorage(CARD_SAVE_SLOTS_KEY, saveSlots);
+    writeJsonStorage(CARD_ACTIVE_SAVE_SLOT_KEY, activeSaveSlotId);
+  }, []);
 
   useEffect(() => {
     const printRoot = document.querySelector('.printPageStack') || document;
