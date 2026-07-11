@@ -6067,19 +6067,31 @@ body {
 
 .breakthroughResult {
   display: grid;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
   border-left: 2px solid #ececec;
 }
 
 .resultPrimary,
-.resultChecks {
+.resultChecks,
+.breakthroughOptionHint {
   display: grid;
   place-items: center;
-  padding: 22px;
   border-bottom: 3px solid #f0f0f0;
   font-size: 15px;
   line-height: 1.65;
   text-align: center;
+}
+
+.resultPrimary,
+.resultChecks {
+  padding: 22px;
+}
+
+.breakthroughOptionHint {
+  padding: 8px 18px;
+  color: #6e6660;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .resultChecks {

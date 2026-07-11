@@ -64,6 +64,7 @@ import {
   GUIDE_STEPS,
   GUIDED_DRAFTS_KEY,
   GUIDED_RESULT_KEY,
+  applyGuideAttributeValue,
   clearGuideDraft,
   clampGuideStep,
   createGuidedCardResult,
@@ -72,6 +73,10 @@ import {
   setGuideDraft,
   validateGuideValues,
 } from './guidedCardState';
+import {
+  applyFoundationBreakthroughMarkEffects,
+  unlockNextGhostMark,
+} from './realmBreakthroughEffects';
 import {
   deleteSaveSlot,
   ensureInitialSaveSlot,
@@ -383,18 +388,6 @@ function uniqueCards(cards) {
 function incrementTextNumber(value, amount = 1) {
   const current = String(value || '').match(/[+-]?\d+/)?.[0];
   return String((current ? Number(current) : 0) + amount);
-}
-
-function fillNextMark(store, groupId, count) {
-  const next = { ...store };
-  for (let index = 0; index < count; index += 1) {
-    const key = `${groupId}:${index}`;
-    if (!next[key]?.filled) {
-      next[key] = { filled: true, ghost: true };
-      break;
-    }
-  }
-  return next;
 }
 
 function InfoHint({ text, label = '说明' }) {
@@ -1610,6 +1603,10 @@ function BreakthroughPanel({ title, stages }) {
           将灵气上限增加 1 格<br />
           根据已修习的法门选择 1 张本源感悟卡<br />
           核心属性 +1<br />所有阈值 +3<br />灵气格 +2<br />升级你的法门至进阶
+        </div>
+        <div className="breakthroughOptionHint">
+          在以下升级选项中标记至多 2 格<br />
+          每标记 1 格获取一次对应提升
         </div>
         <div className="resultChecks">
           <PdfActionCheck id={`${title}-normal-health`} action="normal-health" label="正常血量格 +1 并所有中伤阈值 +1" />
@@ -2863,10 +2860,7 @@ function GuidedCardPage() {
   }));
   const updateAttribute = (field, value) => persistDraft((current) => ({
     ...current,
-    values: {
-      ...current.values,
-      attributes: { ...current.values.attributes, [field]: value },
-    },
+    values: applyGuideAttributeValue(current.values, field, value),
   }));
 
   const handleRandomGuide = () => {
@@ -3046,14 +3040,9 @@ function App() {
   };
   const applyRealmBreakthroughEffects = (step) => {
     setThresholdBonuses((prev) => ({ ...prev, all: prev.all + 3 }));
-    setMarkStates((store) => {
-      let next = fillNextMark(store, 'p1-stat-灵气-ghost', 4);
-      next = fillNextMark(next, 'p1-stat-灵气-ghost', 4);
-      if (step.id === 'foundation-early') {
-        next = fillNextMark(next, 'p1-zhenyuan-ghost', 4);
-      }
-      return next;
-    });
+    if (step.id === 'foundation-early') {
+      setMarkStates((store) => applyFoundationBreakthroughMarkEffects(store));
+    }
     if (step.id === 'foundation-early' && coreAttribute) {
       setAttributes((prev) => ({
         ...prev,
@@ -3120,7 +3109,7 @@ function App() {
   };
   const triggerBreakthroughOption = (action) => {
     if (action === 'normal-health') {
-      setMarkStates((store) => fillNextMark(store, 'p1-stat-正常血量-ghost', 4));
+      setMarkStates((store) => unlockNextGhostMark(store, 'p1-stat-正常血量-ghost', 4));
       setThresholdBonuses((prev) => ({
         ...prev,
         bodyMedium: prev.bodyMedium + 1,
@@ -3130,7 +3119,7 @@ function App() {
       return;
     }
     if (action === 'danger-health') {
-      setMarkStates((store) => fillNextMark(store, 'p1-stat-险境血量-ghost', 4));
+      setMarkStates((store) => unlockNextGhostMark(store, 'p1-stat-险境血量-ghost', 4));
       setThresholdBonuses((prev) => ({
         ...prev,
         bodyHeavy: prev.bodyHeavy + 1,
@@ -3140,12 +3129,12 @@ function App() {
       return;
     }
     if (action === 'spirit') {
-      setMarkStates((store) => fillNextMark(store, 'p1-stat-灵气-ghost', 4));
+      setMarkStates((store) => unlockNextGhostMark(store, 'p1-stat-灵气-ghost', 4));
       showNotice('灵气格 +1。');
       return;
     }
     if (action === 'storage') {
-      setMarkStates((store) => fillNextMark(store, 'p1-stat-储物格-ghost', 5));
+      setMarkStates((store) => unlockNextGhostMark(store, 'p1-stat-储物格-ghost', 5));
       showNotice('储物格 +1。');
       return;
     }

@@ -57,4 +57,9 @@ describe('guided card layout polish', () => {
     expect(ruleBody('.guidePreviewMasonry')).toContain('column-count: 3');
     expect(ruleBody('.guidePreviewCard')).toContain('break-inside: avoid');
   });
+
+  it('shows the breakthrough option marking reminder from the rule card', () => {
+    expect(mainSource).toContain('在以下升级选项中标记至多 2 格');
+    expect(mainSource).toContain('每标记 1 格获取一次对应提升');
+  });
 });

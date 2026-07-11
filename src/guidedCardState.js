@@ -204,6 +204,27 @@ export function validateGuideValues(values) {
   return errors;
 }
 
+export function applyGuideAttributeValue(values, field, value) {
+  const normalized = normalizeGuideValues(values);
+  const nextValue = normalizeText(value);
+  const nextAttributes = {
+    ...normalized.attributes,
+    [field]: nextValue,
+  };
+  const nextCoreAttribute =
+    nextValue === '3'
+      ? field
+      : normalized.coreAttribute === field
+        ? null
+        : normalized.coreAttribute;
+
+  return {
+    ...normalized,
+    attributes: nextAttributes,
+    coreAttribute: nextCoreAttribute,
+  };
+}
+
 export function createGuidedCardResult({ draft, options, fateDraws, drawPlan, defaultRealmIndex, getFateState, now }) {
   const normalizedDraft = normalizeGuideDraft(draft);
   const values = normalizedDraft.values;

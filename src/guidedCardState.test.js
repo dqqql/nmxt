@@ -9,6 +9,7 @@ import {
   mergeRandomCardIntoGuideDraft,
   setGuideDraft,
   validateGuideValues,
+  applyGuideAttributeValue,
 } from './guidedCardState';
 
 const options = {
@@ -92,6 +93,17 @@ describe('guided card state', () => {
       'dao',
       'fateValue',
     ]);
+  });
+
+  it('automatically marks the attribute assigned 3 as the guide core attribute', () => {
+    const values = createEmptyGuideDraft().values;
+    const withBodyThree = applyGuideAttributeValue(values, '仙躯', '3');
+    const movedToAgility = applyGuideAttributeValue(withBodyThree, '身法', '3');
+    const clearedAgility = applyGuideAttributeValue(movedToAgility, '身法', '');
+
+    expect(withBodyThree.coreAttribute).toBe('仙躯');
+    expect(movedToAgility.coreAttribute).toBe('身法');
+    expect(clearedAgility.coreAttribute).toBe(null);
   });
 
   it('rejects invalid or blank 仙躯 values during guide validation', () => {
