@@ -32,6 +32,8 @@ import {
 } from './interactiveState';
 import { createRandomCardState, fateValueToTitle } from './randomCardState';
 import {
+  formatCardDisplayName,
+  getMethodResourceSections,
   getUnlockedMethodAttackBuffs,
 } from './methodProgression';
 import {
@@ -48,7 +50,7 @@ import {
   getTreasureOptions,
   pruneUpgradeChoicesForRealm,
 } from './realmUpgrade';
-import { buildInitialMethodInsightPrompt, getDisplayedInsightCards } from './methodSelectionFlow';
+import { buildInitialMethodInsightPrompt, getDisplayedInsightCards, getDisplayedOriginInsightCards } from './methodSelectionFlow';
 import { appendUpgradeChoices, removeMethodInsightChoices } from './upgradeChoiceState';
 import {
   QUESTIONNAIRE_DRAFT_KEY,
@@ -1444,7 +1446,7 @@ function PageTwo() {
     if (title === '神通') return uniqueCards([...getInitialSourceSkills(source), ...upgradeCards.skills]);
     if (title === '秘法') return uniqueCards([...getInitialSourceArts(source), ...upgradeCards.arts]);
     if (title === '感悟') return getDisplayedInsightCards(upgradeCards);
-    if (title === '本源感悟') return uniqueCards(upgradeCards.originInsights);
+    if (title === '本源感悟') return getDisplayedOriginInsightCards(upgradeCards);
     if (title === '功法') return uniqueCards([...upgradeCards.daoMethods, ...upgradeCards.extraMethods]);
     if (title === '灵宝') return uniqueCards(upgradeCards.treasures);
     return [];
@@ -1810,7 +1812,7 @@ function UpgradeSelectionModal() {
           <button type="button" className="libraryBack" onClick={() => setUpgradePrompt(null)}>稍后再选</button>
           <div className="libraryChoiceSummary">
             {sections.map((section) => (
-              <span key={section.key}>{section.title}：{selected[section.key]?.name || '未选择'}</span>
+              <span key={section.key}>{section.title}：{selected[section.key] ? formatCardDisplayName(selected[section.key]) : '未选择'}</span>
             ))}
           </div>
           <button type="button" className="libraryDone" onClick={confirm} disabled={!ready}>填入卡面</button>
@@ -1830,7 +1832,7 @@ function UpgradeSelectionModal() {
                     className={`libraryCard${selected[section.key]?.name === option.name ? ' selected' : ''}`}
                     onClick={() => selectCard(section, option)}
                   >
-                    <div className="libraryCardTitle">{option.name}</div>
+                    <div className="libraryCardTitle">{formatCardDisplayName(option)}</div>
                     <div className="libraryCardBody">{option.text || option.desc || option.effect || ''}</div>
                   </button>
                 )) : (
@@ -2468,8 +2470,8 @@ function GuideInfoStep({ values, onChange }) {
 }
 
 function GuideOptionStep({ title, category, options, value, onChange }) {
-  const detailIndex = value ?? 0;
-  const detail = options[detailIndex] || options[0] || null;
+  const hasSelection = value !== null && value !== undefined && value !== '';
+  const detail = hasSelection ? options[Number(value)] || null : null;
   const detailRows = detail ? [
     { label: '描述', value: detail.desc },
     { label: '效果', value: detail.effect },
@@ -2478,8 +2480,7 @@ function GuideOptionStep({ title, category, options, value, onChange }) {
     { label: '肉身阈值', value: detail.bodyThreshold },
     { label: '神魂阈值', value: detail.soulThreshold },
   ].filter((item) => item.value) : [];
-  const attackBuffs = Array.isArray(detail?.attackBuffs) ? detail.attackBuffs.slice(0, 2) : [];
-  const insights = Array.isArray(detail?.insights) ? detail.insights.slice(0, 2) : [];
+  const methodResourceSections = category === 'method' ? getMethodResourceSections(detail) : [];
 
   return (
     <section className={`guideStepSection guideOptionStep guideOptionStep-${category}`}>
@@ -2522,33 +2523,26 @@ function GuideOptionStep({ title, category, options, value, onChange }) {
                   </section>
                 ))}
 
-                {attackBuffs.length > 0 ? (
-                  <section className="guideDetailSection">
-                    <h4>攻击增益</h4>
+                {methodResourceSections.map((section) => (
+                  <section key={section.title} className="guideDetailSection">
+                    <h4>{section.title}</h4>
                     <ul>
-                      {attackBuffs.map((entry) => <li key={entry}>{entry}</li>)}
-                    </ul>
-                  </section>
-                ) : null}
-
-                {insights.length > 0 ? (
-                  <section className="guideDetailSection">
-                    <h4>前两项感悟</h4>
-                    <ul>
-                      {insights.map((entry) => (
-                        <li key={entry.name || entry.text}>
-                          <strong>{entry.name}</strong>
-                          <span>{entry.text}</span>
-                        </li>
+                      {section.items.map((entry) => (
+                        typeof entry === 'string' ? (
+                          <li key={entry}>{entry}</li>
+                        ) : (
+                          <li key={entry.name || entry.text}>
+                            <strong>{entry.name}</strong>
+                            <span>{entry.text}</span>
+                          </li>
+                        )
                       ))}
                     </ul>
                   </section>
-                ) : null}
+                ))}
               </div>
             </>
-          ) : (
-            <p>暂无可展示内容。</p>
-          )}
+          ) : null}
         </aside>
       </div>
     </section>
@@ -2747,7 +2741,7 @@ function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) 
       heading: selected.method?.name || '未选择',
       items: [
         { label: '描述', value: selected.method?.desc },
-        { label: '攻击增益', value: selected.method?.attackBuffs?.slice(0, 2).join('；') },
+        { label: '攻击增益', value: getUnlockedMethodAttackBuffs(selected.method, null).join('；') },
       ],
     },
     {
@@ -3006,7 +3000,7 @@ function App() {
   const [upgradePrompt, setUpgradePrompt] = useState(null);
   const [attributeChoicePrompt, setAttributeChoicePrompt] = useState(null);
   const randomNoticeTimer = useRef(null);
-  const initialMethodPromptChecked = useRef(false);
+  const promptedInitialMethodName = useRef(null);
   const currentRealmIndex = selections.realm ?? defaultRealmIndex;
   const upgradeCards = useMemo(
     () => aggregateUpgradeChoices(upgradeChoices, currentRealmIndex),
@@ -3031,9 +3025,11 @@ function App() {
     if (category === 'method') {
       if (selections.method === index) return;
       const nextMethod = methodOptions[index] || null;
+      const nextPrompt = buildInitialMethodInsightPrompt(nextMethod, defaultRealmIndex);
+      if (nextPrompt) promptedInitialMethodName.current = nextMethod?.name || null;
       setSelections((prev) => ({ ...prev, method: index }));
       setUpgradeChoices((prev) => removeMethodInsightChoices(prev));
-      setUpgradePrompt(buildInitialMethodInsightPrompt(nextMethod, defaultRealmIndex));
+      setUpgradePrompt(nextPrompt);
       return;
     }
     setSelections((prev) => ({ ...prev, [category]: index }));
@@ -3081,6 +3077,7 @@ function App() {
       source: current.source,
       method: current.method,
       dao: current.dao,
+      upgradeCards,
     });
 
     setSelections((prev) => ({ ...prev, realm: nextIndex }));
@@ -3206,10 +3203,20 @@ function App() {
     dao: selections.dao != null ? daoOptions[selections.dao] : null,
   };
   useEffect(() => {
-    if (initialMethodPromptChecked.current) return;
-    initialMethodPromptChecked.current = true;
-    if (!current.method || upgradeCards.initialInsights.length || upgradePrompt) return;
-    setUpgradePrompt(buildInitialMethodInsightPrompt(current.method, defaultRealmIndex));
+    const methodName = current.method?.name || null;
+    if (!methodName) {
+      promptedInitialMethodName.current = null;
+      return;
+    }
+    if (upgradeCards.initialInsights.length) {
+      promptedInitialMethodName.current = methodName;
+      return;
+    }
+    if (upgradePrompt || promptedInitialMethodName.current === methodName) return;
+    const prompt = buildInitialMethodInsightPrompt(current.method, defaultRealmIndex);
+    if (!prompt) return;
+    promptedInitialMethodName.current = methodName;
+    setUpgradePrompt(prompt);
   }, [current.method, defaultRealmIndex, upgradeCards.initialInsights.length, upgradePrompt]);
   const fateState = getFateState(selectedFateTitle);
   const createCardSnapshot = () => ({
@@ -3230,6 +3237,7 @@ function App() {
   });
   const restoreCardSnapshot = (snapshot) => {
     const next = normalizeCardSnapshot(snapshot, defaultRealmIndex);
+    promptedInitialMethodName.current = null;
     setSelections(next.selections);
     setTexts(next.texts);
     setAttributes(next.attributes);
@@ -3411,6 +3419,7 @@ function App() {
       drawPlan: drawByPlan,
     });
 
+    promptedInitialMethodName.current = null;
     setSelections({ ...cardState.selections, realm: defaultRealmIndex });
     setAttributes(cardState.attributes);
     setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });
@@ -3432,6 +3441,7 @@ function App() {
     const snapshot = result?.snapshot;
     if (!snapshot) return;
 
+    promptedInitialMethodName.current = null;
     setSelections({ ...snapshot.selections, realm: defaultRealmIndex });
     setTexts({ ...defaultTexts, ...(snapshot.texts || {}) });
     setAttributes({ ...defaultAttributes, ...(snapshot.attributes || {}) });
@@ -3497,6 +3507,7 @@ function App() {
       drawPlan: drawByPlan,
     });
 
+    promptedInitialMethodName.current = null;
     setSelections({ ...result.selections, realm: defaultRealmIndex });
     setAttributes(result.attributes);
     setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });

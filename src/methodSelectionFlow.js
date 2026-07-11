@@ -1,3 +1,5 @@
+import { formatCardDisplayName, getMethodInitialInsights } from './methodProgression';
+
 function uniqueCards(cards = []) {
   const seen = new Set();
   return cards.filter((card) => {
@@ -8,8 +10,15 @@ function uniqueCards(cards = []) {
   });
 }
 
+function displayCards(cards = []) {
+  return uniqueCards(cards).map((card) => ({
+    ...card,
+    name: formatCardDisplayName(card),
+  }));
+}
+
 export function buildInitialMethodInsightPrompt(method, realmIndex) {
-  const options = method?.qiInitialInsights || [];
+  const options = getMethodInitialInsights(method);
   if (!options.length) return null;
   return {
     title: '初始感悟选择',
@@ -29,8 +38,12 @@ export function buildInitialMethodInsightPrompt(method, realmIndex) {
 }
 
 export function getDisplayedInsightCards(upgradeCards = {}) {
-  return uniqueCards([
+  return displayCards([
     ...(upgradeCards.initialInsights || []),
     ...(upgradeCards.insights || []),
   ]);
+}
+
+export function getDisplayedOriginInsightCards(upgradeCards = {}) {
+  return displayCards(upgradeCards.originInsights || []);
 }

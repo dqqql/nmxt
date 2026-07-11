@@ -8,7 +8,10 @@ import {
   getInitialSourceArts,
   getInitialSourceSkills,
   getMethodFoundationInsights,
+  getMethodFoundationOriginInsights,
   getMethodInitialInsights,
+  getMethodQiInsights,
+  getMethodQiOriginInsights,
   getMethodQiUpgradeInsights,
   getMaxReachedRealmAfterSelection,
   getNextRealmIndex,
@@ -47,17 +50,26 @@ const source = {
 
 const method = {
   name: '剑修',
-  qiInitialInsights: [
+  insights: [
     { name: '练气·剑感初开', text: '初始感悟一' },
     { name: '练气·气贯剑身', text: '初始感悟二' },
-  ],
-  qiUpgradeInsights: [
     { name: '练气·步随剑走', text: '练气感悟一' },
     { name: '练气·剑心通明', text: '练气感悟二' },
-  ],
-  foundationInsights: [
     { name: '筑基·御剑攻敌', text: '筑基感悟一' },
     { name: '筑基·剑气破体', text: '筑基感悟二' },
+    { name: '筑基·剑影分身', text: '筑基感悟三' },
+    { name: '筑基·识剑心明', text: '筑基感悟四' },
+  ],
+  qiInitialInsights: [
+    { name: '练气·旧初始一', text: '不应被读取' },
+    { name: '练气·旧初始二', text: '不应被读取' },
+  ],
+  qiUpgradeInsights: [
+    { name: '练气·旧升级一', text: '不应被读取' },
+    { name: '练气·旧升级二', text: '不应被读取' },
+  ],
+  foundationInsights: [
+    { name: '筑基·旧筑基一', text: '不应被读取' },
   ],
   originInsights: [
     { name: '练气本源·剑气初成', text: '练气本源一' },
@@ -107,10 +119,17 @@ describe('realm upgrade rules', () => {
       source,
       method,
       dao,
+      upgradeCards: {
+        initialInsights: [{ name: '练气·剑感初开', text: '初始感悟一' }],
+      },
     });
 
     expect(step.selectionPrompt.sections.map((section) => section.key)).toEqual(['method-insight', 'dao-method']);
-    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual(['练气·步随剑走', '练气·剑心通明']);
+    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual([
+      '练气·气贯剑身',
+      '练气·步随剑走',
+      '练气·剑心通明',
+    ]);
     expect(step.selectionPrompt.sections[1].options.map((card) => card.name)).toEqual(['血怒诀']);
   });
 
@@ -149,10 +168,32 @@ describe('realm upgrade rules', () => {
     expect(getSourceFoundationUpgradeArts(source).map((card) => card.name)).toEqual(['庚金破法诀', '金戈镇妖诀']);
   });
 
-  it('exposes explicit method insight pools', () => {
-    expect(getMethodInitialInsights(method).map((card) => card.name)).toEqual(['练气·剑感初开', '练气·气贯剑身']);
-    expect(getMethodQiUpgradeInsights(method).map((card) => card.name)).toEqual(['练气·步随剑走', '练气·剑心通明']);
-    expect(getMethodFoundationInsights(method).map((card) => card.name)).toEqual(['筑基·御剑攻敌', '筑基·剑气破体']);
+  it('exposes method insight pools from unified insight data', () => {
+    expect(getMethodQiInsights(method).map((card) => card.name)).toEqual([
+      '练气·剑感初开',
+      '练气·气贯剑身',
+      '练气·步随剑走',
+      '练气·剑心通明',
+    ]);
+    expect(getMethodInitialInsights(method).map((card) => card.name)).toEqual([
+      '练气·剑感初开',
+      '练气·气贯剑身',
+      '练气·步随剑走',
+      '练气·剑心通明',
+    ]);
+    expect(getMethodQiUpgradeInsights(method, [{ name: '练气·剑感初开' }]).map((card) => card.name)).toEqual([
+      '练气·气贯剑身',
+      '练气·步随剑走',
+      '练气·剑心通明',
+    ]);
+    expect(getMethodFoundationInsights(method).map((card) => card.name)).toEqual([
+      '筑基·御剑攻敌',
+      '筑基·剑气破体',
+      '筑基·剑影分身',
+      '筑基·识剑心明',
+    ]);
+    expect(getMethodQiOriginInsights(method)).toHaveLength(2);
+    expect(getMethodFoundationOriginInsights(method)).toHaveLength(2);
   });
 
   it('keeps all source progression groups fully populated from resource data', () => {
@@ -167,9 +208,14 @@ describe('realm upgrade rules', () => {
 
   it('keeps all method insight groups fully populated from resource data', () => {
     methodOptions.forEach((entry) => {
-      expect(getMethodInitialInsights(entry)).toHaveLength(2);
-      expect(getMethodQiUpgradeInsights(entry)).toHaveLength(2);
+      const selectedInitial = getMethodInitialInsights(entry)[0];
+      expect(getMethodQiInsights(entry)).toHaveLength(4);
+      expect(getMethodInitialInsights(entry)).toHaveLength(4);
+      expect(getMethodQiUpgradeInsights(entry, [selectedInitial])).toHaveLength(3);
       expect(getMethodFoundationInsights(entry)).toHaveLength(4);
+      expect(getMethodQiOriginInsights(entry)).toHaveLength(2);
+      expect(getMethodFoundationOriginInsights(entry)).toHaveLength(2);
+      expect(entry.attackBuffs).toHaveLength(2);
     });
   });
 

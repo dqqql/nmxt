@@ -1,3 +1,21 @@
+import {
+  getMethodFoundationInsights,
+  getMethodFoundationOriginInsights,
+  getMethodInitialInsights,
+  getMethodQiInsights,
+  getMethodQiOriginInsights,
+  getMethodQiUpgradeInsights,
+} from './methodProgression';
+
+export {
+  getMethodFoundationInsights,
+  getMethodFoundationOriginInsights,
+  getMethodInitialInsights,
+  getMethodQiInsights,
+  getMethodQiOriginInsights,
+  getMethodQiUpgradeInsights,
+} from './methodProgression';
+
 const qiTreasurePlaceholders = [
   {
     name: '玄龟甲',
@@ -108,26 +126,6 @@ export function getSourceFoundationUpgradeArts(source) {
   return source?.arts?.slice(1) || [];
 }
 
-export function getMethodInitialInsights(method) {
-  if (method?.qiInitialInsights) return method.qiInitialInsights;
-  return method?.insights?.slice(0, 2) || [];
-}
-
-export function getMethodQiUpgradeInsights(method) {
-  if (method?.qiUpgradeInsights) return method.qiUpgradeInsights;
-  return method?.insights?.slice(2, 4) || [];
-}
-
-export function getMethodFoundationInsights(method) {
-  if (method?.foundationInsights) return method.foundationInsights;
-  return method?.insights?.slice(4) || [];
-}
-
-export function getMethodFoundationOriginInsights(method) {
-  if (!method?.originInsights?.length) return [];
-  return method.originInsights.filter((card) => card?.name?.startsWith('筑基')) || [];
-}
-
 export function pruneUpgradeChoicesForRealm(choices = [], realmIndex) {
   return choices.filter((choice) => choice.realmIndex <= realmIndex);
 }
@@ -175,6 +173,7 @@ export function createUpgradeStep({
   source,
   method,
   dao,
+  upgradeCards = {},
 }) {
   if (nextRealmName === '练气中期') {
     return {
@@ -222,7 +221,7 @@ export function createUpgradeStep({
             limit: 1,
             target: 'insights',
             sourceKind: 'method',
-            options: getMethodQiUpgradeInsights(method),
+            options: getMethodQiUpgradeInsights(method, upgradeCards.initialInsights),
           },
           {
             key: 'dao-method',

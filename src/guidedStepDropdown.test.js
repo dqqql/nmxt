@@ -20,4 +20,14 @@ describe('guided option dropdown selection', () => {
     expect(guideOptionStep).not.toContain('className={`guideOptionCard');
     expect(cssSource).toContain('.guideOptionSelect');
   });
+
+  it('keeps the detail panel empty until an option is selected', () => {
+    const guideOptionStep = functionBody('GuideOptionStep');
+
+    expect(guideOptionStep).toContain('const hasSelection = value !== null && value !== undefined && value !== \'\';');
+    expect(guideOptionStep).toContain('const detail = hasSelection ? options[Number(value)] || null : null;');
+    expect(guideOptionStep).not.toContain('value ?? 0');
+    expect(guideOptionStep).not.toContain('options[0]');
+    expect(guideOptionStep).not.toContain('暂无可展示内容。');
+  });
 });
