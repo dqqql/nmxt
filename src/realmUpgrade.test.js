@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { methodOptions, sourceOptions } from './data';
 import {
   aggregateUpgradeChoices,
   applyAttributeIncrease,
@@ -6,12 +7,16 @@ import {
   getDefaultRealmIndex,
   getInitialSourceArts,
   getInitialSourceSkills,
+  getMethodFoundationInsights,
+  getMethodInitialInsights,
+  getMethodQiUpgradeInsights,
   getMaxReachedRealmAfterSelection,
   getNextRealmIndex,
   getNonCoreAttributeChoices,
   getReachableRealmOptions,
-  getSourceUpgradeArts,
-  getSourceUpgradeSkills,
+  getSourceFoundationUpgradeArts,
+  getSourceFoundationUpgradeSkills,
+  getSourceQiUpgradeSkills,
   pruneUpgradeChoicesForRealm,
 } from './realmUpgrade';
 
@@ -24,22 +29,41 @@ const realms = [
 
 const source = {
   name: '金道源',
-  skills: [
-    { name: '金芒术', text: '神通一' },
-    { name: '金罡斩', text: '神通二' },
+  initialSkill: { name: '金芒术', text: '神通一' },
+  qiUpgradeSkills: [
+    { name: '金罡斩', text: '练气中期一' },
+    { name: '锋芒毕露', text: '练气中期二' },
   ],
-  arts: [{ name: '金芒破元斩', text: '秘法一' }],
+  foundationUpgradeSkills: [
+    { name: '金锋化刃', text: '筑基中期一' },
+    { name: '金芒连刺', text: '筑基中期二' },
+  ],
+  initialArt: { name: '金芒破元斩', text: '秘法一' },
+  foundationUpgradeArts: [
+    { name: '庚金破法诀', text: '筑基秘法一' },
+    { name: '金戈镇妖诀', text: '筑基秘法二' },
+  ],
 };
 
 const method = {
   name: '剑修',
-  insights: [
-    { name: '练气·剑感初开', text: '练气感悟' },
-    { name: '筑基·御剑攻敌', text: '筑基感悟' },
+  qiInitialInsights: [
+    { name: '练气·剑感初开', text: '初始感悟一' },
+    { name: '练气·气贯剑身', text: '初始感悟二' },
+  ],
+  qiUpgradeInsights: [
+    { name: '练气·步随剑走', text: '练气感悟一' },
+    { name: '练气·剑心通明', text: '练气感悟二' },
+  ],
+  foundationInsights: [
+    { name: '筑基·御剑攻敌', text: '筑基感悟一' },
+    { name: '筑基·剑气破体', text: '筑基感悟二' },
   ],
   originInsights: [
-    { name: '练气本源·剑气初成', text: '练气本源' },
+    { name: '练气本源·剑气初成', text: '练气本源一' },
+    { name: '练气本源·剑势凝一', text: '练气本源二' },
     { name: '筑基本源·剑光分化', text: '筑基本源' },
+    { name: '筑基本源·人剑合一', text: '筑基本源二' },
   ],
 };
 
@@ -72,7 +96,7 @@ describe('realm upgrade rules', () => {
 
     expect(step.selectionPrompt.title).toBe('练气中期升级选项');
     expect(step.selectionPrompt.sections.map((section) => section.key)).toEqual(['source-skill', 'treasure']);
-    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual(['金罡斩']);
+    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual(['金罡斩', '锋芒毕露']);
     expect(step.selectionPrompt.sections[1].options[0].name).toBe('玄龟甲');
   });
 
@@ -86,7 +110,7 @@ describe('realm upgrade rules', () => {
     });
 
     expect(step.selectionPrompt.sections.map((section) => section.key)).toEqual(['method-insight', 'dao-method']);
-    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual(['练气·剑感初开']);
+    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual(['练气·步随剑走', '练气·剑心通明']);
     expect(step.selectionPrompt.sections[1].options.map((card) => card.name)).toEqual(['血怒诀']);
   });
 
@@ -101,7 +125,7 @@ describe('realm upgrade rules', () => {
 
     expect(step.autoEffects).toContain('realm-breakthrough');
     expect(step.selectionPrompt.sections[0].key).toBe('origin-insight');
-    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual(['筑基本源·剑光分化']);
+    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual(['筑基本源·剑光分化', '筑基本源·人剑合一']);
   });
 
   it('keeps upgrade prompts visible even when the matching source data is missing', () => {
@@ -120,8 +144,33 @@ describe('realm upgrade rules', () => {
   it('prefills only initial source skill and initial source art', () => {
     expect(getInitialSourceSkills(source).map((card) => card.name)).toEqual(['金芒术']);
     expect(getInitialSourceArts(source).map((card) => card.name)).toEqual(['金芒破元斩']);
-    expect(getSourceUpgradeSkills(source).map((card) => card.name)).toEqual(['金罡斩']);
-    expect(getSourceUpgradeArts(source)).toEqual([]);
+    expect(getSourceQiUpgradeSkills(source).map((card) => card.name)).toEqual(['金罡斩', '锋芒毕露']);
+    expect(getSourceFoundationUpgradeSkills(source).map((card) => card.name)).toEqual(['金锋化刃', '金芒连刺']);
+    expect(getSourceFoundationUpgradeArts(source).map((card) => card.name)).toEqual(['庚金破法诀', '金戈镇妖诀']);
+  });
+
+  it('exposes explicit method insight pools', () => {
+    expect(getMethodInitialInsights(method).map((card) => card.name)).toEqual(['练气·剑感初开', '练气·气贯剑身']);
+    expect(getMethodQiUpgradeInsights(method).map((card) => card.name)).toEqual(['练气·步随剑走', '练气·剑心通明']);
+    expect(getMethodFoundationInsights(method).map((card) => card.name)).toEqual(['筑基·御剑攻敌', '筑基·剑气破体']);
+  });
+
+  it('keeps all source progression groups fully populated from resource data', () => {
+    sourceOptions.forEach((entry) => {
+      expect(getInitialSourceSkills(entry)).toHaveLength(1);
+      expect(getInitialSourceArts(entry)).toHaveLength(1);
+      expect(getSourceQiUpgradeSkills(entry)).toHaveLength(2);
+      expect(getSourceFoundationUpgradeSkills(entry)).toHaveLength(2);
+      expect(getSourceFoundationUpgradeArts(entry)).toHaveLength(2);
+    });
+  });
+
+  it('keeps all method insight groups fully populated from resource data', () => {
+    methodOptions.forEach((entry) => {
+      expect(getMethodInitialInsights(entry)).toHaveLength(2);
+      expect(getMethodQiUpgradeInsights(entry)).toHaveLength(2);
+      expect(getMethodFoundationInsights(entry)).toHaveLength(4);
+    });
   });
 
   it('keeps only card choices at or below the selected realm when rolling realm back', () => {

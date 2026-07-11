@@ -39,6 +39,7 @@ const foundationTreasurePlaceholders = [
 const emptyUpgradeCards = {
   skills: [],
   arts: [],
+  initialInsights: [],
   insights: [],
   originInsights: [],
   daoMethods: [],
@@ -48,15 +49,6 @@ const emptyUpgradeCards = {
 
 export function getTreasureOptions(stage = 'qi') {
   return stage === 'foundation' ? foundationTreasurePlaceholders : qiTreasurePlaceholders;
-}
-
-function startsWithRealmPrefix(card, prefix) {
-  return card?.name?.startsWith(prefix);
-}
-
-function cardsForRealm(cards = [], prefix) {
-  const filtered = cards.filter((card) => startsWithRealmPrefix(card, prefix));
-  return filtered.length ? filtered : cards;
 }
 
 function cardSections(sections) {
@@ -92,19 +84,48 @@ export function getMaxReachedRealmAfterSelection(maxReachedIndex, selectedRealmI
 }
 
 export function getInitialSourceSkills(source) {
+  if (source?.initialSkill) return [source.initialSkill];
   return source?.skills?.[0] ? [source.skills[0]] : [];
 }
 
 export function getInitialSourceArts(source) {
+  if (source?.initialArt) return [source.initialArt];
   return source?.arts?.[0] ? [source.arts[0]] : [];
 }
 
-export function getSourceUpgradeSkills(source) {
-  return source?.skills?.slice(1) || [];
+export function getSourceQiUpgradeSkills(source) {
+  if (source?.qiUpgradeSkills) return source.qiUpgradeSkills;
+  return source?.skills?.slice(1, 3) || [];
 }
 
-export function getSourceUpgradeArts(source) {
+export function getSourceFoundationUpgradeSkills(source) {
+  if (source?.foundationUpgradeSkills) return source.foundationUpgradeSkills;
+  return source?.skills?.slice(3) || [];
+}
+
+export function getSourceFoundationUpgradeArts(source) {
+  if (source?.foundationUpgradeArts) return source.foundationUpgradeArts;
   return source?.arts?.slice(1) || [];
+}
+
+export function getMethodInitialInsights(method) {
+  if (method?.qiInitialInsights) return method.qiInitialInsights;
+  return method?.insights?.slice(0, 2) || [];
+}
+
+export function getMethodQiUpgradeInsights(method) {
+  if (method?.qiUpgradeInsights) return method.qiUpgradeInsights;
+  return method?.insights?.slice(2, 4) || [];
+}
+
+export function getMethodFoundationInsights(method) {
+  if (method?.foundationInsights) return method.foundationInsights;
+  return method?.insights?.slice(4) || [];
+}
+
+export function getMethodFoundationOriginInsights(method) {
+  if (!method?.originInsights?.length) return [];
+  return method.originInsights.filter((card) => card?.name?.startsWith('筑基')) || [];
 }
 
 export function pruneUpgradeChoicesForRealm(choices = [], realmIndex) {
@@ -169,7 +190,8 @@ export function createUpgradeStep({
             hint: source ? `来自 ${source.name}` : '请先选择道源',
             limit: 1,
             target: 'skills',
-            options: getSourceUpgradeSkills(source),
+            sourceKind: 'source',
+            options: getSourceQiUpgradeSkills(source),
           },
           {
             key: 'treasure',
@@ -177,6 +199,7 @@ export function createUpgradeStep({
             hint: '临时占位池，稍后可替换为正式灵宝数据',
             limit: 1,
             target: 'treasures',
+            sourceKind: 'treasure',
             options: getTreasureOptions('qi'),
           },
         ]),
@@ -198,7 +221,8 @@ export function createUpgradeStep({
             hint: method ? `来自 ${method.name}` : '请先选择法门',
             limit: 1,
             target: 'insights',
-            options: cardsForRealm(method?.insights, '练气'),
+            sourceKind: 'method',
+            options: getMethodQiUpgradeInsights(method),
           },
           {
             key: 'dao-method',
@@ -206,6 +230,7 @@ export function createUpgradeStep({
             hint: dao ? `来自 ${dao.name}` : '请先选择大道',
             limit: 1,
             target: 'daoMethods',
+            sourceKind: 'dao',
             options: dao?.qiMethods || [],
           },
         ]),
@@ -227,7 +252,8 @@ export function createUpgradeStep({
             hint: method ? `来自 ${method.name}` : '请先选择法门',
             limit: 1,
             target: 'originInsights',
-            options: cardsForRealm(method?.originInsights, '筑基'),
+            sourceKind: 'method',
+            options: getMethodFoundationOriginInsights(method),
           },
         ]),
       },
@@ -248,7 +274,8 @@ export function createUpgradeStep({
             hint: source ? `来自 ${source.name}` : '请先选择道源',
             limit: 1,
             target: 'skills',
-            options: getSourceUpgradeSkills(source),
+            sourceKind: 'source',
+            options: getSourceFoundationUpgradeSkills(source),
           },
           {
             key: 'source-art',
@@ -256,7 +283,8 @@ export function createUpgradeStep({
             hint: source ? `来自 ${source.name}` : '请先选择道源',
             limit: 1,
             target: 'arts',
-            options: getSourceUpgradeArts(source),
+            sourceKind: 'source',
+            options: getSourceFoundationUpgradeArts(source),
           },
         ]),
       },
@@ -277,7 +305,8 @@ export function createUpgradeStep({
             hint: method ? `来自 ${method.name}` : '请先选择法门',
             limit: 1,
             target: 'insights',
-            options: cardsForRealm(method?.insights, '筑基'),
+            sourceKind: 'method',
+            options: getMethodFoundationInsights(method),
           },
           {
             key: 'dao-method',
@@ -285,6 +314,7 @@ export function createUpgradeStep({
             hint: dao ? `来自 ${dao.name}` : '请先选择大道',
             limit: 1,
             target: 'daoMethods',
+            sourceKind: 'dao',
             options: dao?.foundationMethods || [],
           },
         ]),
@@ -306,7 +336,8 @@ export function createUpgradeStep({
             hint: method ? `来自 ${method.name}` : '请先选择法门',
             limit: 1,
             target: 'originInsights',
-            options: cardsForRealm(method?.originInsights, '筑基'),
+            sourceKind: 'method',
+            options: getMethodFoundationOriginInsights(method),
           },
         ]),
       },

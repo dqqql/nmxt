@@ -32,7 +32,6 @@ import {
 } from './interactiveState';
 import { createRandomCardState, fateValueToTitle } from './randomCardState';
 import {
-  getFirstRealmInsight,
   getUnlockedMethodAttackBuffs,
 } from './methodProgression';
 import {
@@ -49,6 +48,8 @@ import {
   getTreasureOptions,
   pruneUpgradeChoicesForRealm,
 } from './realmUpgrade';
+import { buildInitialMethodInsightPrompt, getDisplayedInsightCards } from './methodSelectionFlow';
+import { appendUpgradeChoices, removeMethodInsightChoices } from './upgradeChoiceState';
 import {
   QUESTIONNAIRE_DRAFT_KEY,
   QUESTIONNAIRE_RESULT_KEY,
@@ -1397,14 +1398,11 @@ function EditableFeatureTable({ rows, namePrefix, effectPrefix, className = '' }
 function PageTwo() {
   const { current, upgradeCards } = useSheet();
   const source = current.source;
-  const method = current.method;
-  const realm = current.realm;
-  const selectedInsights = method ? [getFirstRealmInsight(method, realm)].filter(Boolean) : [];
 
   const prefillFor = (title) => {
     if (title === '神通') return uniqueCards([...getInitialSourceSkills(source), ...upgradeCards.skills]);
     if (title === '秘法') return uniqueCards([...getInitialSourceArts(source), ...upgradeCards.arts]);
-    if (title === '感悟') return uniqueCards([...selectedInsights, ...upgradeCards.insights]);
+    if (title === '感悟') return getDisplayedInsightCards(upgradeCards);
     if (title === '本源感悟') return uniqueCards(upgradeCards.originInsights);
     if (title === '功法') return uniqueCards([...upgradeCards.daoMethods, ...upgradeCards.extraMethods]);
     if (title === '灵宝') return uniqueCards(upgradeCards.treasures);
@@ -1748,13 +1746,13 @@ function UpgradeSelectionModal() {
   };
   const ready = sections.every((section) => selected[section.key]);
   const confirm = () => {
-    const byTarget = {};
-    sections.forEach((section) => {
-      const card = selected[section.key];
-      if (!card) return;
-      byTarget[section.target] = [...(byTarget[section.target] || []), card];
-    });
-    appendUpgradeCards(byTarget);
+    const selectedSections = sections.map((section) => ({
+      key: section.key,
+      target: section.target,
+      sourceKind: section.sourceKind,
+      cards: selected[section.key] ? [selected[section.key]] : [],
+    }));
+    appendUpgradeCards(selectedSections);
     setUpgradePrompt(null);
   };
 
@@ -2947,6 +2945,7 @@ function App() {
   const [upgradePrompt, setUpgradePrompt] = useState(null);
   const [attributeChoicePrompt, setAttributeChoicePrompt] = useState(null);
   const randomNoticeTimer = useRef(null);
+  const initialMethodPromptChecked = useRef(false);
   const currentRealmIndex = selections.realm ?? defaultRealmIndex;
   const upgradeCards = useMemo(
     () => aggregateUpgradeChoices(upgradeChoices, currentRealmIndex),
@@ -2968,19 +2967,25 @@ function App() {
     setLibrary(category);
   };
   const select = (category, index) => {
+    if (category === 'method') {
+      if (selections.method === index) return;
+      const nextMethod = methodOptions[index] || null;
+      setSelections((prev) => ({ ...prev, method: index }));
+      setUpgradeChoices((prev) => removeMethodInsightChoices(prev));
+      setUpgradePrompt(buildInitialMethodInsightPrompt(nextMethod, defaultRealmIndex));
+      return;
+    }
     setSelections((prev) => ({ ...prev, [category]: index }));
   };
   const setText = (field, value) => setTexts((prev) => ({ ...prev, [field]: value }));
   const setAttributeValue = (field, value) => setAttributes((prev) => ({ ...prev, [field]: value }));
   const toggleCoreAttribute = (field) => setCoreAttribute((current) => (current === field ? null : field));
-  const appendUpgradeCards = (cardsByTarget) => {
+  const appendUpgradeCards = (cardsBySection) => {
     const realmIndex = upgradePrompt?.realmIndex ?? currentRealmIndex;
-    setUpgradeChoices((prev) => [
-      ...prev,
-      ...Object.entries(cardsByTarget || {}).flatMap(([target, cards]) => (
-        (cards || []).map((card) => ({ realmIndex, target, card }))
-      )),
-    ]);
+    setUpgradeChoices((prev) => appendUpgradeChoices(prev, {
+      realmIndex,
+      cardsBySection,
+    }));
   };
   const applyRealmBreakthroughEffects = (step) => {
     setThresholdBonuses((prev) => ({ ...prev, all: prev.all + 3 }));
@@ -3042,17 +3047,18 @@ function App() {
   };
   const openTreasurePrompt = (stage) => {
     setUpgradePrompt({
-      title: `${stage === 'foundation' ? '筑基' : '练气'}凡阶灵宝`,
-      realmIndex: currentRealmIndex,
-      sections: [{
-        key: `${stage}-treasure`,
         title: `${stage === 'foundation' ? '筑基' : '练气'}凡阶灵宝`,
-        hint: '临时占位池，稍后可替换为正式灵宝数据',
-        limit: 1,
-        target: 'treasures',
-        options: getTreasureOptions(stage),
-      }],
-    });
+        realmIndex: currentRealmIndex,
+        sections: [{
+          key: `${stage}-treasure`,
+          title: `${stage === 'foundation' ? '筑基' : '练气'}凡阶灵宝`,
+          hint: '临时占位池，稍后可替换为正式灵宝数据',
+          limit: 1,
+          target: 'treasures',
+          sourceKind: 'treasure',
+          options: getTreasureOptions(stage),
+        }],
+      });
   };
   const triggerBreakthroughOption = (action) => {
     if (action === 'normal-health') {
@@ -3112,6 +3118,7 @@ function App() {
           hint: '选择一个额外修习的法门作为记录',
           limit: 1,
           target: 'extraMethods',
+          sourceKind: 'method',
           options: methodOptions,
         }],
       });
@@ -3137,6 +3144,12 @@ function App() {
     method: selections.method != null ? methodOptions[selections.method] : null,
     dao: selections.dao != null ? daoOptions[selections.dao] : null,
   };
+  useEffect(() => {
+    if (initialMethodPromptChecked.current) return;
+    initialMethodPromptChecked.current = true;
+    if (!current.method || upgradeCards.initialInsights.length || upgradePrompt) return;
+    setUpgradePrompt(buildInitialMethodInsightPrompt(current.method, defaultRealmIndex));
+  }, [current.method, defaultRealmIndex, upgradeCards.initialInsights.length, upgradePrompt]);
   const fateState = getFateState(selectedFateTitle);
   const createCardSnapshot = () => ({
     version: 1,
