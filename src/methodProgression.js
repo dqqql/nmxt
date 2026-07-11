@@ -66,7 +66,13 @@ export function formatInsightCard(card) {
   return card ? `${formatCardDisplayName(card)}：${card.text}` : '';
 }
 
-export function getUnlockedMethodAttackBuffs(method, realm) {
+export function getUnlockedMethodAttackBuffs(method, realm, upgradeCards = {}) {
   if (!method?.attackBuffs?.length) return [];
-  return method.attackBuffs.slice(0, getUnlockedMethodAttackBuffCount(realm));
+  const count = getUnlockedMethodAttackBuffCount(realm);
+  const buffs = method.attackBuffs.slice(0, count);
+  const extraQiBuff = upgradeCards.extraMethods?.[0]?.attackBuffs?.[0];
+  if (count >= 2 && extraQiBuff) {
+    buffs[1] = extraQiBuff;
+  }
+  return buffs;
 }

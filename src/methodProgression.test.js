@@ -72,6 +72,14 @@ const swordMethod = {
   ],
 };
 
+const bodyMethod = {
+  name: '体修',
+  attackBuffs: [
+    '筋骨齐鸣：你的筋骨坚韧有力，可轻易阻挡对方的攻势。',
+    '强身健体：你的普攻让你可以更好地运转体内的血气用以防御。',
+  ],
+};
+
 describe('method progression helpers', () => {
   it('keeps realm insights available for the insights table', () => {
     expect(formatInsightCard(getFirstRealmInsight(swordMethod, { name: '练气前期' }))).toContain('剑感初开');
@@ -88,6 +96,15 @@ describe('method progression helpers', () => {
 
   it('unlocks both method attack buffs during foundation building', () => {
     expect(getUnlockedMethodAttackBuffs(swordMethod, { name: '筑基前期' })).toEqual(swordMethod.attackBuffs);
+  });
+
+  it('replaces the advanced method buff with the extra qi method buff when breakthrough skips method advancement', () => {
+    expect(getUnlockedMethodAttackBuffs(swordMethod, { name: '筑基前期' }, {
+      extraMethods: [bodyMethod],
+    })).toEqual([
+      swordMethod.attackBuffs[0],
+      bodyMethod.attackBuffs[0],
+    ]);
   });
 
   it('does not use insight cards as method attack buffs', () => {

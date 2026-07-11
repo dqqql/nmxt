@@ -981,9 +981,9 @@ function ConflictContent() {
 }
 
 function CombatPanel() {
-  const { current } = useSheet();
+  const { current, upgradeCards } = useSheet();
   const method = current.method;
-  const buffs = getUnlockedMethodAttackBuffs(method, current.realm);
+  const buffs = getUnlockedMethodAttackBuffs(method, current.realm, upgradeCards);
 
   return (
     <section className="combatPanel">
