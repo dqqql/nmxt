@@ -152,6 +152,68 @@ textarea {
   position: relative;
 }
 
+.settingsAction {
+  position: relative;
+}
+
+.settingsPopover {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 10px);
+  z-index: 95;
+  width: 260px;
+  padding: 14px;
+  border: 1px solid #d8d5d2;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 14px 34px #00000024;
+}
+
+.settingsPopover > strong {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 16px;
+}
+
+.settingsPopover > p {
+  margin: 6px 0 12px;
+  color: #6e6966;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.settingsActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.settingsActions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px;
+  border: 1px solid #3a3637;
+  border-radius: 5px;
+  background: #3a3637;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.settingsActions button:hover,
+.settingsActions button:focus-visible {
+  background: #1f1b1c;
+  box-shadow: 0 0 0 2px #d8d5d2;
+}
+
+.settingsFileInput {
+  display: none;
+}
+
 .exportErrorPopover {
   position: absolute;
   top: 0;
@@ -3965,6 +4027,10 @@ body {
     width: 206px;
   }
 
+  .settingsPopover {
+    width: 246px;
+  }
+
   .conflictContent p {
     min-height: 38px;
     font-size: 11px;
@@ -6500,6 +6566,7 @@ body {
   .fateDrawOverlay,
   .randomCardOverlay,
   .hintPopover,
+  .settingsPopover,
   .exportErrorPopover,
   .randomToast {
     display: none !important;

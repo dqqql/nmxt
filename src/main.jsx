@@ -1,6 +1,6 @@
 import React, { useState, useContext, createContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChevronRight, CircleAlert, Info, ListChecks, Map, Minus, Plus, Printer, Save, Settings, Shuffle, Star, Trash2, X } from 'lucide-react';
+import { ChevronRight, CircleAlert, Download, Info, ListChecks, Map, Minus, Plus, Printer, Save, Settings, Shuffle, Star, Trash2, Upload, X } from 'lucide-react';
 import {
   realmOptions,
   originOptions,
@@ -103,6 +103,7 @@ import {
   startNewSaveSlot,
   updateSaveSlotSnapshot,
 } from './saveArchive';
+import { createCardJson, getCardJsonFileName, parseCardJson } from './cardJsonTransfer';
 import './style.css';
 
 function getFateState(title) {
@@ -3164,6 +3165,7 @@ function App() {
   const initialState = initialStateRef.current;
   const [tab, setTab] = useState('p1');
   const [hintOpen, setHintOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
@@ -3194,6 +3196,8 @@ function App() {
   const [attributeChoicePrompt, setAttributeChoicePrompt] = useState(null);
   const [randomPreview, setRandomPreview] = useState(null);
   const randomNoticeTimer = useRef(null);
+  const settingsActionRef = useRef(null);
+  const importInputRef = useRef(null);
   const promptedInitialMethodName = useRef(null);
   const currentRealmIndex = selections.realm ?? defaultRealmIndex;
   const upgradeCards = useMemo(
@@ -3838,6 +3842,54 @@ function App() {
     }
   };
 
+  const handleJsonExport = () => {
+    try {
+      const blob = new Blob([createCardJson(createCardSnapshot())], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = getCardJsonFileName(texts.name);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setSettingsOpen(false);
+      showNotice('角色卡 JSON 已导出。');
+    } catch (error) {
+      showNotice(error?.message || '导出 JSON 失败。', 2800);
+    }
+  };
+
+  const handleJsonImport = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      const importedSnapshot = parseCardJson(await file.text());
+      restoreCardSnapshot({ ...importedSnapshot, portrait });
+      setSettingsOpen(false);
+      showNotice('角色卡导入。');
+    } catch (error) {
+      showNotice(error?.message || '导入 JSON 失败。', 3200);
+    }
+  };
+
+  useEffect(() => {
+    if (!settingsOpen) return undefined;
+    const closeSettings = (event) => {
+      if (event.type === 'keydown' && event.key !== 'Escape') return;
+      if (event.type === 'pointerdown' && settingsActionRef.current?.contains(event.target)) return;
+      setSettingsOpen(false);
+    };
+    document.addEventListener('pointerdown', closeSettings);
+    document.addEventListener('keydown', closeSettings);
+    return () => {
+      document.removeEventListener('pointerdown', closeSettings);
+      document.removeEventListener('keydown', closeSettings);
+    };
+  }, [settingsOpen]);
+
   const drawRandomCard = () => createRandomCardState({
     options: {
       realm: realmOptions,
@@ -3920,10 +3972,47 @@ function App() {
         </div>
 
         <aside className="toolRail" aria-label="工具">
-          <button type="button" className="toolButton" aria-label="设置" title="设置">
-            <Settings size={20} strokeWidth={2.2} aria-hidden="true" />
-            <span>设置</span>
-          </button>
+          <div ref={settingsActionRef} className="settingsAction">
+            <button
+              type="button"
+              className={`toolButton${settingsOpen ? ' on' : ''}`}
+              onClick={() => {
+                setHintOpen(false);
+                setSettingsOpen((open) => !open);
+              }}
+              aria-label="设置"
+              aria-expanded={settingsOpen}
+              aria-controls="settings-popover"
+              title="设置"
+            >
+              <Settings size={20} strokeWidth={2.2} aria-hidden="true" />
+              <span>设置</span>
+            </button>
+            {settingsOpen ? (
+              <aside id="settings-popover" className="settingsPopover" aria-label="设置操作">
+                <strong>角色卡数据</strong>
+                <p>使用 JSON 文件迁移当前角色卡，立绘不会导出或导入。</p>
+                <div className="settingsActions">
+                  <button type="button" onClick={handleJsonExport}>
+                    <Download size={17} strokeWidth={2.2} aria-hidden="true" />
+                    导出 JSON
+                  </button>
+                  <button type="button" onClick={() => importInputRef.current?.click()}>
+                    <Upload size={17} strokeWidth={2.2} aria-hidden="true" />
+                    导入 JSON
+                  </button>
+                </div>
+                <input
+                  ref={importInputRef}
+                  className="settingsFileInput"
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleJsonImport}
+                  tabIndex={-1}
+                />
+              </aside>
+            ) : null}
+          </div>
           <div className="saveAction">
             <button
               type="button"
