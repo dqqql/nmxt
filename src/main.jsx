@@ -77,7 +77,6 @@ import {
   clampGuideStep,
   createGuidedCardResult,
   getGuideDraft,
-  mergeRandomCardIntoGuideDraft,
   setGuideDraft,
   validateGuideValues,
 } from './guidedCardState';
@@ -2829,7 +2828,7 @@ function GuideFateStep({ value, onChange }) {
   );
 }
 
-function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) {
+function getGuidePreviewCards(values) {
   const selected = {
     origin: values.origin != null ? originOptions[values.origin] : null,
     source: values.source != null ? sourceOptions[values.source] : null,
@@ -2838,6 +2837,11 @@ function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) 
     fateTitle: fateValueToTitle(values.fateValue),
   };
   const fateDetails = getFateDisplayDetails(selected.fateTitle);
+  const drawnTalentSummary = (values.drawnTalents || []).map((entry) => {
+    const kindLabel = entry.kind === 'punishment' ? '天谴' : '天赋';
+    const tierLabel = tierMeta[entry.tier]?.label || entry.tier || '';
+    return `${tierLabel}${kindLabel}·${entry.name}`;
+  }).join('；');
   const previewGroups = [
     { label: '名称', value: values.name || '未填写' },
     { label: '种族', value: values.race || '未填写' },
@@ -2879,7 +2883,7 @@ function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) 
       ],
     },
   ];
-  const previewCards = [
+  return [
     {
       title: '01 信息',
       heading: values.name || '未命名角色',
@@ -2903,9 +2907,38 @@ function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) 
         { label: '命格', value: selected.fateTitle || '未选择' },
         { label: '数值效果', value: fateDetails.numericEffects.join('；') },
         { label: '天赋 / 天谴', value: fateDetails.talentRule },
+        { label: '抽取结果', value: drawnTalentSummary },
       ],
     },
   ];
+}
+
+function GuidePreviewCards({ values }) {
+  const previewCards = getGuidePreviewCards(values);
+
+  return (
+    <div className="guidePreviewMasonry">
+      {previewCards.map((card) => (
+        <article key={card.title} className="guidePreviewCard">
+          <header>
+            <span>{card.title}</span>
+            <h3>{card.heading}</h3>
+          </header>
+          <div className="guidePreviewFields">
+            {card.items.filter((item) => item.value).map((item) => (
+              <div key={item.label} className="guidePreviewField">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function GuidePreviewStep({ values, errors, onErrorStep, onConfirm }) {
 
   return (
     <section className="guideStepSection guidePreviewStep">
@@ -2916,24 +2949,7 @@ function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) 
         </div>
       </header>
 
-      <div className="guidePreviewMasonry">
-        {previewCards.map((card) => (
-          <article key={card.title} className="guidePreviewCard">
-            <header>
-              <span>{card.title}</span>
-              <h3>{card.heading}</h3>
-            </header>
-            <div className="guidePreviewFields">
-              {card.items.filter((item) => item.value).map((item) => (
-                <div key={item.label} className="guidePreviewField">
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ))}
-            </div>
-          </article>
-        ))}
-      </div>
+      <GuidePreviewCards values={values} />
 
       {errors.length > 0 ? (
         <div className="guidePreviewErrors" role="alert">
@@ -2951,10 +2967,6 @@ function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) 
       ) : null}
 
       <div className="guidePreviewActions">
-        <button type="button" className="guidePreviewRandom" onClick={onRandom}>
-          <Shuffle size={16} strokeWidth={2.2} aria-hidden="true" />
-          <span>随机生成</span>
-        </button>
         <button type="button" className="guidePreviewConfirm" onClick={onConfirm}>
           确认
         </button>
@@ -2994,22 +3006,6 @@ function GuidedCardPage() {
     values: applyGuideAttributeValue(current.values, field, value),
   }));
 
-  const handleRandomGuide = () => {
-    const result = createRandomCardState({
-      options: {
-        realm: realmOptions,
-        origin: originOptions,
-        source: sourceOptions,
-        method: methodOptions,
-        dao: daoOptions,
-      },
-      fateDraws,
-      drawPlan: drawByPlan,
-    });
-    persistDraft((current) => mergeRandomCardIntoGuideDraft({ ...current, step: GUIDE_STEPS.length - 1 }, result));
-    setErrors([]);
-  };
-
   const handleConfirmGuide = () => {
     const nextErrors = validateGuideValues(values);
     setErrors(nextErrors);
@@ -3044,7 +3040,7 @@ function GuidedCardPage() {
     if (step === 4) return <GuideOptionStep title="法门" category="method" options={methodOptions} value={values.method} onChange={(value) => updateValue('method', value)} />;
     if (step === 5) return <GuideOptionStep title="大道" category="dao" options={daoOptions} value={values.dao} onChange={(value) => updateValue('dao', value)} />;
     if (step === 6) return <GuideFateStep value={values.fateValue} onChange={(value) => updateValue('fateValue', value)} />;
-    return <GuidePreviewStep values={values} errors={errors} onErrorStep={setStep} onRandom={handleRandomGuide} onConfirm={handleConfirmGuide} />;
+    return <GuidePreviewStep values={values} errors={errors} onErrorStep={setStep} onConfirm={handleConfirmGuide} />;
   };
 
   return (
@@ -3070,6 +3066,76 @@ function GuidedCardPage() {
         ) : null}
       </footer>
     </main>
+  );
+}
+
+function RandomCardModal({ values, onCancel, onRedraw, onConfirm }) {
+  const modalRef = useRef(null);
+  const cancelButtonRef = useRef(null);
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
+
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onCancelRef.current();
+      if (event.key === 'Tab') {
+        const focusable = modalRef.current?.querySelectorAll('button:not(:disabled)');
+        if (!focusable?.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    cancelButtonRef.current?.focus();
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previousFocus?.focus?.();
+    };
+  }, []);
+
+  return (
+    <div
+      className="randomCardOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="random-card-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onCancel();
+      }}
+    >
+      <section ref={modalRef} className="randomCardModal">
+        <header className="randomCardHeader">
+          <div>
+            <span>逆命仙途</span>
+            <h2 id="random-card-title">随机车卡预览</h2>
+          </div>
+          <p>确认后将把以下随机结果填入当前卡面。</p>
+        </header>
+        <div className="randomCardPreview" aria-live="polite">
+          <GuidePreviewCards values={values} />
+        </div>
+        <footer className="randomCardActions">
+          <button ref={cancelButtonRef} type="button" className="randomCardCancel" onClick={onCancel}>
+            取消
+          </button>
+          <button type="button" className="randomCardRedraw" onClick={onRedraw}>
+            <Shuffle size={16} strokeWidth={2.2} aria-hidden="true" />
+            重新抽取
+          </button>
+          <button type="button" className="randomCardConfirm" onClick={onConfirm}>
+            确认
+          </button>
+        </footer>
+      </section>
+    </div>
   );
 }
 
@@ -3126,6 +3192,7 @@ function App() {
   const [realmHistoryOpen, setRealmHistoryOpen] = useState(false);
   const [upgradePrompt, setUpgradePrompt] = useState(null);
   const [attributeChoicePrompt, setAttributeChoicePrompt] = useState(null);
+  const [randomPreview, setRandomPreview] = useState(null);
   const randomNoticeTimer = useRef(null);
   const promptedInitialMethodName = useRef(null);
   const currentRealmIndex = selections.realm ?? defaultRealmIndex;
@@ -3771,19 +3838,24 @@ function App() {
     }
   };
 
-  const handleRandomGenerate = () => {
-    const result = createRandomCardState({
-      options: {
-        realm: realmOptions,
-        origin: originOptions,
-        source: sourceOptions,
-        method: methodOptions,
-        dao: daoOptions,
-      },
-      fateDraws,
-      drawPlan: drawByPlan,
-    });
+  const drawRandomCard = () => createRandomCardState({
+    options: {
+      realm: realmOptions,
+      origin: originOptions,
+      source: sourceOptions,
+      method: methodOptions,
+      dao: daoOptions,
+    },
+    fateDraws,
+    drawPlan: drawByPlan,
+  });
 
+  const openRandomPreview = () => {
+    setHintOpen(false);
+    setRandomPreview(drawRandomCard());
+  };
+
+  const applyRandomCard = (result) => {
     promptedInitialMethodName.current = null;
     setSelections({ ...result.selections, realm: defaultRealmIndex });
     setAttributes(result.attributes);
@@ -3802,8 +3874,26 @@ function App() {
     setDrawnTalents(result.drawnTalents);
     setFateDraw(null);
     setLibrary(null);
+  };
+
+  const confirmRandomPreview = () => {
+    if (!randomPreview) return;
+    applyRandomCard(randomPreview);
+    setRandomPreview(null);
     showNotice('随机生成完成！', 1800);
   };
+
+  const randomPreviewValues = randomPreview ? {
+    ...texts,
+    origin: randomPreview.selections.origin,
+    attributes: randomPreview.attributes,
+    coreAttribute,
+    source: randomPreview.selections.source,
+    method: randomPreview.selections.method,
+    dao: randomPreview.selections.dao,
+    fateValue: randomPreview.fateValue,
+    drawnTalents: randomPreview.drawnTalents,
+  } : null;
 
   return (
     <SheetContext.Provider value={contextValue}>
@@ -3908,6 +3998,18 @@ function App() {
               <span>引导车卡</span>
             </button>
           </div>
+          <div className="randomAction">
+            <button
+              type="button"
+              className="toolButton randomButton"
+              onClick={openRandomPreview}
+              aria-label="随机车卡"
+              title="随机车卡"
+            >
+              <Shuffle size={20} strokeWidth={2.2} aria-hidden="true" />
+              <span>随机车卡</span>
+            </button>
+          </div>
         </aside>
       </div>
 
@@ -3919,6 +4021,14 @@ function App() {
       <AttributeChoiceModal />
       <SaveArchiveModal />
       <FateDrawModal />
+      {randomPreviewValues ? (
+        <RandomCardModal
+          values={randomPreviewValues}
+          onCancel={() => setRandomPreview(null)}
+          onRedraw={() => setRandomPreview(drawRandomCard())}
+          onConfirm={confirmRandomPreview}
+        />
+      ) : null}
       {noticeMessage ? (
         <aside className="randomToast" role="status" aria-live="polite">
           {noticeMessage}

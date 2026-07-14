@@ -13,15 +13,16 @@ function functionBody(name) {
 describe('fate selection UI', () => {
   it('shows cumulative effects and talent rules below the guided fate choices and in preview', () => {
     const guideFateStep = functionBody('GuideFateStep');
-    const guidePreviewStep = functionBody('GuidePreviewStep');
+    const guidePreviewCards = functionBody('getGuidePreviewCards');
 
     expect(mainSource).toContain('function getFateDisplayDetails');
     expect(mainSource).toContain('getFateState(title).inheritedEffects');
     expect(guideFateStep).toContain('className="guideFateSummary"');
     expect(guideFateStep).toContain('<h3>数值效果</h3>');
     expect(guideFateStep).toContain('<h3>天赋 / 天谴</h3>');
-    expect(guidePreviewStep).toContain("{ label: '数值效果', value: fateDetails.numericEffects.join('；') }");
-    expect(guidePreviewStep).toContain("{ label: '天赋 / 天谴', value: fateDetails.talentRule }");
+    expect(guidePreviewCards).toContain("{ label: '数值效果', value: fateDetails.numericEffects.join('；') }");
+    expect(guidePreviewCards).toContain("{ label: '天赋 / 天谴', value: fateDetails.talentRule }");
+    expect(guidePreviewCards).toContain("{ label: '抽取结果', value: drawnTalentSummary }");
     expect(cssSource).toContain('.guideFateSummaryBody');
   });
 

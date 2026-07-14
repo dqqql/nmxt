@@ -193,6 +193,155 @@ textarea {
   background: #1d3b2b;
 }
 
+.randomCardOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 125;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: auto;
+  background: rgba(24, 20, 21, 0.76);
+  backdrop-filter: blur(4px);
+}
+
+.randomCardModal {
+  display: flex;
+  flex-direction: column;
+  width: min(1120px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border: 1px solid #cfc8c3;
+  border-radius: 12px;
+  background: #fbfaf8;
+  box-shadow: 0 28px 80px #00000055;
+  color: #241f20;
+}
+
+.randomCardHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px 18px;
+  border-bottom: 1px solid #ddd7d2;
+  background: #fff;
+}
+
+.randomCardHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.randomCardHeader span {
+  color: #847d78;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.randomCardHeader h2,
+.randomCardHeader p {
+  margin: 0;
+}
+
+.randomCardHeader h2 {
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.randomCardHeader p {
+  color: #6f6864;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.randomCardPreview {
+  min-height: 0;
+  padding: 20px 22px 8px;
+  overflow: auto;
+}
+
+.randomCardActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid #ddd7d2;
+  background: #fff;
+}
+
+.randomCardActions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 9px 16px;
+  border: 1px solid #bdb6b1;
+  border-radius: 8px;
+  background: #fff;
+  color: #302b2c;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.randomCardActions button:hover,
+.randomCardActions button:focus-visible {
+  border-color: #4d4749;
+  box-shadow: 0 0 0 3px #e8e4e1;
+}
+
+.randomCardActions .randomCardRedraw {
+  border-color: #2d6a4b;
+  color: #24563e;
+}
+
+.randomCardActions .randomCardConfirm {
+  border-color: #252021;
+  background: #252021;
+  color: #fff;
+}
+
+.randomCardActions .randomCardConfirm:hover,
+.randomCardActions .randomCardConfirm:focus-visible {
+  background: #080707;
+  box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px #252021;
+}
+
+@media (max-width: 760px) {
+  .randomCardOverlay {
+    padding: 10px;
+  }
+
+  .randomCardModal {
+    max-height: calc(100vh - 20px);
+  }
+
+  .randomCardHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+  }
+
+  .randomCardPreview {
+    padding: 14px 14px 4px;
+  }
+
+  .randomCardActions {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px 14px;
+  }
+
+  .randomCardActions button {
+    width: 100%;
+  }
+}
+
 .randomToast {
   position: fixed;
   top: 22px;
@@ -2261,7 +2410,6 @@ textarea {
 }
 
 .guideCoreToggle,
-.guidePreviewRandom,
 .guidePreviewConfirm,
 .guideFooter button,
 .guidePreviewErrors button {
@@ -2510,7 +2658,6 @@ textarea {
   gap: 12px;
 }
 
-.guidePreviewRandom,
 .guidePreviewConfirm,
 .guideFooter button {
   display: inline-flex;
@@ -2525,23 +2672,9 @@ textarea {
   color: #fff;
 }
 
-.guidePreviewRandom span,
 .guideFooter button span {
   min-width: 0;
   overflow-wrap: anywhere;
-}
-
-.guidePreviewRandom {
-  border-color: #c9c3bf;
-  background: #fff;
-  color: #302b2c;
-}
-
-.guidePreviewRandom:hover,
-.guidePreviewRandom:focus-visible {
-  border-color: #16864d;
-  color: #16864d;
-  box-shadow: 0 0 0 3px #e5f2eb;
 }
 
 .guidePreviewConfirm:hover,
@@ -2657,7 +2790,6 @@ textarea {
     align-items: stretch;
   }
 
-  .guidePreviewRandom,
   .guidePreviewConfirm,
   .guideFooter button {
     width: 100%;
@@ -6366,6 +6498,7 @@ body {
   .toolRail,
   .libraryOverlay,
   .fateDrawOverlay,
+  .randomCardOverlay,
   .hintPopover,
   .exportErrorPopover,
   .randomToast {
