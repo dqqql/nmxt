@@ -4598,6 +4598,18 @@ body {
   border-bottom-color: #16864d;
 }
 
+.saveSlotName {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .saveSlotMain small {
   color: #6b6660;
   font-size: 12px;

@@ -2013,10 +2013,33 @@ function SaveArchiveModal() {
     renameSlot,
     removeSaveSlot,
   } = useSheet();
+  const [editingSlotId, setEditingSlotId] = useState(null);
+  const [draftName, setDraftName] = useState('');
+
+  useEffect(() => {
+    if (!saveOpen) {
+      setEditingSlotId(null);
+      setDraftName('');
+    }
+  }, [saveOpen]);
 
   if (!saveOpen) return null;
 
   const full = saveSlots.length >= 10;
+  const startEditing = (slot) => {
+    setEditingSlotId(slot.id);
+    setDraftName(slot.name);
+  };
+  const cancelEditing = () => {
+    setEditingSlotId(null);
+    setDraftName('');
+  };
+  const confirmEditing = () => {
+    const nextName = draftName.trim();
+    if (!editingSlotId || !nextName) return;
+    renameSlot(editingSlotId, nextName);
+    cancelEditing();
+  };
 
   return (
     <div className="libraryOverlay" onClick={() => setSaveOpen(false)} role="presentation">
@@ -2040,24 +2063,49 @@ function SaveArchiveModal() {
           {saveSlots.length ? saveSlots.map((slot) => (
             <section key={slot.id} className={`saveSlotCard${slot.id === activeSaveSlotId ? ' active' : ''}`}>
               <div className="saveSlotMain">
-                <input
-                  type="text"
-                  value={slot.name}
-                  onChange={(event) => renameSlot(slot.id, event.target.value)}
-                  aria-label={`${slot.name} 名称`}
-                />
+                {editingSlotId === slot.id ? (
+                  <input
+                    type="text"
+                    value={draftName}
+                    onChange={(event) => setDraftName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') confirmEditing();
+                      if (event.key === 'Escape') cancelEditing();
+                    }}
+                    aria-label={`编辑 ${slot.name} 名称`}
+                    autoFocus
+                  />
+                ) : (
+                  <strong className="saveSlotName">{slot.name}</strong>
+                )}
                 <small>
                   {slot.id === activeSaveSlotId ? '当前存档 · ' : ''}
                   更新于 {new Date(slot.updatedAt).toLocaleString('zh-CN')}
                 </small>
               </div>
               <div className="saveSlotActions">
-                <button type="button" className="libraryDone" onClick={() => loadSaveSlot(slot.id)}>
-                  切换
-                </button>
-                <button type="button" className="saveDeleteButton" onClick={() => removeSaveSlot(slot.id)} aria-label={`删除 ${slot.name}`}>
-                  <Trash2 size={15} strokeWidth={2.4} aria-hidden="true" />
-                </button>
+                {editingSlotId === slot.id ? (
+                  <>
+                    <button type="button" className="libraryDone" onClick={confirmEditing} disabled={!draftName.trim()}>
+                      保存名称
+                    </button>
+                    <button type="button" className="libraryBack" onClick={cancelEditing}>
+                      取消
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" className="libraryDone" onClick={() => loadSaveSlot(slot.id)}>
+                      切换
+                    </button>
+                    <button type="button" className="libraryBack" onClick={() => startEditing(slot)}>
+                      编辑
+                    </button>
+                    <button type="button" className="saveDeleteButton" onClick={() => removeSaveSlot(slot.id)} aria-label={`删除 ${slot.name}`}>
+                      <Trash2 size={15} strokeWidth={2.4} aria-hidden="true" />
+                    </button>
+                  </>
+                )}
               </div>
             </section>
           )) : (

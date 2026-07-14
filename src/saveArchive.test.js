@@ -72,7 +72,8 @@ describe('save archive helpers', () => {
       createSaveSlot({ snapshot, name: '二', id: () => 'b' }),
     ];
 
-    expect(renameSaveSlot(slots, 'b', '第二幕').map((slot) => slot.name)).toEqual(['一', '第二幕']);
+    expect(renameSaveSlot(slots, 'b', '  第二幕  ').map((slot) => slot.name)).toEqual(['一', '第二幕']);
+    expect(renameSaveSlot(slots, 'b', '   ')).toBe(slots);
     expect(deleteSaveSlot(slots, 'a').map((slot) => slot.id)).toEqual(['b']);
   });
 
