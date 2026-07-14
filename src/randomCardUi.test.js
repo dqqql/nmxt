@@ -36,6 +36,8 @@ describe('standalone random card UI', () => {
     const guidePreview = functionBody('GuidePreviewStep');
 
     expect(mainSource).toContain('applyRandomCard(randomPreview)');
+    expect(mainSource).toContain('setCoreAttribute(result.coreAttribute)');
+    expect(mainSource).toContain('coreAttribute: randomPreview.coreAttribute');
     expect(mainSource).toContain('onRedraw={() => setRandomPreview(drawRandomCard())}');
     expect(guidePreview).not.toContain('随机生成');
     expect(guidePreview).not.toContain('onRandom');

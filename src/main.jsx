@@ -3859,6 +3859,7 @@ function App() {
     promptedInitialMethodName.current = null;
     setSelections({ ...result.selections, realm: defaultRealmIndex });
     setAttributes(result.attributes);
+    setCoreAttribute(result.coreAttribute);
     setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });
     setUpgradeChoices([]);
     setBreakthroughChoices(createEmptyBreakthroughChoices());
@@ -3887,7 +3888,7 @@ function App() {
     ...texts,
     origin: randomPreview.selections.origin,
     attributes: randomPreview.attributes,
-    coreAttribute,
+    coreAttribute: randomPreview.coreAttribute,
     source: randomPreview.selections.source,
     method: randomPreview.selections.method,
     dao: randomPreview.selections.dao,

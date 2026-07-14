@@ -50,6 +50,7 @@ export function createRandomCardState({
   const attributes = Object.fromEntries(
     attributeTitles.map((title, index) => [title, attributeValues[index]]),
   );
+  const coreAttribute = attributeTitles.find((title) => attributes[title] === '3') || null;
   const fateValue = pickIndex(7, random) - 3;
   const selectedFateTitle = fateValueToTitle(fateValue);
   const plans = fateDraws[selectedFateTitle] || [];
@@ -59,6 +60,7 @@ export function createRandomCardState({
   return {
     selections,
     attributes,
+    coreAttribute,
     fateValue,
     selectedFateTitle,
     drawnTalents: selectedPlan && drawPlan ? drawPlan(selectedPlan) : [],

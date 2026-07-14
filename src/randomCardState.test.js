@@ -70,6 +70,7 @@ describe('random card state', () => {
       '神魂': '0',
       '灵蕴': '3',
     });
+    expect(result.coreAttribute).toBe('灵蕴');
     expect(result.fateValue).toBe(1);
     expect(result.selectedFateTitle).toBe('天命壹');
     expect(draws).toEqual(['一地阶天赋 + 一地阶天谴']);
