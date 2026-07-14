@@ -1,20 +1,53 @@
 import {
   getMethodFoundationInsights,
   getMethodFoundationOriginInsights,
+  getMethodFoundationUpgradeInsights,
+  getMethodInitialInsights,
+  getMethodQiInsights,
+  getMethodQiOriginInsights,
+  getMethodQiUpgradeInsights,
+} from './methodProgression';
+import { BREAKTHROUGH_CHOICE_LIMIT, getBreakthroughChoiceOptions } from './breakthroughChoiceState';
+
+export {
+  getMethodFoundationInsights,
+  getMethodFoundationOriginInsights,
+  getMethodFoundationUpgradeInsights,
   getMethodInitialInsights,
   getMethodQiInsights,
   getMethodQiOriginInsights,
   getMethodQiUpgradeInsights,
 } from './methodProgression';
 
-export {
-  getMethodFoundationInsights,
-  getMethodFoundationOriginInsights,
-  getMethodInitialInsights,
-  getMethodQiInsights,
-  getMethodQiOriginInsights,
-  getMethodQiUpgradeInsights,
-} from './methodProgression';
+const fixedBreakthroughEffects = {
+  'foundation-early': {
+    realmMultiplier: 1,
+    qiCapacity: 2,
+    coreAttribute: 1,
+    allThresholds: 3,
+    methodAdvancement: 1,
+    trueEssenceCapacity: 1,
+  },
+  'golden-core': {
+    realmMultiplier: 1,
+    qiCapacity: 2,
+    coreAttribute: 0,
+    allThresholds: 3,
+    methodAdvancement: 0,
+    trueEssenceCapacity: 0,
+  },
+};
+
+export function getFixedBreakthroughEffects(breakthroughId) {
+  return { ...(fixedBreakthroughEffects[breakthroughId] || {}) };
+}
+
+function breakthroughChoices(breakthroughId) {
+  return {
+    limit: BREAKTHROUGH_CHOICE_LIMIT,
+    options: getBreakthroughChoiceOptions(breakthroughId),
+  };
+}
 
 const qiTreasurePlaceholders = [
   {
@@ -240,8 +273,10 @@ export function createUpgradeStep({
   if (fromRealmName === '练气后期' && nextRealmName === '筑基前期') {
     return {
       id: 'foundation-early',
-      toast: '突破成功：境界乘值 +1，真元上限 +1，核心属性 +1，所有阈值 +3，灵气格 +2。',
+      toast: '突破成功：境界乘值 +1，真元上限 +1，灵气上限 +2，核心属性 +1，所有阈值 +3，法门进阶。',
       autoEffects: ['realm-breakthrough'],
+      automaticEffects: getFixedBreakthroughEffects('foundation-early'),
+      breakthroughChoices: breakthroughChoices('foundation-early'),
       selectionPrompt: {
         title: '筑基前期突破选项',
         sections: cardSections([
@@ -252,7 +287,25 @@ export function createUpgradeStep({
             limit: 1,
             target: 'originInsights',
             sourceKind: 'method',
-            options: getMethodFoundationOriginInsights(method),
+            options: getMethodQiOriginInsights(method),
+          },
+          {
+            key: 'method-insight',
+            title: '筑基感悟卡',
+            hint: method ? `来自 ${method.name}` : '请先选择法门',
+            limit: 1,
+            target: 'insights',
+            sourceKind: 'method',
+            options: getMethodFoundationUpgradeInsights(method, upgradeCards.insights),
+          },
+          {
+            key: 'treasure',
+            title: '筑基凡阶灵宝',
+            hint: '从筑基期凡阶灵宝中选择 1 个',
+            limit: 1,
+            target: 'treasures',
+            sourceKind: 'treasure',
+            options: getTreasureOptions('foundation'),
           },
         ]),
       },
@@ -305,7 +358,7 @@ export function createUpgradeStep({
             limit: 1,
             target: 'insights',
             sourceKind: 'method',
-            options: getMethodFoundationInsights(method),
+            options: getMethodFoundationUpgradeInsights(method, upgradeCards.insights),
           },
           {
             key: 'dao-method',
@@ -324,8 +377,10 @@ export function createUpgradeStep({
   if (fromRealmName === '筑基后期' && nextRealmName?.startsWith('金丹')) {
     return {
       id: 'golden-core',
-      toast: '筑基渡劫成功：境界乘值 +1，所有阈值 +3，灵气格 +2。',
+      toast: '筑基渡劫成功：境界乘值 +1，灵气上限 +2，所有阈值 +3。',
       autoEffects: ['realm-breakthrough'],
+      automaticEffects: getFixedBreakthroughEffects('golden-core'),
+      breakthroughChoices: breakthroughChoices('golden-core'),
       selectionPrompt: {
         title: '金丹突破选项',
         sections: cardSections([

@@ -2344,6 +2344,88 @@ textarea {
   color: #d6dfd8;
 }
 
+.guideFateSummary {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  min-height: 150px;
+  margin-top: 18px;
+  border: 1px solid #d8d2ce;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.guideFateSummaryHeader {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 22px 18px;
+  color: #fff;
+  text-align: center;
+}
+
+.guideFateSummaryHeader.light1,
+.guideFateSummaryHeader.light2,
+.guideFateSummaryHeader.light3,
+.guideFateSummaryHeader.light4,
+.guideFateSummaryHeader.light5 {
+  color: #171313;
+}
+
+.guideFateSummaryHeader > span {
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.guideFateSummaryHeader > strong {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.guideFateSummaryBody {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.guideFateSummaryBody section {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 20px 24px;
+}
+
+.guideFateSummaryBody section + section {
+  border-left: 1px solid #e2ddda;
+}
+
+.guideFateSummaryBody h3 {
+  margin: 0;
+  color: #706a67;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+
+.guideFateSummaryBody ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.guideFateSummaryBody li,
+.guideFateSummaryBody p {
+  margin: 0;
+  color: #2f2a29;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
 .guidePreviewMasonry {
   column-count: 3;
   column-gap: 14px;
@@ -2532,6 +2614,16 @@ textarea {
   .guideFateGrid,
   .guideAttributeList {
     grid-template-columns: 1fr;
+  }
+
+  .guideFateSummary,
+  .guideFateSummaryBody {
+    grid-template-columns: 1fr;
+  }
+
+  .guideFateSummaryBody section + section {
+    border-top: 1px solid #e2ddda;
+    border-left: 0;
   }
 
   .guidePreviewMasonry {
@@ -3600,6 +3692,11 @@ body {
 .fateStep.selected:focus,
 .fateStep.selected:focus-visible {
   box-shadow: inset 0 0 0 3px #16864d, inset 0 0 0 5px #ffffff;
+}
+
+.fateStep.selected::after,
+.fateStep.before-selected::after {
+  background: #111;
 }
 
 .fateStep:hover .fateHover,
@@ -6101,6 +6198,13 @@ body {
   text-align: left;
 }
 
+@media screen {
+  .resultChecks .mark:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
 .pdfBlankHalf {
   background: #fff;
 }
@@ -6407,6 +6511,11 @@ body {
 
   .printPage .talentEmptyHint {
     display: inline !important;
+  }
+
+  .printPage .fateStep.selected::after,
+  .printPage .fateStep.before-selected::after {
+    background: #000 !important;
   }
 
   .print-empty-control {

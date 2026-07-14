@@ -31,6 +31,11 @@ export function getMethodFoundationInsights(method) {
   return getCardsByNamePrefix(method?.insights || [], '筑基·');
 }
 
+export function getMethodFoundationUpgradeInsights(method, selectedInsights = []) {
+  const selectedNames = new Set((selectedInsights || []).map((card) => card?.name).filter(Boolean));
+  return getMethodFoundationInsights(method).filter((card) => !selectedNames.has(card.name));
+}
+
 export function getMethodInitialInsights(method) {
   return getMethodQiInsights(method);
 }
@@ -48,10 +53,33 @@ export function getMethodFoundationOriginInsights(method) {
   return getCardsByNamePrefix(method?.originInsights || [], '筑基本源·');
 }
 
+export function getMethodTechniqueProgression(method) {
+  if (!method?.techniques) return [];
+  return [
+    method.techniques.qi ? { stage: 'qi', ...method.techniques.qi } : null,
+    method.techniques.foundation ? { stage: 'foundation', ...method.techniques.foundation } : null,
+  ].filter(Boolean);
+}
+
+function getMethodTechniqueResourceItems(method) {
+  return getMethodTechniqueProgression(method).map((technique) => {
+    const stageLabel = technique.stage === 'foundation' ? '筑基期升级' : '练气期';
+    const grants = technique.grants?.length ? `同时：${technique.grants.join('、')}。` : '';
+    const storage = technique.storageCapacityBonus
+      ? `储物格上限 +${technique.storageCapacityBonus}。`
+      : '';
+    return {
+      name: `${stageLabel} · ${technique.name}`,
+      text: [technique.text, grants, storage].filter(Boolean).join(' '),
+    };
+  });
+}
+
 export function getMethodResourceSections(method) {
   if (!method) return [];
   return [
     { title: '入门攻击增益', items: method.attackBuffs?.[0] ? [method.attackBuffs[0]] : [] },
+    { title: '技艺', items: getMethodTechniqueResourceItems(method) },
     { title: '练气感悟', items: getMethodQiInsights(method).map(withDisplayName) },
   ].filter((section) => section.items.length > 0);
 }

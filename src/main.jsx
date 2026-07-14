@@ -23,6 +23,7 @@ import {
   questionnaireConfig,
 } from './data';
 import gameLogo from './assets/game-logo.png';
+import PageSix from './PageSix';
 import { attachPrintLifecycle, printSheetsWithBrowser } from './exportPdf';
 import {
   createMarkState,
@@ -32,8 +33,15 @@ import {
 } from './interactiveState';
 import { createRandomCardState, fateValueToTitle } from './randomCardState';
 import {
+  createManualFateEntry,
+  formatManualFatePlanLabel,
+  getFatePlanSlots,
+  getPoolForFateSlot,
+} from './fateSelectionState';
+import {
   formatCardDisplayName,
   getMethodResourceSections,
+  getMethodTechniqueProgression,
   getUnlockedMethodAttackBuffs,
 } from './methodProgression';
 import {
@@ -75,8 +83,18 @@ import {
 } from './guidedCardState';
 import {
   applyFoundationBreakthroughMarkEffects,
+  applyGoldenCoreBreakthroughMarkEffects,
+  applyQiCapacityDelta,
+  lockPreviousUnlockedGhostMark,
+  revertFoundationBreakthroughMarkEffects,
+  revertGoldenCoreBreakthroughMarkEffects,
   unlockNextGhostMark,
 } from './realmBreakthroughEffects';
+import {
+  createBreakthroughChoiceState,
+  getBreakthroughChoiceOptions,
+  toggleBreakthroughChoice,
+} from './breakthroughChoiceState';
 import {
   deleteSaveSlot,
   ensureInitialSaveSlot,
@@ -119,6 +137,18 @@ function getFateState(title) {
   return state;
 }
 
+function getFateDisplayDetails(title) {
+  const [, main = '', talentRule = '', tone = 'neutral'] =
+    fateCards.find(([cardTitle]) => cardTitle === title) || [];
+  const inheritedEffects = getFateState(title).inheritedEffects;
+  return {
+    title,
+    tone,
+    numericEffects: inheritedEffects.length ? inheritedEffects : main ? [main] : [],
+    talentRule: talentRule || '无',
+  };
+}
+
 const pdfSpellGroups = [
   { title: '神通', rows: 3, className: 'pdfTall' },
   { title: '本源感悟', rows: 2, className: 'pdfTall' },
@@ -134,6 +164,7 @@ const pageTabs = [
   { id: 'p3', label: '第三页' },
   { id: 'p4', label: '第四页' },
   { id: 'p5', label: '第五页' },
+  { id: 'p6', label: '第六页' },
 ];
 
 const selectorPanelHints = {
@@ -173,6 +204,13 @@ const defaultThresholdBonuses = {
   soulHeavy: 0,
 };
 
+function createEmptyBreakthroughChoices() {
+  return {
+    'foundation-early': createBreakthroughChoiceState('foundation-early'),
+    'golden-core': createBreakthroughChoiceState('golden-core'),
+  };
+}
+
 function createEmptyCardSnapshot(defaultRealmIndex) {
   return {
     version: 1,
@@ -188,6 +226,8 @@ function createEmptyCardSnapshot(defaultRealmIndex) {
     markStates: {},
     thresholdBonuses: { ...defaultThresholdBonuses },
     upgradeChoices: [],
+    breakthroughChoices: createEmptyBreakthroughChoices(),
+    breakthroughChoiceDetails: {},
     maxRealmIndexReached: defaultRealmIndex,
   };
 }
@@ -206,6 +246,11 @@ function normalizeCardSnapshot(snapshot, defaultRealmIndex) {
     thresholdBonuses: { ...empty.thresholdBonuses, ...(snapshot.thresholdBonuses || {}) },
     markStates: snapshot.markStates || empty.markStates,
     upgradeChoices: snapshot.upgradeChoices || empty.upgradeChoices,
+    breakthroughChoices: {
+      ...empty.breakthroughChoices,
+      ...(snapshot.breakthroughChoices || {}),
+    },
+    breakthroughChoiceDetails: snapshot.breakthroughChoiceDetails || empty.breakthroughChoiceDetails,
     drawnTalents: snapshot.drawnTalents || empty.drawnTalents,
     maxRealmIndexReached: snapshot.maxRealmIndexReached ?? defaultRealmIndex,
   };
@@ -388,6 +433,25 @@ function uniqueCards(cards) {
 function incrementTextNumber(value, amount = 1) {
   const current = String(value || '').match(/[+-]?\d+/)?.[0];
   return String((current ? Number(current) : 0) + amount);
+}
+
+function applyGhostCapacityDelta(store, groupId, count, amount) {
+  let next = { ...store };
+  const operation = amount >= 0 ? unlockNextGhostMark : lockPreviousUnlockedGhostMark;
+  for (let index = 0; index < Math.abs(amount); index += 1) {
+    next = operation(next, groupId, count);
+  }
+  return next;
+}
+
+function getFoundationTechniqueStorageBonus(method) {
+  return getMethodTechniqueProgression(method)
+    .find((technique) => technique.stage === 'foundation')?.storageCapacityBonus || 0;
+}
+
+function getBreakthroughRealmIndex(breakthroughId) {
+  const realmName = breakthroughId === 'foundation-early' ? '筑基前期' : '金丹前期';
+  return realmOptions.findIndex((realm) => realm.name === realmName);
 }
 
 function InfoHint({ text, label = '说明' }) {
@@ -714,6 +778,7 @@ function SelectorPanel({ title, category, vertical = false }) {
 
 function FateRibbon() {
   const { openFateDraw, selectedFateTitle, setSelectedFateTitle, setDiceEffects } = useSheet();
+  const selectedIndex = fateCards.findIndex(([title]) => title === selectedFateTitle);
 
   const handleSelect = (index, title) => {
     setSelectedFateTitle(title);
@@ -738,7 +803,7 @@ function FateRibbon() {
             <button
               key={title}
               type="button"
-              className={`fateStep ${tone}${selectedFateTitle === title ? ' selected' : ''}${fateDraws[title] ? ' drawable' : ''}`}
+              className={`fateStep ${tone}${selectedFateTitle === title ? ' selected' : ''}${index === selectedIndex - 1 ? ' before-selected' : ''}${fateDraws[title] ? ' drawable' : ''}`}
               onClick={() => handleSelect(index, title)}
               aria-pressed={selectedFateTitle === title}
               aria-label={`因果值：${title}`}
@@ -1188,7 +1253,7 @@ function PageOne() {
             <section className="panel statsPanel">
               <StatRow label="正常血量" filled={6} ghost={4} />
               <StatRow label="险境血量" filled={6} ghost={4} />
-              <StatRow label="灵气" filled={8} ghost={4} />
+              <StatRow label="灵气" filled={8} ghost={7} />
               <StatRow label="储物格" filled={6} ghost={5} />
               <StatRow
                 label="损伤"
@@ -1301,28 +1366,20 @@ function PdfClickableCheck({ id, label, double = false }) {
   );
 }
 
-function PdfActionCheck({ id, label, action }) {
-  const { markStates, setMarkStates, triggerBreakthroughOption } = useSheet();
-  const markId = `${id}:0`;
-  const state = markStates[markId] || createMarkState('solid');
-
-  const toggle = () => {
-    const nextFilled = !state.filled;
-    setMarkStates((store) => ({
-      ...store,
-      [markId]: { ...(store[markId] || createMarkState('solid')), filled: nextFilled },
-    }));
-    if (nextFilled) triggerBreakthroughOption(action);
-  };
+function PdfActionCheck({ label, action, breakthroughId }) {
+  const { breakthroughChoices, breakthroughAvailability, triggerBreakthroughOption } = useSheet();
+  const selected = breakthroughChoices[breakthroughId]?.selectedOptionIds?.includes(action) || false;
+  const available = breakthroughAvailability[breakthroughId] || false;
 
   return (
     <span className="pdfCheckLine interactive">
       <button
         type="button"
-        className={`mark ${state.filled ? 'filled' : ''}`.trim()}
-        onClick={toggle}
+        className={`mark ${selected ? 'filled' : ''}`.trim()}
+        onClick={() => triggerBreakthroughOption(breakthroughId, action)}
+        disabled={!available}
         aria-label={`${label} 标记`}
-        aria-pressed={state.filled}
+        aria-pressed={selected}
       />
       <span>{label}</span>
     </span>
@@ -1573,7 +1630,9 @@ function PageThree() {
   );
 }
 
-function BreakthroughPanel({ title, stages }) {
+function BreakthroughPanel({ breakthroughId, title, stages }) {
+  const options = getBreakthroughChoiceOptions(breakthroughId);
+  const isFoundation = breakthroughId === 'foundation-early';
   return (
     <section className="breakthroughPanel">
       <div className="breakthroughStage">
@@ -1599,23 +1658,26 @@ function BreakthroughPanel({ title, stages }) {
       <div className="breakthroughSeal">突破</div>
       <div className="breakthroughResult">
         <div className="resultPrimary">
-          境界提升至{title === '练气期' ? '筑基前期' : '金丹前期'}，境界乘值 +1<br />
-          将灵气上限增加 1 格<br />
+          境界提升至{isFoundation ? '筑基前期' : '金丹前期'}，境界乘值 +1<br />
+          {isFoundation ? <><span>将真元上限增加 1 格</span><br /></> : null}
           根据已修习的法门选择 1 张本源感悟卡<br />
-          核心属性 +1<br />所有阈值 +3<br />灵气格 +2<br />升级你的法门至进阶
+          {isFoundation ? <><span>核心属性 +1</span><br /></> : null}
+          所有阈值 +3<br />
+          灵气格 +2{isFoundation ? <><br /><span>升级你的法门至进阶</span></> : null}
         </div>
         <div className="breakthroughOptionHint">
           在以下升级选项中标记至多 2 格<br />
           每标记 1 格获取一次对应提升
         </div>
         <div className="resultChecks">
-          <PdfActionCheck id={`${title}-normal-health`} action="normal-health" label="正常血量格 +1 并所有中伤阈值 +1" />
-          <PdfActionCheck id={`${title}-non-core-attributes`} action="non-core-attributes" label="将两个非核心属性 +1" />
-          <PdfActionCheck id={`${title}-danger-health`} action="danger-health" label="险境血量格 +1 并所有重伤阈值 +1" />
-          <PdfActionCheck id={`${title}-treasure`} action={title === '练气期' ? 'qi-treasure' : 'foundation-treasure'} label={`获取一个${title === '练气期' ? '练气期' : '筑基期'}凡阶灵宝`} />
-          <PdfActionCheck id={`${title}-spirit`} action="spirit" label="灵气格 +1" />
-          <PdfActionCheck id={`${title}-storage`} action="storage" label="储物格 +1" />
-          <PdfActionCheck id={`${title}-extra-method`} action="extra-method" label="不再升级法门，改为修习额外一个法门" />
+          {options.map((option) => (
+            <PdfActionCheck
+              key={`${breakthroughId}-${option.id}`}
+              breakthroughId={breakthroughId}
+              action={option.id}
+              label={option.label}
+            />
+          ))}
         </div>
       </div>
     </section>
@@ -1629,6 +1691,7 @@ function PageFour() {
       <main className="pdfPageBody pdfFourGrid">
         <div className="breakthroughStack">
           <BreakthroughPanel
+            breakthroughId="foundation-early"
             title="练气期"
             stages={[
               { label: '前期', text: '根据道源选取初始神通与秘法\n根据法门选择 1 张练气期感悟卡', checked: true },
@@ -1637,6 +1700,7 @@ function PageFour() {
             ]}
           />
           <BreakthroughPanel
+            breakthroughId="golden-core"
             title="筑基期"
             stages={[
               { label: '前期', text: '根据法门选择 1 张筑基期感悟卡\n并选择 1 个灵宝' },
@@ -1694,7 +1758,8 @@ function renderSheetPage(pageId) {
   if (pageId === 'p2') return <PageTwo />;
   if (pageId === 'p3') return <PageThree />;
   if (pageId === 'p4') return <PageFour />;
-  return <PageFive />;
+  if (pageId === 'p5') return <PageFive />;
+  return <PageSix />;
 }
 
 function PrintPageRenderer() {
@@ -2005,29 +2070,18 @@ function SaveArchiveModal() {
 }
 
 // 因果抽卡弹窗：洗牌 → 翻牌揭示 → 填入卡面。
-function getPlanSlots(plan) {
-  if (!plan) return [];
-  return plan.items.flatMap((item) => (
-    Array.from({ length: item.count }, (_, index) => ({
-      kind: item.kind,
-      tier: item.tier,
-      key: `${item.kind}-${item.tier}-${index}`,
-      label: `${tierMeta[item.tier].label}${item.kind === 'talent' ? '天赋' : '天谴'}`,
-    }))
-  ));
-}
-
-function getPoolForSlot(slot) {
-  return slot.kind === 'talent' ? talentPool[slot.tier] : punishmentPool[slot.tier];
-}
-
 function getFateChoices(fateDraw) {
   if (!fateDraw) return [];
   if (fateDraw.plans.length === 1) {
     const [onlyPlan] = fateDraw.plans;
     return [
       { type: 'draw', label: '抽取', detail: onlyPlan.label, plan: onlyPlan },
-      { type: 'manual', label: '自选', detail: onlyPlan.label, plans: [onlyPlan] },
+      {
+        type: 'manual',
+        label: '自选',
+        detail: formatManualFatePlanLabel(onlyPlan, fateDraw.title, tierMeta),
+        plans: [onlyPlan],
+      },
     ];
   }
 
@@ -2076,11 +2130,11 @@ function FateDrawModal() {
   };
 
   const selectManualEntry = (slotIndex, slot, poolIndex) => {
-    const pool = getPoolForSlot(slot);
+    const pool = getPoolForFateSlot(slot, { talentPool, punishmentPool });
     const entry = pool[poolIndex];
     setManualSelections((prev) => {
       const next = [...prev];
-      next[slotIndex] = entry ? { kind: slot.kind, tier: slot.tier, ...entry } : null;
+      next[slotIndex] = createManualFateEntry(slot, entry);
       return next;
     });
   };
@@ -2104,7 +2158,11 @@ function FateDrawModal() {
     closeFateDraw();
   };
   const choices = getFateChoices(fateDraw);
-  const manualSlots = getPlanSlots(plan);
+  const manualSlots = getFatePlanSlots(plan, {
+    fateTitle: fateDraw.title,
+    manual: true,
+    tierMeta,
+  });
   const manualReady = manualSlots.length > 0 && manualSlots.every((_, index) => manualSelections[index]);
 
   return (
@@ -2152,14 +2210,14 @@ function FateDrawModal() {
                     className={plan === option ? 'on' : ''}
                     onClick={() => chooseManualPlan(option)}
                   >
-                    {option.label}
+                    {formatManualFatePlanLabel(option, fateDraw.title, tierMeta)}
                   </button>
                 ))}
               </div>
             ) : null}
             <div className="manualSlotList">
               {manualSlots.map((slot, slotIndex) => {
-                const pool = getPoolForSlot(slot);
+                const pool = getPoolForFateSlot(slot, { talentPool, punishmentPool });
                 const selected = manualSelections[slotIndex];
                 return (
                   <section key={slot.key} className="manualSlot">
@@ -2671,6 +2729,9 @@ function GuideAttributeStep({ values, coreAttribute, onAttributeChange, onCoreCh
 }
 
 function GuideFateStep({ value, onChange }) {
+  const selectedTitle = fateValueToTitle(value);
+  const details = getFateDisplayDetails(selectedTitle);
+
   return (
     <section className="guideStepSection guideFateStep">
       <header className="guideSectionHeader">
@@ -2697,6 +2758,25 @@ function GuideFateStep({ value, onChange }) {
           );
         })}
       </div>
+
+      <article className="guideFateSummary" aria-live="polite">
+        <header className={`guideFateSummaryHeader ${details.tone}`}>
+          <span>{value > 0 ? `+${value}` : String(value)}</span>
+          <strong>{details.title}</strong>
+        </header>
+        <div className="guideFateSummaryBody">
+          <section>
+            <h3>数值效果</h3>
+            <ul>
+              {details.numericEffects.map((effect, index) => <li key={`${effect}-${index}`}>{effect}</li>)}
+            </ul>
+          </section>
+          <section>
+            <h3>天赋 / 天谴</h3>
+            <p>{details.talentRule}</p>
+          </section>
+        </div>
+      </article>
     </section>
   );
 }
@@ -2709,6 +2789,7 @@ function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) 
     dao: values.dao != null ? daoOptions[values.dao] : null,
     fateTitle: fateValueToTitle(values.fateValue),
   };
+  const fateDetails = getFateDisplayDetails(selected.fateTitle);
   const previewGroups = [
     { label: '名称', value: values.name || '未填写' },
     { label: '种族', value: values.race || '未填写' },
@@ -2772,6 +2853,8 @@ function GuidePreviewStep({ values, errors, onErrorStep, onRandom, onConfirm }) 
       items: [
         { label: '因果值', value: values.fateValue > 0 ? `+${values.fateValue}` : String(values.fateValue) },
         { label: '命格', value: selected.fateTitle || '未选择' },
+        { label: '数值效果', value: fateDetails.numericEffects.join('；') },
+        { label: '天赋 / 天谴', value: fateDetails.talentRule },
       ],
     },
   ];
@@ -2989,6 +3072,8 @@ function App() {
   const [markStates, setMarkStates] = useState(() => initialState.snapshot.markStates);
   const [thresholdBonuses, setThresholdBonuses] = useState(() => initialState.snapshot.thresholdBonuses);
   const [upgradeChoices, setUpgradeChoices] = useState(() => initialState.snapshot.upgradeChoices);
+  const [breakthroughChoices, setBreakthroughChoices] = useState(() => initialState.snapshot.breakthroughChoices);
+  const [breakthroughChoiceDetails, setBreakthroughChoiceDetails] = useState(() => initialState.snapshot.breakthroughChoiceDetails);
   const [maxRealmIndexReached, setMaxRealmIndexReached] = useState(() => initialState.snapshot.maxRealmIndexReached);
   const [realmHistoryOpen, setRealmHistoryOpen] = useState(false);
   const [upgradePrompt, setUpgradePrompt] = useState(null);
@@ -3031,24 +3116,163 @@ function App() {
   const setText = (field, value) => setTexts((prev) => ({ ...prev, [field]: value }));
   const setAttributeValue = (field, value) => setAttributes((prev) => ({ ...prev, [field]: value }));
   const toggleCoreAttribute = (field) => setCoreAttribute((current) => (current === field ? null : field));
+  const getStoredBreakthroughState = (breakthroughId) => createBreakthroughChoiceState(
+    breakthroughId,
+    breakthroughChoices[breakthroughId]?.selectedOptionIds,
+  );
+  const getBreakthroughOptionDetails = (breakthroughId, optionId) => (
+    breakthroughChoiceDetails[breakthroughId]?.options?.[optionId] || {}
+  );
+  const setBreakthroughOptionDetails = (breakthroughId, optionId, details) => {
+    setBreakthroughChoiceDetails((prev) => {
+      const breakthrough = prev[breakthroughId] || {};
+      const options = { ...(breakthrough.options || {}) };
+      if (details) options[optionId] = details;
+      else delete options[optionId];
+      return { ...prev, [breakthroughId]: { ...breakthrough, options } };
+    });
+  };
+  const applyBreakthroughChoiceEffect = (breakthroughId, optionId, amount, details = {}) => {
+    if (optionId === 'normal-health') {
+      setMarkStates((store) => applyGhostCapacityDelta(store, 'p1-stat-正常血量-ghost', 4, amount));
+      setThresholdBonuses((prev) => ({
+        ...prev,
+        bodyMedium: prev.bodyMedium + amount,
+        soulMedium: prev.soulMedium + amount,
+      }));
+    } else if (optionId === 'danger-health') {
+      setMarkStates((store) => applyGhostCapacityDelta(store, 'p1-stat-险境血量-ghost', 4, amount));
+      setThresholdBonuses((prev) => ({
+        ...prev,
+        bodyHeavy: prev.bodyHeavy + amount,
+        soulHeavy: prev.soulHeavy + amount,
+      }));
+    } else if (optionId === 'spirit') {
+      setMarkStates((store) => applyQiCapacityDelta(store, amount));
+    } else if (optionId === 'storage') {
+      setMarkStates((store) => applyGhostCapacityDelta(store, 'p1-stat-储物格-ghost', 5, amount));
+    } else if (optionId === 'non-core-attributes') {
+      const titles = details.attributeTitles || [];
+      if (titles.length) {
+        setAttributes((prev) => Object.fromEntries(Object.entries(prev).map(([title, value]) => [
+          title,
+          titles.includes(title) ? incrementTextNumber(value, amount) : value,
+        ])));
+      }
+    } else if (optionId === 'extra-method') {
+      const storageBonus = breakthroughChoiceDetails[breakthroughId]?.fixed?.techniqueStorageBonus
+        ?? getFoundationTechniqueStorageBonus(current.method);
+      if (storageBonus) {
+        setMarkStates((store) => applyGhostCapacityDelta(
+          store,
+          'p1-stat-储物格-ghost',
+          5,
+          -amount * storageBonus,
+        ));
+      }
+    }
+  };
+  const commitBreakthroughChoice = (breakthroughId, optionId, details = {}) => {
+    const previous = getStoredBreakthroughState(breakthroughId);
+    const next = toggleBreakthroughChoice(previous, optionId);
+    if (!next.validation.valid) {
+      showNotice(next.validation.reason === 'choice-limit' ? '每次突破最多选择 2 项提升。' : '该突破没有这个选项。');
+      return false;
+    }
+    const selecting = !previous.selectedOptionIds.includes(optionId);
+    const storedDetails = selecting ? details : getBreakthroughOptionDetails(breakthroughId, optionId);
+    setBreakthroughChoices((prev) => ({ ...prev, [breakthroughId]: next }));
+    applyBreakthroughChoiceEffect(breakthroughId, optionId, selecting ? 1 : -1, storedDetails);
+    setBreakthroughOptionDetails(breakthroughId, optionId, selecting ? storedDetails : null);
+    if (!selecting && ['qi-treasure', 'foundation-treasure', 'extra-method'].includes(optionId)) {
+      const realmIndex = getBreakthroughRealmIndex(breakthroughId);
+      setUpgradeChoices((prev) => prev.filter((choice) => !(
+        choice.realmIndex === realmIndex && choice.promptKey === optionId
+      )));
+    }
+    return true;
+  };
   const appendUpgradeCards = (cardsBySection) => {
     const realmIndex = upgradePrompt?.realmIndex ?? currentRealmIndex;
     setUpgradeChoices((prev) => appendUpgradeChoices(prev, {
       realmIndex,
       cardsBySection,
     }));
+    const pending = upgradePrompt?.breakthroughOption;
+    if (pending) commitBreakthroughChoice(pending.breakthroughId, pending.optionId);
   };
   const applyRealmBreakthroughEffects = (step) => {
-    setThresholdBonuses((prev) => ({ ...prev, all: prev.all + 3 }));
+    const effects = step.automaticEffects || {};
+    setThresholdBonuses((prev) => ({ ...prev, all: prev.all + (effects.allThresholds || 0) }));
     if (step.id === 'foundation-early') {
-      setMarkStates((store) => applyFoundationBreakthroughMarkEffects(store));
-    }
-    if (step.id === 'foundation-early' && coreAttribute) {
-      setAttributes((prev) => ({
+      const techniqueStorageBonus = getFoundationTechniqueStorageBonus(current.method);
+      setMarkStates((store) => {
+        let next = applyFoundationBreakthroughMarkEffects(store);
+        if (techniqueStorageBonus) {
+          next = applyGhostCapacityDelta(next, 'p1-stat-储物格-ghost', 5, techniqueStorageBonus);
+        }
+        return next;
+      });
+      if (coreAttribute) {
+        setAttributes((prev) => ({
+          ...prev,
+          [coreAttribute]: incrementTextNumber(prev[coreAttribute], effects.coreAttribute || 0),
+        }));
+      }
+      setBreakthroughChoiceDetails((prev) => ({
         ...prev,
-        [coreAttribute]: incrementTextNumber(prev[coreAttribute], 1),
+        [step.id]: {
+          ...(prev[step.id] || {}),
+          fixed: { coreAttribute, techniqueStorageBonus },
+        },
       }));
+    } else if (step.id === 'golden-core') {
+      setMarkStates((store) => applyGoldenCoreBreakthroughMarkEffects(store));
     }
+  };
+  const revertRealmBreakthroughEffects = (breakthroughId) => {
+    const state = getStoredBreakthroughState(breakthroughId);
+    state.selectedOptionIds.forEach((optionId) => {
+      applyBreakthroughChoiceEffect(
+        breakthroughId,
+        optionId,
+        -1,
+        getBreakthroughOptionDetails(breakthroughId, optionId),
+      );
+    });
+    const realmIndex = getBreakthroughRealmIndex(breakthroughId);
+    const optionIds = new Set(getBreakthroughChoiceOptions(breakthroughId).map((option) => option.id));
+    setUpgradeChoices((prev) => prev.filter((choice) => !(
+      choice.realmIndex === realmIndex && optionIds.has(choice.promptKey)
+    )));
+    setBreakthroughChoices((prev) => ({
+      ...prev,
+      [breakthroughId]: createBreakthroughChoiceState(breakthroughId),
+    }));
+    setThresholdBonuses((prev) => ({ ...prev, all: Math.max(0, prev.all - 3) }));
+    if (breakthroughId === 'foundation-early') {
+      const fixed = breakthroughChoiceDetails[breakthroughId]?.fixed || {};
+      setMarkStates((store) => {
+        let next = revertFoundationBreakthroughMarkEffects(store);
+        if (fixed.techniqueStorageBonus) {
+          next = applyGhostCapacityDelta(next, 'p1-stat-储物格-ghost', 5, -fixed.techniqueStorageBonus);
+        }
+        return next;
+      });
+      if (fixed.coreAttribute) {
+        setAttributes((prev) => ({
+          ...prev,
+          [fixed.coreAttribute]: incrementTextNumber(prev[fixed.coreAttribute], -1),
+        }));
+      }
+    } else {
+      setMarkStates((store) => revertGoldenCoreBreakthroughMarkEffects(store));
+    }
+    setBreakthroughChoiceDetails((prev) => {
+      const next = { ...prev };
+      delete next[breakthroughId];
+      return next;
+    });
   };
   const upgradeRealm = () => {
     const currentIndex = selections.realm ?? defaultRealmIndex;
@@ -3077,7 +3301,12 @@ function App() {
     if (step.selectionPrompt?.sections?.length) {
       setUpgradePrompt({ ...step.selectionPrompt, realmIndex: nextIndex });
     }
-    showNotice(step.toast);
+    const techniqueStorageBonus = step.id === 'foundation-early'
+      ? getFoundationTechniqueStorageBonus(current.method)
+      : 0;
+    showNotice(techniqueStorageBonus
+      ? `${step.toast} ${current.method.name}的技艺升至中阶，储物格上限 +${techniqueStorageBonus}。`
+      : step.toast);
   };
   const openRealmHistory = () => setRealmHistoryOpen(true);
   const selectReachedRealm = (realmIndex) => {
@@ -3085,6 +3314,14 @@ function App() {
     setUpgradePrompt(null);
     setRealmHistoryOpen(false);
     if (realmIndex < currentRealmIndex) {
+      const foundationIndex = getBreakthroughRealmIndex('foundation-early');
+      const goldenCoreIndex = getBreakthroughRealmIndex('golden-core');
+      if (currentRealmIndex >= goldenCoreIndex && realmIndex < goldenCoreIndex) {
+        revertRealmBreakthroughEffects('golden-core');
+      }
+      if (currentRealmIndex >= foundationIndex && realmIndex < foundationIndex) {
+        revertRealmBreakthroughEffects('foundation-early');
+      }
       setUpgradeChoices((prev) => pruneUpgradeChoicesForRealm(prev, realmIndex));
       setMaxRealmIndexReached((value) => getMaxReachedRealmAfterSelection(value, realmIndex));
       showNotice(`已回退至${realmOptions[realmIndex]?.name || '所选境界'}，高境界选择已清除。`);
@@ -3092,10 +3329,13 @@ function App() {
     }
     showNotice(`已切换至${realmOptions[realmIndex]?.name || '所选境界'}。`);
   };
-  const openTreasurePrompt = (stage) => {
+  const openTreasurePrompt = (stage, breakthroughOption = null) => {
     setUpgradePrompt({
         title: `${stage === 'foundation' ? '筑基' : '练气'}凡阶灵宝`,
-        realmIndex: currentRealmIndex,
+        realmIndex: breakthroughOption
+          ? getBreakthroughRealmIndex(breakthroughOption.breakthroughId)
+          : currentRealmIndex,
+        breakthroughOption,
         sections: [{
           key: `${stage}-treasure`,
           title: `${stage === 'foundation' ? '筑基' : '练气'}凡阶灵宝`,
@@ -3107,35 +3347,15 @@ function App() {
         }],
       });
   };
-  const triggerBreakthroughOption = (action) => {
-    if (action === 'normal-health') {
-      setMarkStates((store) => unlockNextGhostMark(store, 'p1-stat-正常血量-ghost', 4));
-      setThresholdBonuses((prev) => ({
-        ...prev,
-        bodyMedium: prev.bodyMedium + 1,
-        soulMedium: prev.soulMedium + 1,
-      }));
-      showNotice('正常血量格 +1，所有中伤阈值 +1。');
+  const triggerBreakthroughOption = (breakthroughId, action) => {
+    const currentState = getStoredBreakthroughState(breakthroughId);
+    if (currentState.selectedOptionIds.includes(action)) {
+      if (commitBreakthroughChoice(breakthroughId, action)) showNotice('已取消该突破提升。');
       return;
     }
-    if (action === 'danger-health') {
-      setMarkStates((store) => unlockNextGhostMark(store, 'p1-stat-险境血量-ghost', 4));
-      setThresholdBonuses((prev) => ({
-        ...prev,
-        bodyHeavy: prev.bodyHeavy + 1,
-        soulHeavy: prev.soulHeavy + 1,
-      }));
-      showNotice('险境血量格 +1，所有重伤阈值 +1。');
-      return;
-    }
-    if (action === 'spirit') {
-      setMarkStates((store) => unlockNextGhostMark(store, 'p1-stat-灵气-ghost', 4));
-      showNotice('灵气格 +1。');
-      return;
-    }
-    if (action === 'storage') {
-      setMarkStates((store) => unlockNextGhostMark(store, 'p1-stat-储物格-ghost', 5));
-      showNotice('储物格 +1。');
+    const preview = toggleBreakthroughChoice(currentState, action);
+    if (!preview.validation.valid) {
+      showNotice(preview.validation.reason === 'choice-limit' ? '每次突破最多选择 2 项提升。' : '该突破没有这个选项。');
       return;
     }
     if (action === 'non-core-attributes') {
@@ -3144,21 +3364,22 @@ function App() {
         showNotice('请先完成属性分配并标记核心属性。');
         return;
       }
-      setAttributeChoicePrompt({ choices });
+      setAttributeChoicePrompt({ choices, breakthroughOption: { breakthroughId, optionId: action } });
       return;
     }
     if (action === 'qi-treasure') {
-      openTreasurePrompt('qi');
+      openTreasurePrompt('qi', { breakthroughId, optionId: action });
       return;
     }
     if (action === 'foundation-treasure') {
-      openTreasurePrompt('foundation');
+      openTreasurePrompt('foundation', { breakthroughId, optionId: action });
       return;
     }
     if (action === 'extra-method') {
       setUpgradePrompt({
         title: '额外修习法门',
-        realmIndex: currentRealmIndex,
+        realmIndex: getBreakthroughRealmIndex(breakthroughId),
+        breakthroughOption: { breakthroughId, optionId: action },
         sections: [{
           key: 'extra-method',
           title: '额外法门',
@@ -3169,10 +3390,17 @@ function App() {
           options: methodOptions,
         }],
       });
+      return;
     }
+    if (commitBreakthroughChoice(breakthroughId, action)) showNotice('已应用该突破提升。');
   };
   const confirmAttributeChoices = (titles) => {
-    setAttributes((prev) => applyAttributeIncrease(prev, titles));
+    const pending = attributeChoicePrompt?.breakthroughOption;
+    if (pending) {
+      commitBreakthroughChoice(pending.breakthroughId, pending.optionId, { attributeTitles: titles });
+    } else {
+      setAttributes((prev) => applyAttributeIncrease(prev, titles));
+    }
     setAttributeChoicePrompt(null);
     showNotice(`已将 ${titles.join('、')} 各 +1。`);
   };
@@ -3222,6 +3450,8 @@ function App() {
     markStates,
     thresholdBonuses,
     upgradeChoices,
+    breakthroughChoices,
+    breakthroughChoiceDetails,
     maxRealmIndexReached,
   });
   const restoreCardSnapshot = (snapshot) => {
@@ -3239,6 +3469,8 @@ function App() {
     setMarkStates(next.markStates);
     setThresholdBonuses(next.thresholdBonuses);
     setUpgradeChoices(next.upgradeChoices);
+    setBreakthroughChoices(next.breakthroughChoices);
+    setBreakthroughChoiceDetails(next.breakthroughChoiceDetails);
     setMaxRealmIndexReached(next.maxRealmIndexReached);
     setFateDraw(null);
     setLibrary(null);
@@ -3334,6 +3566,11 @@ function App() {
     markStates,
     setMarkStates,
     thresholdBonuses,
+    breakthroughChoices,
+    breakthroughAvailability: {
+      'foundation-early': currentRealmIndex >= getBreakthroughRealmIndex('foundation-early'),
+      'golden-core': currentRealmIndex >= getBreakthroughRealmIndex('golden-core'),
+    },
     saveOpen,
     setSaveOpen,
     saveSlots,
@@ -3384,6 +3621,8 @@ function App() {
     markStates,
     thresholdBonuses,
     upgradeChoices,
+    breakthroughChoices,
+    breakthroughChoiceDetails,
     maxRealmIndexReached,
   ]);
 
@@ -3413,6 +3652,9 @@ function App() {
     setAttributes(cardState.attributes);
     setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });
     setUpgradeChoices([]);
+    setBreakthroughChoices(createEmptyBreakthroughChoices());
+    setBreakthroughChoiceDetails({});
+    setMarkStates({});
     setMaxRealmIndexReached(defaultRealmIndex);
     setRealmHistoryOpen(false);
     setActiveSlot(null);
@@ -3437,6 +3679,8 @@ function App() {
     setCoreAttribute(snapshot.coreAttribute || null);
     setThresholdBonuses({ ...defaultThresholdBonuses, ...(snapshot.thresholdBonuses || {}) });
     setUpgradeChoices(snapshot.upgradeChoices || []);
+    setBreakthroughChoices(createEmptyBreakthroughChoices());
+    setBreakthroughChoiceDetails({});
     setMaxRealmIndexReached(snapshot.maxRealmIndexReached ?? defaultRealmIndex);
     setRealmHistoryOpen(false);
     setUpgradePrompt(null);
@@ -3459,11 +3703,7 @@ function App() {
   };
 
   const renderPage = () => {
-    if (tab === 'p1') return <PageOne />;
-    if (tab === 'p2') return <PageTwo />;
-    if (tab === 'p3') return <PageThree />;
-    if (tab === 'p4') return <PageFour />;
-    return <PageFive />;
+    return renderSheetPage(tab);
   };
 
   const handleExport = async () => {
@@ -3501,6 +3741,9 @@ function App() {
     setAttributes(result.attributes);
     setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });
     setUpgradeChoices([]);
+    setBreakthroughChoices(createEmptyBreakthroughChoices());
+    setBreakthroughChoiceDetails({});
+    setMarkStates({});
     setMaxRealmIndexReached(defaultRealmIndex);
     setRealmHistoryOpen(false);
     setActiveSlot(null);

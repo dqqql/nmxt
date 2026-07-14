@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { methodOptions, sourceOptions } from './data';
+import { methodOptions, realmOptions, sourceOptions } from './data';
 import {
   aggregateUpgradeChoices,
   applyAttributeIncrease,
   createUpgradeStep,
   getDefaultRealmIndex,
+  getFixedBreakthroughEffects,
   getInitialSourceArts,
   getInitialSourceSkills,
   getMethodFoundationInsights,
   getMethodFoundationOriginInsights,
+  getMethodFoundationUpgradeInsights,
   getMethodInitialInsights,
   getMethodQiInsights,
   getMethodQiOriginInsights,
@@ -97,6 +99,10 @@ describe('realm upgrade rules', () => {
     expect(getNextRealmIndex(realms, 3)).toBe(3);
   });
 
+  it('names the current highest realm golden-core early', () => {
+    expect(realmOptions.at(-1).name).toBe('金丹前期');
+  });
+
   it('opens source skill and treasure choices when reaching qi middle', () => {
     const step = createUpgradeStep({
       fromRealmName: '练气前期',
@@ -133,7 +139,7 @@ describe('realm upgrade rules', () => {
     expect(step.selectionPrompt.sections[1].options.map((card) => card.name)).toEqual(['血怒诀']);
   });
 
-  it('applies breakthrough effects and asks for foundation origin insight', () => {
+  it('applies explicit foundation effects and asks for qi origin, foundation insight, and treasure', () => {
     const step = createUpgradeStep({
       fromRealmName: '练气后期',
       nextRealmName: '筑基前期',
@@ -143,8 +149,74 @@ describe('realm upgrade rules', () => {
     });
 
     expect(step.autoEffects).toContain('realm-breakthrough');
-    expect(step.selectionPrompt.sections[0].key).toBe('origin-insight');
-    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual(['筑基本源·剑光分化', '筑基本源·人剑合一']);
+    expect(step.automaticEffects).toEqual({
+      realmMultiplier: 1,
+      qiCapacity: 2,
+      coreAttribute: 1,
+      allThresholds: 3,
+      methodAdvancement: 1,
+      trueEssenceCapacity: 1,
+    });
+    expect(step.breakthroughChoices.limit).toBe(2);
+    expect(step.breakthroughChoices.options).toHaveLength(7);
+    expect(step.selectionPrompt.sections.map((section) => section.key)).toEqual([
+      'origin-insight',
+      'method-insight',
+      'treasure',
+    ]);
+    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual(['练气本源·剑气初成', '练气本源·剑势凝一']);
+    expect(step.selectionPrompt.sections[1].options.map((card) => card.name)).toEqual([
+      '筑基·御剑攻敌',
+      '筑基·剑气破体',
+      '筑基·剑影分身',
+      '筑基·识剑心明',
+    ]);
+    expect(step.selectionPrompt.sections[2].options).toHaveLength(4);
+    expect(step.toast).toContain('真元上限 +1');
+  });
+
+  it('applies explicit golden-core effects and asks for foundation origin insight', () => {
+    const step = createUpgradeStep({
+      fromRealmName: '筑基后期',
+      nextRealmName: '金丹前期',
+      source,
+      method,
+      dao,
+    });
+
+    expect(step.automaticEffects).toEqual({
+      realmMultiplier: 1,
+      qiCapacity: 2,
+      coreAttribute: 0,
+      allThresholds: 3,
+      methodAdvancement: 0,
+      trueEssenceCapacity: 0,
+    });
+    expect(step.breakthroughChoices.options).toHaveLength(6);
+    expect(step.breakthroughChoices.options.map((option) => option.id)).not.toContain('extra-method');
+    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual([
+      '筑基本源·剑光分化',
+      '筑基本源·人剑合一',
+    ]);
+  });
+
+  it('excludes the foundation insight already selected at foundation early from foundation late', () => {
+    const step = createUpgradeStep({
+      fromRealmName: '筑基中期',
+      nextRealmName: '筑基后期',
+      source,
+      method,
+      dao,
+      upgradeCards: {
+        insights: [{ name: '筑基·御剑攻敌', text: '已选' }],
+      },
+    });
+
+    expect(step.selectionPrompt.sections[0].options.map((card) => card.name)).toEqual([
+      '筑基·剑气破体',
+      '筑基·剑影分身',
+      '筑基·识剑心明',
+    ]);
   });
 
   it('keeps upgrade prompts visible even when the matching source data is missing', () => {
@@ -192,6 +264,11 @@ describe('realm upgrade rules', () => {
       '筑基·剑影分身',
       '筑基·识剑心明',
     ]);
+    expect(getMethodFoundationUpgradeInsights(method, [{ name: '筑基·御剑攻敌' }]).map((card) => card.name)).toEqual([
+      '筑基·剑气破体',
+      '筑基·剑影分身',
+      '筑基·识剑心明',
+    ]);
     expect(getMethodQiOriginInsights(method)).toHaveLength(2);
     expect(getMethodFoundationOriginInsights(method)).toHaveLength(2);
   });
@@ -217,6 +294,34 @@ describe('realm upgrade rules', () => {
       expect(getMethodFoundationOriginInsights(entry)).toHaveLength(2);
       expect(entry.attackBuffs).toHaveLength(2);
     });
+  });
+
+  it('keeps crafting technique progression populated from resource data', () => {
+    const craftingMethods = new Map([
+      ['丹修', ['初阶炼丹', '中阶炼丹']],
+      ['器修', ['初阶铸器', '中阶铸器']],
+      ['符修', ['初阶制符', '中阶制符']],
+      ['阵修', ['初级制阵', '中阶制阵']],
+      ['傀修', ['初阶制傀', '中阶制傀']],
+    ]);
+    methodOptions.forEach((entry) => {
+      const expectedNames = craftingMethods.get(entry.name);
+      if (!expectedNames) {
+        expect(entry.techniques).toBeUndefined();
+        return;
+      }
+      expect(entry.techniques.qi.name).toBe(expectedNames[0]);
+      expect(entry.techniques.qi.text).toBeTruthy();
+      expect(entry.techniques.foundation.name).toBe(expectedNames[1]);
+      expect(entry.techniques.foundation.text).toBeTruthy();
+      expect(entry.techniques.foundation.storageCapacityBonus).toBe(1);
+    });
+  });
+
+  it('returns independent fixed-effect records', () => {
+    const effects = getFixedBreakthroughEffects('foundation-early');
+    effects.qiCapacity = 99;
+    expect(getFixedBreakthroughEffects('foundation-early').qiCapacity).toBe(2);
   });
 
   it('keeps only card choices at or below the selected realm when rolling realm back', () => {

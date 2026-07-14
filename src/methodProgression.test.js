@@ -5,8 +5,10 @@ import {
   getFirstRealmInsight,
   getMethodFoundationInsights,
   getMethodFoundationOriginInsights,
+  getMethodFoundationUpgradeInsights,
   getMethodInitialInsights,
   getMethodResourceSections,
+  getMethodTechniqueProgression,
   getMethodQiInsights,
   getMethodQiOriginInsights,
   getMethodQiUpgradeInsights,
@@ -142,6 +144,15 @@ describe('method progression helpers', () => {
     ]);
   });
 
+  it('removes an already selected foundation insight from the foundation-late pool', () => {
+    const selected = [{ name: '筑基·御剑攻敌', text: '已选' }];
+    expect(getMethodFoundationUpgradeInsights(swordMethod, selected).map((card) => card.name)).toEqual([
+      '筑基·剑气破体',
+      '筑基·剑影分身',
+      '筑基·识剑心明',
+    ]);
+  });
+
   it('splits origin insights by phase and formats all card display prefixes', () => {
     expect(getMethodQiOriginInsights(swordMethod).map((card) => card.name)).toEqual([
       '练气本源·剑气初成',
@@ -166,5 +177,31 @@ describe('method progression helpers', () => {
     ]);
     expect(sections[0].items).toEqual([swordMethod.attackBuffs[0]]);
     expect(sections[1].items.map((card) => card.name)).toEqual(['剑感初开', '气贯剑身', '步随剑走', '剑心通明']);
+  });
+
+  it('adds beginner and foundation-upgrade techniques only for crafting methods', () => {
+    const alchemyMethod = {
+      ...swordMethod,
+      name: '丹修',
+      techniques: {
+        qi: { name: '初阶炼丹', text: '效力与范围最大为中。' },
+        foundation: { name: '中阶炼丹', text: '效力与范围增加为大。', storageCapacityBonus: 1 },
+      },
+    };
+
+    expect(getMethodTechniqueProgression(swordMethod)).toEqual([]);
+    expect(getMethodTechniqueProgression(alchemyMethod).map((technique) => technique.name)).toEqual([
+      '初阶炼丹',
+      '中阶炼丹',
+    ]);
+
+    const sections = getMethodResourceSections(alchemyMethod);
+    const techniqueSection = sections.find((section) => section.title === '技艺');
+    expect(techniqueSection.items.map((item) => item.name)).toEqual([
+      '练气期 · 初阶炼丹',
+      '筑基期升级 · 中阶炼丹',
+    ]);
+    expect(techniqueSection.items[1].text).toContain('储物格上限 +1');
+    expect(getMethodResourceSections(swordMethod).some((section) => section.title === '技艺')).toBe(false);
   });
 });
