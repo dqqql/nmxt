@@ -22,10 +22,11 @@ const plan = {
 };
 
 describe('fate manual selection policy', () => {
-  it('uses plain-tier talents only for heavenly fate manual selection', () => {
+  it('uses plain-tier talents for every fate path in manual selection', () => {
     expect(usesPlainManualTalents('天命壹')).toBe(true);
-    expect(usesPlainManualTalents('逆命壹')).toBe(false);
-    expect(usesPlainManualTalents('平平无奇')).toBe(false);
+    expect(usesPlainManualTalents('逆命壹')).toBe(true);
+    expect(usesPlainManualTalents('平平无奇')).toBe(true);
+    expect(usesPlainManualTalents('')).toBe(false);
 
     expect(getFatePlanSlots(plan, {
       fateTitle: '天命壹',
@@ -37,25 +38,25 @@ describe('fate manual selection policy', () => {
     ]);
   });
 
-  it.each(['地', '天', '仙'])('maps %s-tier heavenly talents to plain tier while preserving punishment tier', (tier) => {
+  it.each(['逆命贰', '平平无奇', '天命贰'])('maps talents from %s to plain tier while preserving punishment tier', (fateTitle) => {
     const tierPlan = {
       label: '测试方案',
       items: [
-        { kind: 'talent', tier, count: 1 },
-        { kind: 'punishment', tier, count: 1 },
+        { kind: 'talent', tier: '天', count: 1 },
+        { kind: 'punishment', tier: '天', count: 1 },
       ],
     };
     const [talentSlot, punishmentSlot] = getFatePlanSlots(tierPlan, {
-      fateTitle: '天命叁',
+      fateTitle,
       manual: true,
       tierMeta,
     });
 
     expect(talentSlot.tier).toBe('凡');
-    expect(punishmentSlot.tier).toBe(tier);
+    expect(punishmentSlot.tier).toBe('天');
   });
 
-  it('keeps the original plan untouched for draw mode and non-heavenly fate', () => {
+  it('keeps the original plan untouched for draw mode while inverse manual selection becomes plain tier', () => {
     const original = structuredClone(plan);
 
     expect(getFatePlanSlots(plan, {
@@ -70,7 +71,7 @@ describe('fate manual selection policy', () => {
       fateTitle: '逆命壹',
       manual: true,
       tierMeta,
-    })[0].tier).toBe('地');
+    })[0].tier).toBe('凡');
     expect(plan).toEqual(original);
   });
 
@@ -86,6 +87,10 @@ describe('fate manual selection policy', () => {
     };
 
     expect(formatManualFatePlanLabel(plan, '天命壹', tierMeta)).toBe('一凡阶天赋 + 一地阶天谴');
+    expect(formatManualFatePlanLabel({
+      label: '一天阶天赋',
+      items: [{ kind: 'talent', tier: '天', count: 1 }],
+    }, '逆命贰', tierMeta)).toBe('一凡阶天赋');
     expect(getPoolForFateSlot(slots[0], pools)).toEqual([{ name: '凡阶天赋' }]);
     expect(getPoolForFateSlot(slots[1], pools)).toEqual([{ name: '地阶天谴' }]);
     expect(createManualFateEntry(slots[0], { name: '手选天赋' })).toEqual({
