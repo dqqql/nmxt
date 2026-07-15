@@ -1588,7 +1588,6 @@ function PageThree() {
           <section className="pdfBlock methodExclusiveBlank methodExclusiveBlankFormation">
             <div>
               <strong>阵修专属页面</strong>
-              <span>修习「阵修」后显示阵法信息、特征库与阵法升级。</span>
             </div>
           </section>
         )}
@@ -1658,7 +1657,6 @@ function PageThree() {
           <section className="pdfBlock methodExclusiveBlank methodExclusiveBlankBeast">
             <div>
               <strong>兽修专属页面</strong>
-              <span>修习「兽修」后显示本命灵兽、随从升级与灵兽血脉。</span>
             </div>
           </section>
         )}
