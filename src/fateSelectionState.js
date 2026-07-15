@@ -6,7 +6,7 @@ function numberLabel(value) {
 }
 
 export function usesPlainManualTalents(fateTitle) {
-  return typeof fateTitle === 'string' && fateTitle.trim().length > 0;
+  return typeof fateTitle === 'string' && fateTitle.trim().length > 0 && fateTitle !== '平平无奇';
 }
 
 export function getFatePlanSlots(plan, { fateTitle = '', manual = false, tierMeta = {} } = {}) {

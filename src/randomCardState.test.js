@@ -12,7 +12,13 @@ const options = {
 const fateDraws = {
   '平平无奇': [
     { label: '一凡阶天赋', items: [{ kind: 'talent', tier: '凡', count: 1 }] },
-    { label: '一人阶天赋 + 一凡阶天谴', items: [{ kind: 'talent', tier: '人', count: 1 }] },
+    {
+      label: '一人阶天赋 + 一凡阶天谴',
+      items: [
+        { kind: 'talent', tier: '人', count: 1 },
+        { kind: 'punishment', tier: '凡', count: 1 },
+      ],
+    },
     { label: '不应被随机使用', items: [{ kind: 'punishment', tier: '仙', count: 1 }] },
   ],
   '天命壹': [
@@ -79,16 +85,24 @@ describe('random card state', () => {
     ]);
   });
 
-  it('chooses randomly between the two plain fate plans', () => {
+  it('chooses randomly between the two plain fate plans, including the human-tier branch', () => {
+    const drawnPlans = [];
     const result = createRandomCardState({
       options,
       fateDraws,
       random: () => 0.5,
-      drawPlan: (plan) => [{ chosenPlan: plan.label }],
+      drawPlan: (plan) => {
+        drawnPlans.push(plan);
+        return [{ chosenPlan: plan.label }];
+      },
     });
 
     expect(result.fateValue).toBe(0);
     expect(result.selectedFateTitle).toBe('平平无奇');
+    expect(drawnPlans[0].items).toEqual([
+      { kind: 'talent', tier: '人', count: 1 },
+      { kind: 'punishment', tier: '凡', count: 1 },
+    ]);
     expect(result.drawnTalents).toEqual([{ chosenPlan: '一人阶天赋 + 一凡阶天谴' }]);
   });
 });

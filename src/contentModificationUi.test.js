@@ -25,14 +25,19 @@ describe('requested content and layout modifications', () => {
     expect(mainSource).not.toContain("uniqueCards([...upgradeCards.daoMethods, ...upgradeCards.extraMethods])");
   });
 
-  it('gates the third-page formation and beast sections by learned methods', () => {
+  it('gates the third-page formation, puppet, and beast sections by learned methods', () => {
     expect(mainSource).toContain('function getLearnedMethodNames(current, upgradeCards = {})');
     expect(mainSource).toContain("const hasFormationMethod = learnedMethodNames.includes('阵修');");
+    expect(mainSource).toContain("const hasPuppetMethod = learnedMethodNames.includes('傀修');");
     expect(mainSource).toContain("const hasBeastMethod = learnedMethodNames.includes('兽修');");
     expect(mainSource).toContain('阵修专属页面');
+    expect(mainSource).toContain('傀修专属页面');
     expect(mainSource).toContain('兽修专属页面');
     expect(ruleBody('.methodExclusiveBlankFormation')).toContain('grid-column: 1');
+    expect(ruleBody('.methodExclusiveBlankPuppet')).toContain('grid-column: 2');
+    expect(ruleBody('.methodExclusiveBlankPuppet')).toContain('grid-row: 1 / 3');
     expect(ruleBody('.methodExclusiveBlankBeast')).toContain('grid-column: 2');
+    expect(ruleBody('.methodExclusiveBlankBeast')).toContain('grid-row: 3');
   });
 
   it('uses the shared interactive solid and ghost mark system for the formation break track', () => {

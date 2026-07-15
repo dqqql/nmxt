@@ -25,7 +25,7 @@ describe('fate manual selection policy', () => {
   it('uses plain-tier talents for every fate path in manual selection', () => {
     expect(usesPlainManualTalents('天命壹')).toBe(true);
     expect(usesPlainManualTalents('逆命壹')).toBe(true);
-    expect(usesPlainManualTalents('平平无奇')).toBe(true);
+    expect(usesPlainManualTalents('平平无奇')).toBe(false);
     expect(usesPlainManualTalents('')).toBe(false);
 
     expect(getFatePlanSlots(plan, {
@@ -38,7 +38,7 @@ describe('fate manual selection policy', () => {
     ]);
   });
 
-  it.each(['逆命贰', '平平无奇', '天命贰'])('maps talents from %s to plain tier while preserving punishment tier', (fateTitle) => {
+  it.each(['逆命贰', '天命贰'])('maps talents from %s to plain tier while preserving punishment tier', (fateTitle) => {
     const tierPlan = {
       label: '测试方案',
       items: [
@@ -54,6 +54,30 @@ describe('fate manual selection policy', () => {
 
     expect(talentSlot.tier).toBe('凡');
     expect(punishmentSlot.tier).toBe('天');
+  });
+
+  it('keeps the configured human-tier option for plain fate manual selection', () => {
+    const plainPlan = {
+      label: '一人阶天赋 + 一凡阶天谴',
+      items: [
+        { kind: 'talent', tier: '人', count: 1 },
+        { kind: 'punishment', tier: '凡', count: 1 },
+      ],
+    };
+    const slots = getFatePlanSlots(plainPlan, {
+      fateTitle: '平平无奇',
+      manual: true,
+      tierMeta: {
+        ...tierMeta,
+        人: { label: '人阶' },
+      },
+    });
+
+    expect(formatManualFatePlanLabel(plainPlan, '平平无奇', tierMeta)).toBe('一人阶天赋 + 一凡阶天谴');
+    expect(slots).toMatchObject([
+      { kind: 'talent', tier: '人', label: '人阶天赋' },
+      { kind: 'punishment', tier: '凡', label: '凡阶天谴' },
+    ]);
   });
 
   it('keeps the original plan untouched for draw mode while inverse manual selection becomes plain tier', () => {

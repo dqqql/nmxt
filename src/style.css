@@ -5946,9 +5946,14 @@ body {
   grid-row: 1 / -1;
 }
 
+.methodExclusiveBlankPuppet {
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+
 .methodExclusiveBlankBeast {
   grid-column: 2;
-  grid-row: 1 / -1;
+  grid-row: 3;
 }
 
 .methodExclusiveBlank > div {

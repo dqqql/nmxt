@@ -1537,6 +1537,7 @@ function PageThree() {
   const followerMoveRows = ['普攻', '初始神通', '神通壹', '神通贰', '神通叁', '秘法壹'];
   const learnedMethodNames = getLearnedMethodNames(current, upgradeCards);
   const hasFormationMethod = learnedMethodNames.includes('阵修');
+  const hasPuppetMethod = learnedMethodNames.includes('傀修');
   const hasBeastMethod = learnedMethodNames.includes('兽修');
 
   return (
@@ -1592,7 +1593,7 @@ function PageThree() {
           </section>
         )}
 
-        {hasBeastMethod ? (
+        {hasPuppetMethod ? (
           <>
             <section className="pdfBlock followerBasics">
               <div className="pdfTableTitle">随从·基础信息</div>
@@ -1636,7 +1637,17 @@ function PageThree() {
                 <PdfClickableCheck id="p3-follower-upgrade-bonus" label="检定值 +1" />
               </div>
             </section>
+          </>
+        ) : (
+          <section className="pdfBlock methodExclusiveBlank methodExclusiveBlankPuppet">
+            <div>
+              <strong>傀修专属页面</strong>
+            </div>
+          </section>
+        )}
 
+        {hasBeastMethod ? (
+          <>
             <section className="pdfBlock bloodlineBlock">
               <div className="pdfTableTitle">灵兽血脉</div>
               <div className="bloodlineNote">你的兽修精进时<br />灵兽的血脉就会进行一次血脉升级<br />创建你的本命灵兽时<br />选择血脉并获取增益</div>
