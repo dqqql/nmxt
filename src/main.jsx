@@ -592,21 +592,25 @@ function FilledText({ value, placeholder = '——', className = '' }) {
 
 // 资源库触发方块：显示已选名称，点击打开对应分类的资源库。
 function SelectorBox({ category }) {
-  const { selections, openLibrary } = useSheet();
+  const { selections, openLibrary, upgradeCards } = useSheet();
   const { placeholder, options } = LIBRARY[category];
   const index = selections[category];
   const option = index != null ? options[index] : null;
+  const extraMethodNames = category === 'method'
+    ? (upgradeCards?.extraMethods || []).map((method) => method?.name).filter(Boolean)
+    : [];
+  const displayValue = [option?.name, ...extraMethodNames].filter(Boolean).join(' / ');
 
   return (
     <>
       <button
         type="button"
-        className={`selectorBox printControl${option ? ' filled' : ''}`}
+        className={`selectorBox printControl${displayValue ? ' filled' : ''}`}
         onClick={() => openLibrary(category)}
       >
-        {option ? option.name : <span className="selectorPlaceholder">{placeholder}</span>}
+        {displayValue || <span className="selectorPlaceholder">{placeholder}</span>}
       </button>
-      <PrintValue value={option ? option.name : ''} placeholder={placeholder} className={`selectorBox${option ? ' filled' : ''}`} />
+      <PrintValue value={displayValue} placeholder={placeholder} className={`selectorBox${displayValue ? ' filled' : ''}`} />
     </>
   );
 }
@@ -1497,7 +1501,7 @@ function PageTwo() {
     if (title === '秘法') return uniqueCards([...getInitialSourceArts(source), ...upgradeCards.arts]);
     if (title === '感悟') return getDisplayedInsightCards(upgradeCards);
     if (title === '本源感悟') return getDisplayedOriginInsightCards(upgradeCards);
-    if (title === '功法') return uniqueCards([...upgradeCards.daoMethods, ...upgradeCards.extraMethods]);
+    if (title === '功法') return uniqueCards(upgradeCards.daoMethods);
     if (title === '灵宝') return uniqueCards(upgradeCards.treasures);
     return [];
   };
@@ -2144,8 +2148,7 @@ function getFateChoices(fateDraw) {
   ];
 }
 
-function FateDrawModal() {
-  const { fateDraw, closeFateDraw, setDrawnTalents } = useSheet();
+function FateDrawDialog({ fateDraw, closeFateDraw, setDrawnTalents }) {
   const [plan, setPlan] = useState(null);
   const [phase, setPhase] = useState('choose'); // choose | manual | shuffle | reveal
   const [results, setResults] = useState([]);
@@ -2354,6 +2357,17 @@ function FateDrawModal() {
         )}
       </div>
     </div>
+  );
+}
+
+function FateDrawModal() {
+  const { fateDraw, closeFateDraw, setDrawnTalents } = useSheet();
+  return (
+    <FateDrawDialog
+      fateDraw={fateDraw}
+      closeFateDraw={closeFateDraw}
+      setDrawnTalents={setDrawnTalents}
+    />
   );
 }
 
@@ -2776,9 +2790,10 @@ function GuideAttributeStep({ values, coreAttribute, onAttributeChange, onCoreCh
   );
 }
 
-function GuideFateStep({ value, onChange }) {
+function GuideFateStep({ value, drawnTalents, onChange }) {
   const selectedTitle = fateValueToTitle(value);
   const details = getFateDisplayDetails(selectedTitle);
+  const requiresTalentChoice = Boolean(fateDraws[selectedTitle]);
 
   return (
     <section className="guideStepSection guideFateStep">
@@ -2822,6 +2837,17 @@ function GuideFateStep({ value, onChange }) {
           <section>
             <h3>天赋 / 天谴</h3>
             <p>{details.talentRule}</p>
+            {drawnTalents.length > 0 ? (
+              <div className="guideFateChosen" aria-live="polite">
+                <span>已确认</span>
+                <strong>{drawnTalents.map((entry) => entry.name).join('、')}</strong>
+                <button type="button" onClick={() => onChange(value)}>重新选择</button>
+              </div>
+            ) : requiresTalentChoice ? (
+              <button type="button" className="guideFateChoose" onClick={() => onChange(value)}>
+                选择自选或抽取
+              </button>
+            ) : null}
           </section>
         </div>
       </article>
@@ -2843,6 +2869,12 @@ function getGuidePreviewCards(values) {
     const tierLabel = tierMeta[entry.tier]?.label || entry.tier || '';
     return `${tierLabel}${kindLabel}·${entry.name}`;
   }).join('；');
+  const drawnTalentDetails = (values.drawnTalents || []).map((entry) => {
+    const kindLabel = entry.kind === 'punishment' ? '天谴' : '天赋';
+    const tierLabel = tierMeta[entry.tier]?.label || entry.tier || '';
+    const label = `${tierLabel}${kindLabel}·${entry.name}`;
+    return `${label}：${entry.effect || '暂无说明'}`;
+  }).join('\n');
   const previewGroups = [
     { label: '名称', value: values.name || '未填写' },
     { label: '种族', value: values.race || '未填写' },
@@ -2908,7 +2940,8 @@ function getGuidePreviewCards(values) {
         { label: '命格', value: selected.fateTitle || '未选择' },
         { label: '数值效果', value: fateDetails.numericEffects.join('；') },
         { label: '天赋 / 天谴', value: fateDetails.talentRule },
-        { label: '抽取结果', value: drawnTalentSummary },
+        { label: '结果', value: drawnTalentSummary },
+        { label: '详情', value: drawnTalentDetails },
       ],
     },
   ];
@@ -2982,6 +3015,7 @@ function GuidedCardPage() {
   const [drafts, setDrafts] = useState(() => readJsonStorage(GUIDED_DRAFTS_KEY, {}));
   const [draft, setDraft] = useState(() => getGuideDraft(readJsonStorage(GUIDED_DRAFTS_KEY, {}), activeSlotId));
   const [errors, setErrors] = useState([]);
+  const [guideFateDraw, setGuideFateDraw] = useState(null);
   const step = clampGuideStep(draft.step);
   const values = draft.values;
 
@@ -3006,9 +3040,41 @@ function GuidedCardPage() {
     ...current,
     values: applyGuideAttributeValue(current.values, field, value),
   }));
+  const chooseGuideFateValue = (fateValue) => {
+    const title = fateValueToTitle(fateValue);
+    const plans = fateDraws[title] || null;
+    persistDraft((current) => ({
+      ...current,
+      values: {
+        ...current.values,
+        fateValue,
+        drawnTalents: current.values.drawnTalentsFateValue === fateValue
+          ? current.values.drawnTalents
+          : [],
+        drawnTalentsFateValue: current.values.drawnTalentsFateValue === fateValue
+          ? fateValue
+          : null,
+      },
+    }));
+    if (plans) setGuideFateDraw({ title, plans, fateValue });
+  };
+  const confirmGuideFateTalents = (drawnTalents) => {
+    const fateValue = guideFateDraw?.fateValue;
+    if (fateValue == null) return;
+    persistDraft((current) => ({
+      ...current,
+      values: {
+        ...current.values,
+        fateValue,
+        drawnTalents,
+        drawnTalentsFateValue: fateValue,
+      },
+    }));
+    setGuideFateDraw(null);
+  };
 
   const handleConfirmGuide = () => {
-    const nextErrors = validateGuideValues(values);
+    const nextErrors = validateGuideValues(values, { fateDraws });
     setErrors(nextErrors);
     if (nextErrors.length > 0) return;
 
@@ -3040,7 +3106,13 @@ function GuidedCardPage() {
     if (step === 3) return <GuideOptionStep title="道源" category="source" options={sourceOptions} value={values.source} onChange={(value) => updateValue('source', value)} />;
     if (step === 4) return <GuideOptionStep title="法门" category="method" options={methodOptions} value={values.method} onChange={(value) => updateValue('method', value)} />;
     if (step === 5) return <GuideOptionStep title="大道" category="dao" options={daoOptions} value={values.dao} onChange={(value) => updateValue('dao', value)} />;
-    if (step === 6) return <GuideFateStep value={values.fateValue} onChange={(value) => updateValue('fateValue', value)} />;
+    if (step === 6) return (
+      <GuideFateStep
+        value={values.fateValue}
+        drawnTalents={values.drawnTalents}
+        onChange={chooseGuideFateValue}
+      />
+    );
     return <GuidePreviewStep values={values} errors={errors} onErrorStep={setStep} onConfirm={handleConfirmGuide} />;
   };
 
@@ -3066,6 +3138,11 @@ function GuidedCardPage() {
           <button type="button" onClick={() => setStep(step + 1)}>下一步</button>
         ) : null}
       </footer>
+      <FateDrawDialog
+        fateDraw={guideFateDraw}
+        closeFateDraw={() => setGuideFateDraw(null)}
+        setDrawnTalents={confirmGuideFateTalents}
+      />
     </main>
   );
 }

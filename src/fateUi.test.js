@@ -27,12 +27,12 @@ describe('fate selection UI', () => {
   });
 
   it('keeps random drawing on the original selected plan', () => {
-    const fateDrawModal = functionBody('FateDrawModal');
+    const fateDrawDialog = functionBody('FateDrawDialog');
     const fateChoices = functionBody('getFateChoices');
 
-    expect(fateDrawModal).toContain('setResults(drawByPlan(selectedPlan))');
+    expect(fateDrawDialog).toContain('setResults(drawByPlan(selectedPlan))');
     expect(fateChoices).toContain('formatManualFatePlanLabel(onlyPlan, fateDraw.title, tierMeta)');
-    expect(fateDrawModal).toContain('getFatePlanSlots(plan, {');
+    expect(fateDrawDialog).toContain('getFatePlanSlots(plan, {');
   });
 
   it('marks both separators beside the selected fate card without relying on :has', () => {

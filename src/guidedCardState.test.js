@@ -95,6 +95,25 @@ describe('guided card state', () => {
     ]);
   });
 
+  it('requires an explicit manual or drawn fate result for the selected guide fate value', () => {
+    const values = {
+      ...createEmptyGuideDraft().values,
+      origin: 0,
+      attributes: { 仙躯: '0', 身法: '1', 神魂: '2', 灵蕴: '3' },
+      source: 0,
+      method: 0,
+      dao: 0,
+      fateValue: 0,
+    };
+
+    expect(validateGuideValues(values, { fateDraws }).map((error) => error.field)).toContain('drawnTalents');
+    expect(validateGuideValues({
+      ...values,
+      drawnTalents: [{ name: '自选天赋', kind: 'talent' }],
+      drawnTalentsFateValue: 0,
+    }, { fateDraws })).toEqual([]);
+  });
+
   it('automatically marks the attribute assigned 3 as the guide core attribute', () => {
     const values = createEmptyGuideDraft().values;
     const withBodyThree = applyGuideAttributeValue(values, '仙躯', '3');

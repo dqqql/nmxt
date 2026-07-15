@@ -160,7 +160,7 @@ export function clearGuideDraft(drafts, activeSlotId) {
   return next;
 }
 
-export function validateGuideValues(values) {
+export function validateGuideValues(values, { fateDraws } = {}) {
   const normalized = normalizeGuideValues(values);
   const errors = [];
 
@@ -199,6 +199,19 @@ export function validateGuideValues(values) {
       step: 6,
       message: '因果值必须在 -3 到 3 之间',
     });
+  } else {
+    const selectedFateTitle = fateValueToTitle(normalized.fateValue);
+    const requiresTalentChoice = Boolean(fateDraws?.[selectedFateTitle]);
+    const hasCurrentTalentChoice =
+      normalized.drawnTalents.length > 0
+      && normalized.drawnTalentsFateValue === normalized.fateValue;
+    if (requiresTalentChoice && !hasCurrentTalentChoice) {
+      errors.push({
+        field: 'drawnTalents',
+        step: 6,
+        message: '请选择自选或抽取并确认因果结果',
+      });
+    }
   }
 
   return errors;

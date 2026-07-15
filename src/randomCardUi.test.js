@@ -10,6 +10,13 @@ function functionBody(name) {
   return mainSource.slice(start, end < 0 ? undefined : end);
 }
 
+function ruleBody(selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return Array.from(cssSource.matchAll(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, 'g')))
+    .map((match) => match[1])
+    .join('\n');
+}
+
 describe('standalone random card UI', () => {
   it('places the random card action immediately after the guided card action', () => {
     const guidedIndex = mainSource.indexOf('className="guidedAction"');
@@ -30,6 +37,35 @@ describe('standalone random card UI', () => {
     expect(modal).toContain("event.key === 'Escape'");
     expect(cssSource).toContain('.randomCardOverlay');
     expect(cssSource).toContain('.randomCardActions');
+  });
+
+  it('shows drawn talent and punishment effect details in the shared preview', () => {
+    const previewBuilder = functionBody('getGuidePreviewCards');
+
+    expect(previewBuilder).toContain('drawnTalentDetails');
+    expect(previewBuilder).toContain("entry.effect || '暂无说明'");
+    expect(previewBuilder).toContain("label: '抽取详情'");
+    expect(ruleBody('.guidePreviewField strong')).toContain('white-space: pre-line');
+  });
+
+  it('uses a content-sized waterfall layout for the desktop random preview', () => {
+    const modal = ruleBody('.randomCardModal');
+    const preview = ruleBody('.randomCardPreview');
+    const masonry = ruleBody('.randomCardPreview .guidePreviewMasonry');
+    const card = ruleBody('.randomCardPreview .guidePreviewCard');
+    const heading = ruleBody('.randomCardPreview .guidePreviewCard header h3');
+    const body = ruleBody('.randomCardPreview .guidePreviewField strong');
+
+    expect(modal).toContain('width: min(1360px, calc(100vw - 96px))');
+    expect(modal).toContain('height: auto');
+    expect(preview).toContain('overflow: auto');
+    expect(masonry).toContain('column-count: 3');
+    expect(masonry).not.toContain('grid-template-rows');
+    expect(card).toContain('height: auto');
+    expect(card).toContain('break-inside: avoid');
+    expect(heading).toContain('font-size: 24px');
+    expect(body).toContain('font-size: 15px');
+    expect(cssSource).not.toContain('.randomCardPreview .guidePreviewCard:last-child');
   });
 
   it('applies only the confirmed preview and removes random generation from the guide', () => {

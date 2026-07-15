@@ -261,8 +261,8 @@ textarea {
   z-index: 125;
   display: grid;
   place-items: center;
-  padding: 24px;
-  overflow: auto;
+  padding: 48px;
+  overflow: hidden;
   background: rgba(24, 20, 21, 0.76);
   backdrop-filter: blur(4px);
 }
@@ -270,8 +270,9 @@ textarea {
 .randomCardModal {
   display: flex;
   flex-direction: column;
-  width: min(1120px, 100%);
-  max-height: calc(100vh - 48px);
+  width: min(1360px, calc(100vw - 96px));
+  height: auto;
+  max-height: calc(100vh - 96px);
   overflow: hidden;
   border: 1px solid #cfc8c3;
   border-radius: 12px;
@@ -285,7 +286,7 @@ textarea {
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  padding: 20px 24px 18px;
+  padding: 14px 24px;
   border-bottom: 1px solid #ddd7d2;
   background: #fff;
 }
@@ -297,7 +298,7 @@ textarea {
 
 .randomCardHeader span {
   color: #847d78;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.18em;
 }
@@ -308,20 +309,78 @@ textarea {
 }
 
 .randomCardHeader h2 {
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1.15;
 }
 
 .randomCardHeader p {
   color: #6f6864;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .randomCardPreview {
   min-height: 0;
-  padding: 20px 22px 8px;
+  padding: 16px;
   overflow: auto;
+}
+
+.randomCardPreview .guidePreviewMasonry {
+  width: 100%;
+  height: auto;
+  column-count: 3;
+  column-gap: 14px;
+}
+
+.randomCardPreview .guidePreviewCard {
+  display: inline-grid;
+  align-content: start;
+  gap: 8px;
+  width: 100%;
+  height: auto;
+  margin: 0 0 14px;
+  padding: 13px 15px;
+  overflow: visible;
+  break-inside: avoid;
+}
+
+.randomCardPreview .guidePreviewCard > header {
+  gap: 3px;
+  padding-bottom: 9px;
+}
+
+.randomCardPreview .guidePreviewCard header span {
+  font-size: 13px;
+}
+
+.randomCardPreview .guidePreviewCard header h3 {
+  font-size: 24px;
+  line-height: 1.12;
+}
+
+.randomCardPreview .guidePreviewFields {
+  align-content: start;
+  gap: 7px;
+}
+
+.randomCardPreview .guidePreviewField {
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  padding-bottom: 7px;
+}
+
+.randomCardPreview .guidePreviewField span {
+  padding-top: 1px;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.randomCardPreview .guidePreviewField strong {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: pre-line;
 }
 
 .randomCardActions {
@@ -329,7 +388,7 @@ textarea {
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  padding: 14px 22px;
+  padding: 10px 18px;
   border-top: 1px solid #ddd7d2;
   background: #fff;
 }
@@ -379,6 +438,7 @@ textarea {
   }
 
   .randomCardModal {
+    height: auto;
     max-height: calc(100vh - 20px);
   }
 
@@ -391,6 +451,18 @@ textarea {
 
   .randomCardPreview {
     padding: 14px 14px 4px;
+    overflow: auto;
+  }
+
+  .randomCardPreview .guidePreviewMasonry {
+    height: auto;
+    column-count: 1;
+  }
+
+  .randomCardPreview .guidePreviewCard {
+    height: auto;
+    margin-bottom: 10px;
+    overflow: visible;
   }
 
   .randomCardActions {
@@ -2636,6 +2708,50 @@ textarea {
   white-space: pre-line;
 }
 
+.guideFateChoose,
+.guideFateChosen button {
+  justify-self: start;
+  padding: 7px 12px;
+  border: 1px solid #16864d;
+  border-radius: 6px;
+  background: #edf7f1;
+  color: #145b32;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.guideFateChoose:hover,
+.guideFateChoose:focus-visible,
+.guideFateChosen button:hover,
+.guideFateChosen button:focus-visible {
+  background: #16864d;
+  color: #fff;
+  outline: 0;
+}
+
+.guideFateChosen {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  color: #2f2a29;
+  font-size: 14px;
+}
+
+.guideFateChosen > span {
+  color: #706a67;
+}
+
+.guideFateChosen > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .guidePreviewMasonry {
   column-count: 3;
   column-gap: 14px;
@@ -2682,6 +2798,7 @@ textarea {
   font-size: 18px;
   line-height: 1.35;
   overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 .guidePreviewSections small {
@@ -5761,6 +5878,7 @@ body {
 }
 
 .pdfTableRow > div {
+  align-items: center;
   justify-content: flex-start;
   overflow: hidden;
   font-size: 14px;
@@ -6374,8 +6492,11 @@ body {
 
 .breakthroughResult {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
   border-left: 2px solid #ececec;
+  overflow: hidden;
 }
 
 .resultPrimary,
@@ -6391,7 +6512,11 @@ body {
 
 .resultPrimary,
 .resultChecks {
-  padding: 22px;
+  padding: 14px 16px;
+}
+
+.resultPrimary {
+  line-height: 1.5;
 }
 
 .breakthroughOptionHint {
@@ -6403,9 +6528,17 @@ body {
 
 .resultChecks {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  place-items: center start;
-  gap: 8px 16px;
+  align-content: center;
+  justify-items: stretch;
+  gap: 8px 12px;
+  min-height: 0;
   text-align: left;
+}
+
+.resultChecks .pdfCheckLine {
+  width: 100%;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 @media screen {
