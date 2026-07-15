@@ -430,6 +430,13 @@ function uniqueCards(cards) {
   });
 }
 
+function getLearnedMethodNames(current, upgradeCards = {}) {
+  return [
+    current?.method?.name,
+    ...(upgradeCards?.extraMethods || []).map((method) => method?.name),
+  ].filter(Boolean);
+}
+
 function incrementTextNumber(value, amount = 1) {
   const current = String(value || '').match(/[+-]?\d+/)?.[0];
   return String((current ? Number(current) : 0) + amount);
@@ -1525,110 +1532,136 @@ function PageTwo() {
 }
 
 function PageThree() {
+  const { current, upgradeCards } = useSheet();
   const formationFeatureRows = ['固定特征壹', '固定特征贰', '临时特征壹', '临时特征贰', '临时特征叁', '临时特征肆'];
   const followerMoveRows = ['普攻', '初始神通', '神通壹', '神通贰', '神通叁', '秘法壹'];
+  const learnedMethodNames = getLearnedMethodNames(current, upgradeCards);
+  const hasFormationMethod = learnedMethodNames.includes('阵修');
+  const hasBeastMethod = learnedMethodNames.includes('兽修');
 
   return (
     <div className="sheet pdfSheet">
       <PdfSheetHeader />
       <main className="pdfPageBody pdfThreeGrid">
-        <section className="pdfBlock formationBasics">
-          <div className="pdfTableTitle">阵法·基础信息</div>
-          <div className="formLine"><span>阵法名称</span><PdfTextInput field="formationName" label="阵法名称" /></div>
-          <div className="formLine"><span>检定加值</span><PdfTextInput field="formationBonus" label="阵法检定加值" /></div>
-          <div className="formLine split">
-            <span>护阵难度</span><EditableFormulaCell prefix="9+【" field="formationGuardDifficulty" ariaLabel="护阵难度加值" />
-            <span>破阵难度</span><EditableFormulaCell prefix="10+【" field="formationBreakDifficulty" ariaLabel="破阵难度加值" />
-          </div>
-          <div className="formationLife">
-            <span>破阵命盘</span>
+        {hasFormationMethod ? (
+          <>
+            <section className="pdfBlock formationBasics">
+              <div className="pdfTableTitle">阵法·基础信息</div>
+              <div className="formLine"><span>阵法名称</span><PdfTextInput field="formationName" label="阵法名称" /></div>
+              <div className="formLine"><span>检定加值</span><PdfTextInput field="formationBonus" label="阵法检定加值" /></div>
+              <div className="formLine split">
+                <span>护阵难度</span><EditableFormulaCell prefix="9+【" field="formationGuardDifficulty" ariaLabel="护阵难度加值" />
+                <span>破阵难度</span><EditableFormulaCell prefix="10+【" field="formationBreakDifficulty" ariaLabel="破阵难度加值" />
+              </div>
+              <div className="formationLife">
+                <span>破阵命盘</span>
+                <div>
+                  <PdfClickableMarks solid={4} ghost={2} label="破阵命盘" groupId="p3-formation-break-track" />
+                  <p>当破阵命盘被对方推进后，所有的临时特征会暂时失效</p>
+                  <p>你可以通过推进动作将破阵命盘独立刻度擦除，并重新将所有临时特征激活</p>
+                </div>
+              </div>
+              <EditableFeatureTable
+                rows={formationFeatureRows}
+                namePrefix="formationFeatureName"
+                effectPrefix="formationFeatureEffect"
+              />
+            </section>
+
+            <PdfTable title="特征库" rows={1} className="plainBlock traitLibrary">
+              <div className="emptyLarge" />
+            </PdfTable>
+
+            <section className="pdfBlock upgradeBlock">
+              <div className="pdfTableTitle">阵法升级</div>
+              <div className="upgradeIntro">当你拥有阵法后<br />你每次境界提升时<br />都可以标记一项进行升级</div>
+              <div className="upgradeChecks">
+                <PdfClickableCheck id="p3-formation-upgrade-reinforce" label="加固阵法 - 破阵命盘刻度 +1" double />
+                <PdfClickableCheck id="p3-formation-upgrade-trap" label="增加机关 - 破阵难度 +1" />
+                <PdfClickableCheck id="p3-formation-upgrade-study" label="修习阵法 - 护阵难度 +1" />
+                <PdfClickableCheck id="p3-formation-upgrade-backlash" label="阵法反噬 - 当对方破阵命盘未推进成功时，可对其触发一个临时特征（需标记 2 次进行升级）" double />
+                <PdfClickableCheck id="p3-formation-upgrade-repair" label="阵法修复 - 轮次结束时，破阵命盘会自动擦除 1 格（需标记 2 次进行升级）" double />
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className="pdfBlock methodExclusiveBlank methodExclusiveBlankFormation">
             <div>
-              <PdfMarks solid={4} ghost={2} />
-              <p>当破阵命盘被对方推进后，所有的临时特征会暂时失效</p>
-              <p>你可以通过推进动作将破阵命盘独立刻度擦除，并重新将所有临时特征激活</p>
+              <strong>阵修专属页面</strong>
+              <span>修习「阵修」后显示阵法信息、特征库与阵法升级。</span>
             </div>
-          </div>
-          <EditableFeatureTable
-            rows={formationFeatureRows}
-            namePrefix="formationFeatureName"
-            effectPrefix="formationFeatureEffect"
-          />
-        </section>
+          </section>
+        )}
 
-        <PdfTable title="特征库" rows={1} className="plainBlock traitLibrary">
-          <div className="emptyLarge" />
-        </PdfTable>
-
-        <section className="pdfBlock upgradeBlock">
-          <div className="pdfTableTitle">阵法升级</div>
-          <div className="upgradeIntro">当你拥有阵法后<br />你每次境界提升时<br />都可以标记一项进行升级</div>
-          <div className="upgradeChecks">
-            <PdfClickableCheck id="p3-formation-upgrade-reinforce" label="加固阵法 - 破阵命盘刻度 +1" double />
-            <PdfClickableCheck id="p3-formation-upgrade-trap" label="增加机关 - 破阵难度 +1" />
-            <PdfClickableCheck id="p3-formation-upgrade-study" label="修习阵法 - 护阵难度 +1" />
-            <PdfClickableCheck id="p3-formation-upgrade-backlash" label="阵法反噬 - 当对方破阵命盘未推进成功时，可对其触发一个临时特征（需标记 2 次进行升级）" double />
-            <PdfClickableCheck id="p3-formation-upgrade-repair" label="阵法修复 - 轮次结束时，破阵命盘会自动擦除 1 格（需标记 2 次进行升级）" double />
-          </div>
-        </section>
-
-        <section className="pdfBlock followerBasics">
-          <div className="pdfTableTitle">随从·基础信息</div>
-          <div className="formLine"><span>随从名称</span><PdfTextInput field="followerName" label="随从名称" /></div>
-          <div className="formLine"><span>检定加值</span><EditableFormulaCell prefix="2+【" field="followerBonus" ariaLabel="随从检定加值" /></div>
-          <div className="formLine split wide">
-            <span>种类</span>
-            <PdfClickableCheck id="p3-follower-kind-beast" label="灵兽（血量格扣除完后会对主人造成一次中度伤害）" />
-            <PdfClickableCheck id="p3-follower-kind-puppet" label="傀儡（血量格扣除完时会扣除主人 1 灵气格）" />
-          </div>
-          <div className="formLine"><span>正常血量</span><PdfClickableMarks label="正常血量" groupId="p3-follower-normal-hp" /></div>
-          <div className="formLine"><span>险境血量</span><PdfClickableMarks label="险境血量" groupId="p3-follower-danger-hp" /></div>
-          <div className="thresholdBand">
-            {['肉体伤害阈值', '神魂伤害阈值'].map((label) => (
-              <div key={label}>
-                <span>{label}</span>
-                <b>无伤害</b><em>轻伤 <FormulaCell value="5+【 】" /></em><b>1 血量格</b>
-                <em>中伤 <FormulaCell value="7+【 】" /></em><b>2 血量格</b>
-                <em>重伤 <FormulaCell value="11+【 】" /></em><b>3 血量格</b>
+        {hasBeastMethod ? (
+          <>
+            <section className="pdfBlock followerBasics">
+              <div className="pdfTableTitle">随从·基础信息</div>
+              <div className="formLine"><span>随从名称</span><PdfTextInput field="followerName" label="随从名称" /></div>
+              <div className="formLine"><span>检定加值</span><EditableFormulaCell prefix="2+【" field="followerBonus" ariaLabel="随从检定加值" /></div>
+              <div className="formLine split wide">
+                <span>种类</span>
+                <PdfClickableCheck id="p3-follower-kind-beast" label="灵兽（血量格扣除完后会对主人造成一次中度伤害）" />
+                <PdfClickableCheck id="p3-follower-kind-puppet" label="傀儡（血量格扣除完时会扣除主人 1 灵气格）" />
               </div>
-            ))}
-          </div>
-          <EditableFeatureTable
-            rows={followerMoveRows}
-            namePrefix="followerMoveName"
-            effectPrefix="followerMoveEffect"
-            className="followerMoves"
-          />
-        </section>
-
-        <section className="pdfBlock followerUpgrade">
-          <div className="pdfTableTitle">随从升级</div>
-          <div className="upgradeIntro">当你拥有随从后<br />你每次境界提升时<br />都可以标记一项进行升级</div>
-          <div className="upgradeChecks twoCol">
-            <PdfClickableCheck id="p3-follower-upgrade-hp" label="血量格 +1" double />
-            <PdfClickableCheck id="p3-follower-upgrade-counter" label="获得 1 拆招次数（无需消耗灵气）" />
-            <PdfClickableCheck id="p3-follower-upgrade-body" label="肉体中伤与重伤阈值 +1" />
-            <PdfClickableCheck id="p3-follower-upgrade-guard" label="护主 - 当你首次血量归零时，灵兽会保护你" />
-            <PdfClickableCheck id="p3-follower-upgrade-soul" label="神魂中伤与重伤阈值 +1" />
-            <PdfClickableCheck id="p3-follower-upgrade-rest" label="长休时，与灵兽玩耍交流，并获得 1 辐缘点" />
-            <PdfClickableCheck id="p3-follower-upgrade-bonus" label="检定值 +1" />
-          </div>
-        </section>
-
-        <section className="pdfBlock bloodlineBlock">
-          <div className="pdfTableTitle">灵兽血脉</div>
-          <div className="bloodlineNote">你的兽修精进时<br />灵兽的血脉就会进行一次血脉升级<br />创建你的本命灵兽时<br />选择血脉并获取增益</div>
-          <div className="bloodlineTable">
-            <div><span /><b>名称</b><b>初始能力</b><b>进阶能力</b></div>
-            {['凶杀血脉', '灵法血脉', '铁骨血脉', '愈灵血脉', '缚影血脉', '追风血脉'].map((name, index) => (
-              <div key={name}>
-                <PdfClickableCheck id={`p3-bloodline-${index}`} label="" />
-                <span>{name}</span>
-                <span>{['所有伤害 +1', '首次使用神通不扣除主人灵气格', '血量格 +1', '习得神通 - 疗愈', '习得神通 - 缚身', '在一个场景中一次，可携带主人进行一次远距离移动'][index]}</span>
-                <span>{['具有优势时，破置值 -1', '可以从道源神通中学习一个', '首次受到的中度伤害无效', '退场时主人不会受到伤害', '对具有异常状态的敌人检定具有优势', '不受缓速影响'][index]}</span>
+              <div className="formLine"><span>正常血量</span><PdfClickableMarks label="正常血量" groupId="p3-follower-normal-hp" /></div>
+              <div className="formLine"><span>险境血量</span><PdfClickableMarks label="险境血量" groupId="p3-follower-danger-hp" /></div>
+              <div className="thresholdBand">
+                {['肉体伤害阈值', '神魂伤害阈值'].map((label) => (
+                  <div key={label}>
+                    <span>{label}</span>
+                    <b>无伤害</b><em>轻伤 <FormulaCell value="5+【 】" /></em><b>1 血量格</b>
+                    <em>中伤 <FormulaCell value="7+【 】" /></em><b>2 血量格</b>
+                    <em>重伤 <FormulaCell value="11+【 】" /></em><b>3 血量格</b>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
+              <EditableFeatureTable
+                rows={followerMoveRows}
+                namePrefix="followerMoveName"
+                effectPrefix="followerMoveEffect"
+                className="followerMoves"
+              />
+            </section>
+
+            <section className="pdfBlock followerUpgrade">
+              <div className="pdfTableTitle">随从升级</div>
+              <div className="upgradeIntro">当你拥有随从后<br />你每次境界提升时<br />都可以标记一项进行升级</div>
+              <div className="upgradeChecks twoCol">
+                <PdfClickableCheck id="p3-follower-upgrade-hp" label="血量格 +1" double />
+                <PdfClickableCheck id="p3-follower-upgrade-counter" label="获得 1 拆招次数（无需消耗灵气）" />
+                <PdfClickableCheck id="p3-follower-upgrade-body" label="肉体中伤与重伤阈值 +1" />
+                <PdfClickableCheck id="p3-follower-upgrade-guard" label="护主 - 当你首次血量归零时，灵兽会保护你" />
+                <PdfClickableCheck id="p3-follower-upgrade-soul" label="神魂中伤与重伤阈值 +1" />
+                <PdfClickableCheck id="p3-follower-upgrade-rest" label="长休时，与灵兽玩耍交流，并获得 1 辐缘点" />
+                <PdfClickableCheck id="p3-follower-upgrade-bonus" label="检定值 +1" />
+              </div>
+            </section>
+
+            <section className="pdfBlock bloodlineBlock">
+              <div className="pdfTableTitle">灵兽血脉</div>
+              <div className="bloodlineNote">你的兽修精进时<br />灵兽的血脉就会进行一次血脉升级<br />创建你的本命灵兽时<br />选择血脉并获取增益</div>
+              <div className="bloodlineTable">
+                <div><span /><b>名称</b><b>初始能力</b><b>进阶能力</b></div>
+                {['凶杀血脉', '灵法血脉', '铁骨血脉', '愈灵血脉', '缚影血脉', '追风血脉'].map((name, index) => (
+                  <div key={name}>
+                    <PdfClickableCheck id={`p3-bloodline-${index}`} label="" />
+                    <span>{name}</span>
+                    <span>{['所有伤害 +1', '首次使用神通不扣除主人灵气格', '血量格 +1', '习得神通 - 疗愈', '习得神通 - 缚身', '在一个场景中一次，可携带主人进行一次远距离移动'][index]}</span>
+                    <span>{['具有优势时，破置值 -1', '可以从道源神通中学习一个', '首次受到的中度伤害无效', '退场时主人不会受到伤害', '对具有异常状态的敌人检定具有优势', '不受缓速影响'][index]}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className="pdfBlock methodExclusiveBlank methodExclusiveBlankBeast">
+            <div>
+              <strong>兽修专属页面</strong>
+              <span>修习「兽修」后显示本命灵兽、随从升级与灵兽血脉。</span>
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
@@ -2940,8 +2973,8 @@ function getGuidePreviewCards(values) {
         { label: '命格', value: selected.fateTitle || '未选择' },
         { label: '数值效果', value: fateDetails.numericEffects.join('；') },
         { label: '天赋 / 天谴', value: fateDetails.talentRule },
-        { label: '结果', value: drawnTalentSummary },
-        { label: '详情', value: drawnTalentDetails },
+        { label: '抽取结果', value: drawnTalentSummary },
+        { label: '抽取详情', value: drawnTalentDetails },
       ],
     },
   ];
