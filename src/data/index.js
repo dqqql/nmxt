@@ -15,13 +15,23 @@ import attributes from './attributes.json';
 import spellGroupsData from './spellGroups.json';
 import resourcesData from './resources.json';
 import questionnaire from './questionnaire/questions.json';
+import { methodQuestionBank, sourceQuestionBank } from './specialQuestions';
 
 // —— 资源库五大分类 ——
 export const realmOptions = realms;        // 境界
 export const originOptions = origins;       // 出身
-export const sourceOptions = sources;       // 道源
-export const methodOptions = methods;       // 法门
-export const daoOptions = daos;             // 大道
+export const sourceOptions = sources.map((entry) => ({
+  ...entry,
+  questions: sourceQuestionBank[entry.name] || entry.questions || [],
+}));       // 道源
+export const methodOptions = methods.map((entry) => ({
+  ...entry,
+  questions: methodQuestionBank[entry.name] || entry.questions || [],
+}));       // 法门
+export const daoOptions = daos.map((entry) => ({
+  ...entry,
+  questions: entry.questions || [],
+}));             // 大道
 
 // —— 天赋 / 天谴 ——
 export const talentPool = talents.talentPool;

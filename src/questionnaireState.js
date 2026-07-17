@@ -109,5 +109,6 @@ export function createQuestionnaireCardState({
     attributes,
     selectedFateTitle,
     drawnTalents: selectedPlan && drawPlan ? drawPlan(selectedPlan) : [],
+    specialQuestionnaires: result?.specialQuestionnaires || null,
   };
 }

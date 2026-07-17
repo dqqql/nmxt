@@ -11,6 +11,7 @@ const tierMeta = {
   '凡': { label: '凡阶' },
   '地': { label: '地阶' },
   '天': { label: '天阶' },
+  '仙': { label: '仙阶' },
 };
 
 const plan = {
@@ -22,9 +23,9 @@ const plan = {
 };
 
 describe('fate manual selection policy', () => {
-  it('uses plain-tier talents for every fate path in manual selection', () => {
+  it('uses plain-tier talents only for forward fate manual selection', () => {
     expect(usesPlainManualTalents('天命壹')).toBe(true);
-    expect(usesPlainManualTalents('逆命壹')).toBe(true);
+    expect(usesPlainManualTalents('逆命壹')).toBe(false);
     expect(usesPlainManualTalents('平平无奇')).toBe(false);
     expect(usesPlainManualTalents('')).toBe(false);
 
@@ -38,7 +39,25 @@ describe('fate manual selection policy', () => {
     ]);
   });
 
-  it.each(['逆命贰', '天命贰'])('maps talents from %s to plain tier while preserving punishment tier', (fateTitle) => {
+  it('keeps configured reverse fate talent tiers during manual selection', () => {
+    const reversePlan = {
+      label: '一仙阶天赋',
+      items: [
+        { kind: 'talent', tier: '仙', count: 1 },
+      ],
+    };
+    const [talentSlot] = getFatePlanSlots(reversePlan, {
+      fateTitle: '逆命叁',
+      manual: true,
+      tierMeta,
+    });
+
+    expect(talentSlot.tier).toBe('仙');
+    expect(talentSlot.label).toBe('仙阶天赋');
+    expect(formatManualFatePlanLabel(reversePlan, '逆命叁', tierMeta)).toBe('一仙阶天赋');
+  });
+
+  it('maps forward-fate talents to plain tier while preserving punishment tier', () => {
     const tierPlan = {
       label: '测试方案',
       items: [
@@ -47,7 +66,7 @@ describe('fate manual selection policy', () => {
       ],
     };
     const [talentSlot, punishmentSlot] = getFatePlanSlots(tierPlan, {
-      fateTitle,
+      fateTitle: '天命贰',
       manual: true,
       tierMeta,
     });
@@ -80,7 +99,7 @@ describe('fate manual selection policy', () => {
     ]);
   });
 
-  it('keeps the original plan untouched for draw mode while inverse manual selection becomes plain tier', () => {
+  it('keeps the original plan untouched for draw mode while reverse manual selection keeps configured tier', () => {
     const original = structuredClone(plan);
 
     expect(getFatePlanSlots(plan, {
@@ -95,7 +114,7 @@ describe('fate manual selection policy', () => {
       fateTitle: '逆命壹',
       manual: true,
       tierMeta,
-    })[0].tier).toBe('凡');
+    })[0].tier).toBe('地');
     expect(plan).toEqual(original);
   });
 
@@ -114,13 +133,31 @@ describe('fate manual selection policy', () => {
     expect(formatManualFatePlanLabel({
       label: '一天阶天赋',
       items: [{ kind: 'talent', tier: '天', count: 1 }],
-    }, '逆命贰', tierMeta)).toBe('一凡阶天赋');
+    }, '天命贰', tierMeta)).toBe('一凡阶天赋');
     expect(getPoolForFateSlot(slots[0], pools)).toEqual([{ name: '凡阶天赋' }]);
     expect(getPoolForFateSlot(slots[1], pools)).toEqual([{ name: '地阶天谴' }]);
     expect(createManualFateEntry(slots[0], { name: '手选天赋' })).toEqual({
       kind: 'talent',
       tier: '凡',
       name: '手选天赋',
+    });
+
+    const reverseSlots = getFatePlanSlots({
+      label: '一天阶天赋',
+      items: [{ kind: 'talent', tier: '天', count: 1 }],
+    }, {
+      fateTitle: '逆命贰',
+      manual: true,
+      tierMeta,
+    });
+    expect(formatManualFatePlanLabel({
+      label: '一天阶天赋',
+      items: [{ kind: 'talent', tier: '天', count: 1 }],
+    }, '逆命贰', tierMeta)).toBe('一天阶天赋');
+    expect(createManualFateEntry(reverseSlots[0], { name: '逆命自选天赋' })).toEqual({
+      kind: 'talent',
+      tier: '天',
+      name: '逆命自选天赋',
     });
   });
 });

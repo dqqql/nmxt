@@ -12,148 +12,671 @@
       "options": [
         {
           "id": "fresh",
-          "label": "刚入仙门，仍在摸索灵气流转",
-          "targets": ["练气前期", "练气中期"]
+          "label": "刚入仙门的练气前期",
+          "targets": ["练气前期"]
         },
         {
           "id": "settled",
-          "label": "已有根基，能独立处理多数危机",
-          "targets": ["练气后期", "筑基前期"]
+          "label": "已有根基的练气中期",
+          "targets": ["练气中期"]
         },
         {
           "id": "seasoned",
-          "label": "道途已有名声，举手投足皆有威势",
-          "targets": ["筑基中期", "筑基后期", "金丹期"]
+          "label": "已站稳跟脚时的练气后期",
+          "targets": ["练气后期"]
         }
       ]
     },
     {
-      "id": "origin-background",
-      "title": "你的来处更接近哪一种？",
+      "id": "origin-how-started",
+      "title": "你如何踏上仙途？",
       "type": "single",
       "required": true,
       "mapsTo": "origin",
       "options": [
         {
-          "id": "sect",
-          "label": "师承清楚，有宗门或家族依凭",
-          "targets": ["宗门弟子", "修真世族", "名门望族"]
+          "id": "family-secret",
+          "label": "长辈传下的家传秘籍",
+          "targets": ["将门世家", "修真世族", "名门望族", "商贾之后"]
         },
         {
-          "id": "ordinary",
-          "label": "从凡俗烟火中一步步走上仙路",
-          "targets": ["寒门学子", "书香门第", "商贾之后"]
+          "id": "sect-selection",
+          "label": "通过仙门选拔拜入山门",
+          "targets": ["宗门弟子"]
         },
         {
-          "id": "wandering",
-          "label": "命途漂泊，靠自己在乱世里活下来",
-          "targets": ["市井奇人", "无名弃儿", "流民之后", "将门世家"]
+          "id": "hidden-cave",
+          "label": "意外坠入洞府，捡到一枚玉简",
+          "targets": ["寒门学子", "无名弃儿", "流民之后"]
+        },
+        {
+          "id": "street-manual",
+          "label": "在市井书摊买到奇怪秘籍，照着模样引气入体",
+          "targets": ["书香门第", "市井奇人"]
         }
       ]
     },
     {
-      "id": "source-instinct",
-      "title": "冲突逼近时，你最本能的反应是什么？",
+      "id": "origin-best-skill",
+      "title": "你最拿手的本领是？",
+      "type": "single",
+      "required": true,
+      "mapsTo": "origin",
+      "options": [
+        {
+          "id": "read-people",
+          "label": "几句套话就能摸清对方底细",
+          "targets": ["名门望族", "修真世族", "市井奇人", "商贾之后"]
+        },
+        {
+          "id": "read-books",
+          "label": "饱读诗书，熟知各地风土。",
+          "targets": ["书香门第", "寒门学子"]
+        },
+        {
+          "id": "survive-wild",
+          "label": "荒野求生，辨百草、无声追踪。",
+          "targets": ["流民之后", "无名弃儿", "将门世家"]
+        },
+        {
+          "id": "close-combat",
+          "label": "练过拳脚，三五人近不了身",
+          "targets": ["将门世家", "市井奇人", "宗门弟子"]
+        }
+      ]
+    },
+    {
+      "id": "origin-past-life-view",
+      "title": "你对踏入仙途前的人生看法是？",
+      "type": "single",
+      "required": true,
+      "mapsTo": "origin",
+      "options": [
+        {
+          "id": "proud",
+          "label": "骄傲：我的姓氏就是金字招牌。",
+          "targets": ["名门望族", "修真世族", "将门世家"]
+        },
+        {
+          "id": "calm",
+          "label": "淡然：老老实实过日子，运气好走上仙途。",
+          "targets": ["书香门第", "宗门弟子", "商贾之后"]
+        },
+        {
+          "id": "bitter",
+          "label": "苦涩：不愿回忆过去的生活。",
+          "targets": ["寒门学子", "无名弃儿", "流民之后"]
+        },
+        {
+          "id": "free",
+          "label": "洒脱：无论是否入仙门，仍是今朝有酒今朝醉。",
+          "targets": ["商贾之后", "市井奇人"]
+        }
+      ]
+    },
+    {
+      "id": "source-face-strong-enemy",
+      "title": "面对强敌，你第一时间想到的是？",
       "type": "multiple",
       "required": true,
       "mapsTo": "source",
       "options": [
         {
-          "id": "endure",
-          "label": "稳住阵脚，等局势重新生长",
-          "targets": ["木道源", "土道源"]
-        },
-        {
-          "id": "strike",
-          "label": "抢先出手，用锋芒或烈焰打开缺口",
+          "id": "break-through",
+          "label": "正面击溃，用最快的速度结束战斗。",
           "targets": ["金道源", "火道源", "雷道源"]
         },
         {
-          "id": "flow",
-          "label": "顺势变化，诱导对手露出破绽",
-          "targets": ["水道源", "时空道源", "幻梦道源"]
+          "id": "hold-line",
+          "label": "稳住阵脚，先防守再找破绽反击。",
+          "targets": ["土道源", "水道源"]
         },
         {
-          "id": "rule",
-          "label": "借助更高秩序或古老力量压制局面",
-          "targets": ["星宿道源", "律法道源", "古兽道源", "圣灵道源"]
+          "id": "wear-down",
+          "label": "迂回牵制，削弱对手后再下手。",
+          "targets": ["木道源", "律法道源", "幻梦道源"]
+        },
+        {
+          "id": "use-environment",
+          "label": "观察环境，寻找周围环境的突破口。",
+          "targets": ["星宿道源", "时空道源", "古兽道源", "圣灵道源"]
         }
       ]
     },
     {
-      "id": "method-style",
-      "title": "你更喜欢怎样使用力量？",
-      "type": "single",
+      "id": "source-power-expression",
+      "title": "作为修仙者，你的力量会以怎样的方式展现出来？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "source",
+      "options": [
+        {
+          "id": "explosive-force",
+          "label": "狂暴而直接的力量，势如破竹。",
+          "targets": ["金道源", "火道源", "雷道源", "土道源"]
+        },
+        {
+          "id": "fluid-change",
+          "label": "流动的变化之力，灵活多变。",
+          "targets": ["木道源", "水道源"]
+        },
+        {
+          "id": "abstract-rules",
+          "label": "抽象的规则之力，无处不在。",
+          "targets": ["时空道源", "律法道源", "星宿道源"]
+        },
+        {
+          "id": "avatars-beasts",
+          "label": "召唤化身与神兽，协同作战。",
+          "targets": ["幻梦道源", "古兽道源", "圣灵道源"]
+        }
+      ]
+    },
+    {
+      "id": "source-trapped-breakout",
+      "title": "被困在一处绝地时，你更倾向于用什么办法破局？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "source",
+      "options": [
+        {
+          "id": "blast-path",
+          "label": "强行轰出一条路，不信有破不开的墙。",
+          "targets": ["金道源", "火道源", "雷道源"]
+        },
+        {
+          "id": "find-gap",
+          "label": "耐心寻找生路，相信万物皆有缝隙。",
+          "targets": ["木道源", "水道源", "土道源"]
+        },
+        {
+          "id": "exploit-rule",
+          "label": "推演计算，找出绝地中的规则漏洞。",
+          "targets": ["时空道源", "律法道源", "星宿道源"]
+        },
+        {
+          "id": "call-help",
+          "label": "尝试沟通或召唤特殊的存在，看看有没有别的东西能帮忙。",
+          "targets": ["幻梦道源", "古兽道源", "圣灵道源"]
+        }
+      ]
+    },
+    {
+      "id": "source-team-role",
+      "title": "在修仙者的团队中，你更愿意承担什么角色？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "source",
+      "options": [
+        {
+          "id": "vanguard",
+          "label": "前锋，冲在最前面撕开敌人的阵线。",
+          "targets": ["金道源", "火道源", "雷道源", "古兽道源"]
+        },
+        {
+          "id": "shield",
+          "label": "后盾，保护队友、稳住局面。",
+          "targets": ["木道源", "土道源"]
+        },
+        {
+          "id": "support-control",
+          "label": "策应，游走支援、控制战场。",
+          "targets": ["水道源", "幻梦道源", "律法道源"]
+        },
+        {
+          "id": "strategist",
+          "label": "军师，洞察全局、指引方向。",
+          "targets": ["星宿道源", "时空道源", "圣灵道源"]
+        }
+      ]
+    },
+    {
+      "id": "source-power-essence",
+      "title": "你认为修仙者力量的本质是什么？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "source",
+      "options": [
+        {
+          "id": "destroy-rebuild",
+          "label": "毁灭与重塑，生死同归。",
+          "targets": ["金道源", "火道源", "雷道源"]
+        },
+        {
+          "id": "growth-cycle",
+          "label": "生长与循环，生生不息。",
+          "targets": ["木道源", "土道源", "水道源"]
+        },
+        {
+          "id": "order-law",
+          "label": "秩序与规律，世界运行皆有其法则。",
+          "targets": ["星宿道源", "时空道源", "律法道源"]
+        },
+        {
+          "id": "life-will",
+          "label": "生命与意志，每一个生灵都有力量。",
+          "targets": ["古兽道源", "幻梦道源", "圣灵道源"]
+        }
+      ]
+    },
+    {
+      "id": "source-worldly-style",
+      "title": "作为修仙者，你为人处世的方式是？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "source",
+      "options": [
+        {
+          "id": "strength-rules",
+          "label": "强者为尊，拳头大就是道理。",
+          "targets": ["金道源", "火道源", "雷道源", "古兽道源"]
+        },
+        {
+          "id": "yield-and-flow",
+          "label": "以柔克刚，顺势而为。",
+          "targets": ["木道源", "土道源", "水道源"]
+        },
+        {
+          "id": "follow-the-way",
+          "label": "万物皆有其道，循道而行。",
+          "targets": ["星宿道源", "时空道源", "律法道源"]
+        },
+        {
+          "id": "embrace-all",
+          "label": "世间万象，皆为心念所化，包容并收。",
+          "targets": ["幻梦道源", "圣灵道源"]
+        }
+      ]
+    },
+    {
+      "id": "method-conflict-style",
+      "title": "在战斗中，你更倾向于哪种方式解决冲突？",
+      "type": "multiple",
       "required": true,
       "mapsTo": "method",
       "options": [
         {
-          "id": "direct",
-          "label": "亲自上阵，以身体、剑或术法正面破局",
-          "targets": ["剑修", "体修", "法修"]
+          "id": "close-combat",
+          "label": "贴身短打，用速度和技巧取胜。",
+          "targets": ["剑修", "体修"]
         },
         {
-          "id": "subtle",
-          "label": "用神魂、符箓或阵法掌控节奏",
-          "targets": ["魂修", "符修", "阵修"]
+          "id": "ranged-spells",
+          "label": "远程施法，用大范围术法火力压制。",
+          "targets": ["法修", "符修", "阵修"]
         },
         {
-          "id": "companion",
-          "label": "依靠造物、灵兽或伙伴协同作战",
+          "id": "control-minions",
+          "label": "操控外物，让傀儡或灵兽协助作战。",
+          "targets": ["傀修", "兽修", "魂修"]
+        },
+        {
+          "id": "support-tools",
+          "label": "辅助队友，并用丹药与法宝扭转局势。",
+          "targets": ["丹修", "器修"]
+        }
+      ]
+    },
+    {
+      "id": "method-breakthrough-faith",
+      "title": "在绝境之中，你更相信什么能带你突出重围？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "method",
+      "options": [
+        {
+          "id": "sword-and-fist",
+          "label": "手中的剑和自己的拳头。",
+          "targets": ["剑修", "体修"]
+        },
+        {
+          "id": "spells-and-laws",
+          "label": "脑海中的术法和天地之理。",
+          "targets": ["法修", "阵修", "魂修"]
+        },
+        {
+          "id": "tools-and-materials",
+          "label": "手中的法宝与符箓材料。",
+          "targets": ["丹修", "器修", "符修"]
+        },
+        {
+          "id": "companions",
+          "label": "身边的灵兽傀儡等随从。",
           "targets": ["傀修", "兽修"]
         }
       ]
     },
     {
-      "id": "dao-pursuit",
-      "title": "你追求的大道更看重什么？",
+      "id": "method-leisure-time",
+      "title": "闲暇时间你会去做什么？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "method",
+      "options": [
+        {
+          "id": "train-blade-body",
+          "label": "练剑习武，一刻都不松懈。",
+          "targets": ["剑修", "体修"]
+        },
+        {
+          "id": "study-classics",
+          "label": "研读古籍，推演术法或阵法。",
+          "targets": ["法修", "阵修", "魂修"]
+        },
+        {
+          "id": "craft-and-refine",
+          "label": "鼓捣材料，炼丹、铸器或画符。",
+          "targets": ["丹修", "器修", "符修"]
+        },
+        {
+          "id": "care-companions",
+          "label": "和灵兽玩耍，或调试新的傀儡。",
+          "targets": ["傀修", "兽修"]
+        }
+      ]
+    },
+    {
+      "id": "method-overwhelming-opponent",
+      "title": "面对实力远超于你们的对手，你会怎么做？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "method",
+      "options": [
+        {
+          "id": "seek-opening",
+          "label": "迎难而上，用技巧和意志寻找胜机。",
+          "targets": ["剑修", "体修"]
+        },
+        {
+          "id": "kite-and-drain",
+          "label": "拉开距离，用术法和阵法消耗对手。",
+          "targets": ["法修", "阵修", "符修"]
+        },
+        {
+          "id": "bind-with-companions",
+          "label": "用傀儡或灵兽牵制，自己寻找破绽。",
+          "targets": ["傀修", "兽修"]
+        },
+        {
+          "id": "team-up",
+          "label": "辅助队友行动，与队友协作。",
+          "targets": ["丹修", "器修", "魂修"]
+        }
+      ]
+    },
+    {
+      "id": "method-team-role",
+      "title": "在队伍中，你认为你是怎样的角色？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "method",
+      "options": [
+        {
+          "id": "frontline-core",
+          "label": "迎难而上，破阵杀敌。",
+          "targets": ["剑修", "体修", "法修"]
+        },
+        {
+          "id": "tactical-core",
+          "label": "战术核心，布阵画符掌控战场。",
+          "targets": ["魂修", "阵修", "符修"]
+        },
+        {
+          "id": "logistics",
+          "label": "后勤保障，为大家提供恢复与辅助。",
+          "targets": ["丹修", "器修"]
+        },
+        {
+          "id": "summon-chaos",
+          "label": "与灵兽和傀儡一起攻击并扰乱战场。",
+          "targets": ["傀修", "兽修"]
+        }
+      ]
+    },
+    {
+      "id": "method-praise",
+      "title": "他人往往如何称赞你的强大？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "method",
+      "options": [
+        {
+          "id": "praise-martial",
+          "label": "它那剑招或武技真是漂亮！",
+          "targets": ["剑修", "体修"]
+        },
+        {
+          "id": "praise-spells",
+          "label": "它那术法神通真是层出不穷，出神入化！",
+          "targets": ["法修", "魂修", "阵修"]
+        },
+        {
+          "id": "praise-craft",
+          "label": "它做的东西品质上乘，得花不少功夫才能求得！",
+          "targets": ["丹修", "器修", "符修"]
+        },
+        {
+          "id": "praise-companions",
+          "label": "它与本命灵兽或傀儡的配合真是叹为观止！",
+          "targets": ["傀修", "兽修"]
+        }
+      ]
+    },
+    {
+      "id": "dao-bully-scene",
+      "title": "你亲眼看到一个弱者正在被强者欺凌，周围无人敢管。你会？",
       "type": "multiple",
       "required": true,
       "mapsTo": "dao",
       "options": [
         {
-          "id": "protect",
-          "label": "守护、信念与众生之间的牵连",
+          "id": "strike-first",
+          "label": "直接出手，先把强者打趴下再说对错。",
+          "targets": ["修罗之道", "霸王之道"]
+        },
+        {
+          "id": "intervene-carefully",
+          "label": "观察局势，找到最稳妥的方式介入，既不让自己陷进去，又能救下人。",
+          "targets": ["妙法之道", "制衡之道", "无情之道"]
+        },
+        {
+          "id": "protect-the-weak",
+          "label": "上前挡在弱者身前，哪怕自己也会受伤。",
+          "targets": ["护佑之道", "坚韧之道"]
+        },
+        {
+          "id": "teach-self-reliance",
+          "label": "事后私下找到弱者，给他一些自保的手段或人脉，让他以后能靠自己。",
+          "targets": ["香火之道", "红尘之道", "往生之道"]
+        }
+      ]
+    },
+    {
+      "id": "dao-old-enemy-redemption",
+      "title": "你发现曾经害你家破人亡的仇人，如今正在一座小镇上行善积德，深受百姓爱戴。你会？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "dao",
+      "options": [
+        {
+          "id": "expose-and-repay",
+          "label": "当众揭穿他的真面目，让他身败名裂，血债血偿。",
+          "targets": ["修罗之道", "霸王之道"]
+        },
+        {
+          "id": "investigate-repentance",
+          "label": "暗中调查他是否真心悔改，再决定如何处置。",
+          "targets": ["妙法之道", "制衡之道", "无情之道"]
+        },
+        {
+          "id": "let-go-watch",
+          "label": "放下仇恨，但暗中盯着他，防止他再次作恶。",
+          "targets": ["护佑之道", "坚韧之道"]
+        },
+        {
+          "id": "redeem-through-service",
+          "label": "利用他的人脉和资源，让他用余生赎罪，比杀了他更有价值。",
+          "targets": ["香火之道", "红尘之道", "往生之道"]
+        }
+      ]
+    },
+    {
+      "id": "dao-treasure-correct-person",
+      "title": "一位垂死的老人将一件足以改变天下的重宝托付给你，并叮嘱你将它送到正确的人手中。但你并不知道谁是“正确的人”。你会？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "dao",
+      "options": [
+        {
+          "id": "keep-it",
+          "label": "自己拿着，既然天意给了我，那就是我的东西。",
+          "targets": ["修罗之道", "霸王之道"]
+        },
+        {
+          "id": "research-owner",
+          "label": "仔细研究这件重宝的来历和用途，推算出它应该归属于谁。",
+          "targets": ["妙法之道", "制衡之道", "无情之道"]
+        },
+        {
+          "id": "consult-allies",
+          "label": "找到可信赖的伙伴一起商量，共同决定它的去向。",
           "targets": ["护佑之道", "香火之道", "红尘之道"]
         },
         {
-          "id": "overcome",
-          "label": "在战斗、苦难或霸道中越过极限",
-          "targets": ["修罗之道", "坚韧之道", "霸王之道"]
+          "id": "shoulder-it-alone",
+          "label": "先由自己背负这份因果，等看清局势后再决定交给谁。",
+          "targets": ["坚韧之道", "往生之道"]
+        }
+      ]
+    },
+    {
+      "id": "dao-evil-savior-child",
+      "title": "一位陌生人用自己的性命救了你的挚爱亲朋，但他本人却是一个臭名昭著的恶徒。临终前他求你照顾他的孩子。你会？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "dao",
+      "options": [
+        {
+          "id": "raise-the-child",
+          "label": "一码归一码，答应的事一定做到，把那孩子当成自己的孩子养大。",
+          "targets": ["修罗之道", "护佑之道", "坚韧之道"]
         },
         {
-          "id": "clarity",
-          "label": "冷静、制衡与对变化的精准把握",
-          "targets": ["无情之道", "制衡之道", "妙法之道"]
+          "id": "entrust-others",
+          "label": "把孩子交给可靠的人抚养，定期关注，但不会亲自卷入。",
+          "targets": ["妙法之道", "制衡之道", "无情之道"]
         },
         {
-          "id": "cycle",
-          "label": "生死轮转，理解终局并向死而生",
+          "id": "cultivate-for-future",
+          "label": "把孩子带在身边，用他的父辈人脉和资源培养他，让他将来为我所用。",
+          "targets": ["霸王之道", "香火之道", "红尘之道"]
+        },
+        {
+          "id": "test-the-child",
+          "label": "观察这个孩子是否继承了他父亲的劣根性，再决定如何对待。",
           "targets": ["往生之道"]
         }
       ]
     },
     {
+      "id": "dao-village-or-treasure",
+      "title": "你必须在一座无辜村庄和一件能让你修为大增的宝物之间做出选择。救村庄，宝物就会落入敌手；取宝物，村庄将被屠戮。你会？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "dao",
+      "options": [
+        {
+          "id": "save-village",
+          "label": "救村庄，修为可以慢慢修，人命没了就没了。",
+          "targets": ["红尘之道", "护佑之道", "坚韧之道"]
+        },
+        {
+          "id": "take-treasure",
+          "label": "取宝物，等我变强了，就能救更多的人。",
+          "targets": ["修罗之道", "霸王之道", "无情之道"]
+        },
+        {
+          "id": "try-both",
+          "label": "想办法两全，哪怕风险极大，也要试试能否既救人又夺宝。",
+          "targets": ["制衡之道", "妙法之道", "香火之道"]
+        },
+        {
+          "id": "set-the-trap",
+          "label": "让村庄自行避难，同时设下陷阱，利用宝物引诱敌人入局，一网打尽。",
+          "targets": ["往生之道"]
+        }
+      ]
+    },
+    {
+      "id": "dao-betrayed-partner",
+      "title": "你最信任的伙伴为了更大的利益背叛了你，多年后他跪在你面前忏悔，说他当时别无选择。你会？",
+      "type": "multiple",
+      "required": true,
+      "mapsTo": "dao",
+      "options": [
+        {
+          "id": "forgive-part",
+          "label": "原谅他，但从此分道扬镳，再无瓜葛。",
+          "targets": ["红尘之道", "护佑之道", "坚韧之道"]
+        },
+        {
+          "id": "ignore-and-leave",
+          "label": "不接受道歉，但也懒得报复，从此陌路。",
+          "targets": ["制衡之道", "无情之道"]
+        },
+        {
+          "id": "one-more-chance",
+          "label": "给他一次机会，但从此留一个心眼，信任不再完整。",
+          "targets": ["妙法之道", "香火之道"]
+        },
+        {
+          "id": "repay-betrayal",
+          "label": "以牙还牙，让他也尝尝被背叛的滋味。",
+          "targets": ["往生之道", "修罗之道", "霸王之道"]
+        }
+      ]
+    },
+    {
       "id": "fate-tendency",
-      "title": "你觉得命运对这名角色更像什么？",
+      "title": "你觉得这名角色的天命会如何呈现？",
       "type": "single",
       "required": true,
       "mapsTo": "fate",
       "options": [
         {
           "id": "plain",
-          "label": "平凡开局，未来靠自己一步步争取",
+          "label": "平凡开局，未来靠自己一步步争取。",
           "targets": ["平平无奇"]
         },
         {
-          "id": "favored",
-          "label": "天命垂青，但越强的馈赠越伴随代价",
-          "targets": ["天命壹", "天命贰", "天命叁"]
+          "id": "favored-one",
+          "label": "吉星高照：福缘深厚，但天谴加身。",
+          "targets": ["天命壹"]
         },
         {
-          "id": "defiant",
-          "label": "逆命而行，先被命运压低再翻身",
-          "targets": ["逆命壹", "逆命贰", "逆命叁"]
+          "id": "favored-two",
+          "label": "气运所钟：机缘不断，但因果索偿。",
+          "targets": ["天命贰"]
+        },
+        {
+          "id": "favored-three",
+          "label": "天命之子：万事顺遂，但命不由己。",
+          "targets": ["天命叁"]
+        },
+        {
+          "id": "defiant-one",
+          "label": "荆棘之途：气运不佳，但百炼成钢。",
+          "targets": ["逆命壹"]
+        },
+        {
+          "id": "defiant-two",
+          "label": "天弃之人：命无福分，但厚积薄发。",
+          "targets": ["逆命贰"]
+        },
+        {
+          "id": "defiant-three",
+          "label": "劫命孤星：劫难重重，但独行至强。",
+          "targets": ["逆命叁"]
         }
       ]
     }

@@ -11,6 +11,7 @@ import {
   validateGuideValues,
   applyGuideAttributeValue,
 } from './guidedCardState';
+import { createEmptySpecialQuestionnaireAnswers } from './specialQuestionnaireState';
 
 const options = {
   realm: [{ name: '练气前期' }, { name: '筑基前期' }],
@@ -47,6 +48,7 @@ describe('guided card state', () => {
         source: null,
         method: null,
         dao: null,
+        specialQuestionnaires: createEmptySpecialQuestionnaireAnswers(),
         fateValue: 0,
         drawnTalents: [],
         drawnTalentsFateValue: null,
@@ -157,6 +159,11 @@ describe('guided card state', () => {
         source: 1,
         method: 1,
         dao: 1,
+        specialQuestionnaires: {
+          source: { 火道源: ['火答1', '火答2', '火答3'] },
+          method: { 法修: ['法答1', '法答2', '法答3'] },
+          dao: { 修罗之道: ['道答1', '道答2', '道答3'] },
+        },
         fateValue: 2,
       },
     };
@@ -188,6 +195,11 @@ describe('guided card state', () => {
       belong: '青云观',
       daoHeart: '不负此生',
       identity: '外门弟子',
+    });
+    expect(result.snapshot.specialQuestionnaires).toEqual({
+      source: { 火道源: ['火答1', '火答2', '火答3'] },
+      method: { 法修: ['法答1', '法答2', '法答3'] },
+      dao: { 修罗之道: ['道答1', '道答2', '道答3'] },
     });
     expect(result.snapshot.attributes).toEqual({ 仙躯: '3', 身法: '2', 神魂: '1', 灵蕴: '0' });
     expect(result.snapshot.coreAttribute).toBe('仙躯');
@@ -245,6 +257,7 @@ describe('guided card state', () => {
     expect(next.values.method).toBe(1);
     expect(next.values.dao).toBe(0);
     expect(next.values.attributes).toEqual({ 仙躯: '0', 身法: '1', 神魂: '2', 灵蕴: '3' });
+    expect(next.values.specialQuestionnaires).toEqual(createEmptySpecialQuestionnaireAnswers());
     expect(next.values.fateValue).toBe(-1);
     expect(next.values.drawnTalents).toEqual([{ name: '平平无奇-随机结果', kind: 'talent' }]);
     expect(next.values.drawnTalentsFateValue).toBe(-1);

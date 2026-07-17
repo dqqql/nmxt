@@ -1,4 +1,9 @@
 import { fateValueToTitle } from './randomCardState';
+import {
+  createEmptySpecialQuestionnaireAnswers,
+  normalizeSpecialQuestionnaireAnswers,
+  pickSpecialQuestionnaireAnswersForSelections,
+} from './specialQuestionnaireState';
 
 export const GUIDED_DRAFTS_KEY = 'nmxt.guidedCard.drafts.v1';
 export const GUIDED_RESULT_KEY = 'nmxt.guidedCard.result.v1';
@@ -76,6 +81,7 @@ function normalizeGuideValues(values) {
     source: normalizeSelection(source.source),
     method: normalizeSelection(source.method),
     dao: normalizeSelection(source.dao),
+    specialQuestionnaires: normalizeSpecialQuestionnaireAnswers(source.specialQuestionnaires),
     fateValue: Number.isFinite(Number(source.fateValue)) ? Math.trunc(Number(source.fateValue)) : 0,
     drawnTalents: normalizeDrawnTalents(source.drawnTalents),
     drawnTalentsFateValue: normalizeFateValueMarker(source.drawnTalentsFateValue),
@@ -121,6 +127,7 @@ export function createEmptyGuideDraft() {
       source: null,
       method: null,
       dao: null,
+      specialQuestionnaires: createEmptySpecialQuestionnaireAnswers(),
       fateValue: 0,
       drawnTalents: [],
       drawnTalentsFateValue: null,
@@ -257,6 +264,9 @@ export function createGuidedCardResult({ draft, options, fateDraws, drawPlan, de
   const fateState = getFateState ? getFateState(selectedFateTitle) || {} : {};
   const realmIndex = normalizeSelectionIndex(defaultRealmIndex, options?.realm);
   const maxRealmIndexReached = realmIndex;
+  const normalizedSourceIndex = normalizeSelectionIndex(values.source, options?.source);
+  const normalizedMethodIndex = normalizeSelectionIndex(values.method, options?.method);
+  const normalizedDaoIndex = normalizeSelectionIndex(values.dao, options?.dao);
 
   return {
     version: 1,
@@ -265,11 +275,16 @@ export function createGuidedCardResult({ draft, options, fateDraws, drawPlan, de
       selections: {
         realm: realmIndex,
         origin: normalizeSelectionIndex(values.origin, options?.origin),
-        source: normalizeSelectionIndex(values.source, options?.source),
-        method: normalizeSelectionIndex(values.method, options?.method),
-        dao: normalizeSelectionIndex(values.dao, options?.dao),
+        source: normalizedSourceIndex,
+        method: normalizedMethodIndex,
+        dao: normalizedDaoIndex,
       },
       texts,
+      specialQuestionnaires: pickSpecialQuestionnaireAnswersForSelections(values.specialQuestionnaires, {
+        source: options?.source?.[normalizedSourceIndex]?.name,
+        method: options?.method?.[normalizedMethodIndex]?.name,
+        dao: options?.dao?.[normalizedDaoIndex]?.name,
+      }),
       attributes,
       coreAttribute: values.coreAttribute,
       selectedFateTitle,
@@ -307,6 +322,8 @@ export function mergeRandomCardIntoGuideDraft(draft, randomState) {
   if (isPlainObject(randomState?.attributes)) {
     nextValues.attributes = normalizeAttributes(randomState.attributes);
   }
+
+  nextValues.specialQuestionnaires = createEmptySpecialQuestionnaireAnswers();
 
   if (Number.isFinite(Number(randomState?.fateValue))) {
     nextValues.fateValue = Math.trunc(Number(randomState.fateValue));

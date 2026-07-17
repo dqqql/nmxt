@@ -217,6 +217,7 @@ describe('questionnaire state', () => {
     expect(state.drawnTalents).toEqual([
       { kind: 'talent', tier: '地', name: '厚土命格', effect: '测试效果' },
     ]);
+    expect(state.specialQuestionnaires).toBe(null);
   });
 
   it('resolves the bundled questionnaire config against the real data libraries', () => {
@@ -244,6 +245,33 @@ describe('questionnaire state', () => {
     expect(Object.keys(result.selections).sort()).toEqual(['dao', 'fate', 'method', 'origin', 'realm', 'source']);
     Object.entries(result.selections).forEach(([category, selectedName]) => {
       expect(realLibraries[category]).toContain(selectedName);
+    });
+  });
+
+  it('keeps the bundled questionnaire config structurally valid for the current schema', () => {
+    const questionIds = new Set();
+    const validTypes = new Set(['single', 'multiple']);
+    const validCategories = new Set(['realm', 'origin', 'source', 'method', 'dao', 'fate']);
+
+    questionnaireConfig.questions.forEach((question) => {
+      expect(question.id).toBeTypeOf('string');
+      expect(question.id.length).toBeGreaterThan(0);
+      expect(questionIds.has(question.id)).toBe(false);
+      questionIds.add(question.id);
+      expect(validTypes.has(question.type)).toBe(true);
+      expect(validCategories.has(question.mapsTo)).toBe(true);
+      expect(Array.isArray(question.options)).toBe(true);
+      expect(question.options.length).toBeGreaterThan(0);
+
+      const optionIds = new Set();
+      question.options.forEach((option) => {
+        expect(option.id).toBeTypeOf('string');
+        expect(option.id.length).toBeGreaterThan(0);
+        expect(optionIds.has(option.id)).toBe(false);
+        optionIds.add(option.id);
+        expect(Array.isArray(option.targets)).toBe(true);
+        expect(option.targets.length).toBeGreaterThan(0);
+      });
     });
   });
 });

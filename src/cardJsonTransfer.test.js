@@ -13,6 +13,21 @@ describe('card JSON transfer', () => {
     expect(result).toEqual({ version: 1, texts: { name: '云舒' } });
   });
 
+  it('preserves special questionnaire answers in card JSON', () => {
+    const snapshot = {
+      version: 1,
+      texts: { name: '云舒' },
+      specialQuestionnaires: {
+        source: { 金道源: ['答1', '答2', '答3'] },
+        method: {},
+        dao: {},
+      },
+    };
+
+    expect(JSON.parse(createCardJson(snapshot))).toEqual(snapshot);
+    expect(parseCardJson(JSON.stringify(snapshot))).toEqual(snapshot);
+  });
+
   it('rejects invalid JSON and non-object roots', () => {
     expect(() => parseCardJson('{')).toThrow('无法解析 JSON 文件');
     expect(() => parseCardJson('[]')).toThrow('不是有效的角色卡数据');

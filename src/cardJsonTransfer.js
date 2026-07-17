@@ -14,6 +14,7 @@ const CARD_SNAPSHOT_KEYS = [
   'breakthroughChoices',
   'breakthroughChoiceDetails',
   'maxRealmIndexReached',
+  'specialQuestionnaires',
 ];
 
 function getSnapshotFromJsonValue(value) {
