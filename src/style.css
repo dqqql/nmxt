@@ -725,6 +725,7 @@ textarea {
   font-size: 14px;
   font-weight: 700;
   line-height: 1.45;
+  white-space: pre-line;
 }
 
 .questionError {
@@ -6257,6 +6258,108 @@ body {
   font-size: 26px;
   font-weight: 900;
   line-height: 1;
+}
+
+.backgroundPrintGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 26px;
+}
+
+.backgroundQuestionnaireBlock {
+  display: grid;
+  grid-template-rows: 58px minmax(0, 1fr);
+  min-height: 0;
+  border: 6px solid var(--pdf-dark);
+  background: #fff;
+}
+
+.backgroundQuestionnaireBlock header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 0 18px;
+  border-bottom: 4px solid var(--pdf-dark);
+  background: #f2f2f2;
+}
+
+.backgroundQuestionnaireBlock header span {
+  flex: 0 0 auto;
+  color: #666;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.backgroundQuestionnaireBlock header strong {
+  min-width: 0;
+  color: #181818;
+  font-family: var(--font-serif);
+  font-size: 26px;
+  line-height: 1.1;
+  text-align: right;
+}
+
+.backgroundQuestionList {
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.backgroundQuestionItem {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  border-bottom: 3px solid var(--pdf-line);
+}
+
+.backgroundQuestionItem:last-child {
+  border-bottom: 0;
+}
+
+.backgroundQuestionText {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  padding: 14px 16px 10px;
+  border-bottom: 2px solid var(--pdf-line);
+  background: #fbfbfb;
+  color: #181818;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.backgroundQuestionText b {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--pdf-dark);
+  border-radius: 50%;
+  font-size: 15px;
+}
+
+.backgroundAnswerText {
+  min-height: 0;
+  padding: 14px 18px;
+  color: #2c2c2c;
+  font-size: 16px;
+  line-height: 1.65;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+
+.backgroundEmptyState {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 24px;
+  color: #777;
+  font-size: 17px;
+  line-height: 1.6;
+  text-align: center;
 }
 
 .pdfBlock {

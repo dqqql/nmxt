@@ -25,19 +25,32 @@ describe('requested content and layout modifications', () => {
     expect(mainSource).not.toContain("uniqueCards([...upgradeCards.daoMethods, ...upgradeCards.extraMethods])");
   });
 
-  it('gates the third-page formation, puppet, and beast sections by learned methods', () => {
+  it('gates the third-page formation, follower, and beast sections by learned methods and beast kind', () => {
     expect(mainSource).toContain('function getLearnedMethodNames(current, upgradeCards = {})');
     expect(mainSource).toContain("const hasFormationMethod = learnedMethodNames.includes('阵修');");
     expect(mainSource).toContain("const hasPuppetMethod = learnedMethodNames.includes('傀修');");
     expect(mainSource).toContain("const hasBeastMethod = learnedMethodNames.includes('兽修');");
+    expect(mainSource).toContain('const showsFollowerPanel = hasFormationMethod || hasPuppetMethod || hasBeastMethod;');
+    expect(mainSource).toContain("const hasSelectedBeastFollower = Boolean(markStates['p3-follower-kind-beast:0']?.filled);");
+    expect(mainSource).toContain('{showsFollowerPanel ? (');
+    expect(mainSource).toContain('{showsFollowerPanel && hasSelectedBeastFollower ? (');
     expect(mainSource).toContain('阵修专属页面');
-    expect(mainSource).toContain('傀修专属页面');
-    expect(mainSource).toContain('兽修专属页面');
+    expect(mainSource).toContain('随从专属页面');
+    expect(mainSource).toContain('灵兽专属页面');
     expect(ruleBody('.methodExclusiveBlankFormation')).toContain('grid-column: 1');
     expect(ruleBody('.methodExclusiveBlankPuppet')).toContain('grid-column: 2');
     expect(ruleBody('.methodExclusiveBlankPuppet')).toContain('grid-row: 1 / 3');
     expect(ruleBody('.methodExclusiveBlankBeast')).toContain('grid-column: 2');
     expect(ruleBody('.methodExclusiveBlankBeast')).toContain('grid-row: 3');
+  });
+
+  it('adds a printable character background page for source, method, and dao questionnaire answers', () => {
+    expect(mainSource).toContain("{ id: 'background', label: '角色背景' }");
+    expect(mainSource).toContain('function PageBackground()');
+    expect(mainSource).toContain('className="pdfPageBody backgroundPrintGrid"');
+    expect(mainSource).toContain('getSpecialQuestionnaireAnswersForOption(');
+    expect(mainSource).toContain('return <PageBackground />');
+    expect(ruleBody('.backgroundPrintGrid')).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
   });
 
   it('uses the shared interactive solid and ghost mark system for the formation break track', () => {

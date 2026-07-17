@@ -3,6 +3,7 @@ export const QUESTIONNAIRE_RESULT_KEY = 'nmxt.questionnaire.result.v1';
 
 const selectionCategories = ['realm', 'origin', 'source', 'method', 'dao'];
 const attributeTitles = ['仙躯', '身法', '神魂', '灵蕴'];
+const defaultQuestionnaireAttributes = Object.fromEntries(attributeTitles.map((title) => [title, '0']));
 
 export function createEmptyAnswers(questionnaire) {
   return Object.fromEntries((questionnaire?.questions || []).map((question) => [
@@ -35,6 +36,42 @@ function getFallback(category, libraries) {
   return libraries?.[category]?.[0] || '';
 }
 
+function normalizeAttributeSet(attributeSet) {
+  if (!attributeSet || typeof attributeSet !== 'object' || Array.isArray(attributeSet)) {
+    return null;
+  }
+
+  if (attributeSet.attributes && typeof attributeSet.attributes === 'object' && !Array.isArray(attributeSet.attributes)) {
+    const attributes = Object.fromEntries(attributeTitles.map((title) => [
+      title,
+      String(attributeSet.attributes[title] ?? ''),
+    ]));
+    const coreAttribute = attributeTitles.includes(attributeSet.coreAttribute)
+      ? attributeSet.coreAttribute
+      : attributeTitles.find((title) => attributes[title] === '3') || null;
+
+    if (!coreAttribute) return null;
+
+    return {
+      attributes,
+      coreAttribute,
+    };
+  }
+
+  const attributes = Object.fromEntries(attributeTitles.map((title) => [
+    title,
+    String(attributeSet[title] ?? ''),
+  ]));
+  const coreAttribute = attributeTitles.find((title) => attributes[title] === '3') || null;
+
+  if (!coreAttribute) return null;
+
+  return {
+    attributes,
+    coreAttribute,
+  };
+}
+
 export function resolveQuestionnaireResult({
   questionnaire,
   answers,
@@ -43,15 +80,20 @@ export function resolveQuestionnaireResult({
 }) {
   const votes = {};
   const order = {};
+  let selectedAttributeSet = null;
   let seen = 0;
 
   (questionnaire?.questions || []).forEach((question) => {
     const category = question.mapsTo;
-    if (!category || !libraries?.[category]) return;
-
     const selectedIds = new Set(getSelectedOptionIds(question, answers?.[question.id]));
     (question.options || []).forEach((option) => {
       if (!selectedIds.has(option.id)) return;
+
+      if (!selectedAttributeSet) {
+        selectedAttributeSet = normalizeAttributeSet(option.attributeSet);
+      }
+
+      if (!category || !libraries?.[category]) return;
 
       (option.targets || []).forEach((target) => {
         if (!libraries[category].includes(target)) return;
@@ -81,6 +123,7 @@ export function resolveQuestionnaireResult({
     version: 1,
     createdAt: now().toISOString(),
     selections,
+    attributeSet: selectedAttributeSet,
   };
 }
 
@@ -99,7 +142,8 @@ export function createQuestionnaireCardState({
     category,
     findOptionIndex(options?.[category], result?.selections?.[category]),
   ]));
-  const attributes = Object.fromEntries(attributeTitles.map((title) => [title, '0']));
+  const normalizedAttributeSet = normalizeAttributeSet(result?.attributeSet);
+  const attributes = normalizedAttributeSet?.attributes || { ...defaultQuestionnaireAttributes };
   const selectedFateTitle = result?.selections?.fate || '平平无奇';
   const plans = fateDraws?.[selectedFateTitle] || [];
   const selectedPlan = plans[0];
@@ -107,6 +151,7 @@ export function createQuestionnaireCardState({
   return {
     selections,
     attributes,
+    coreAttribute: normalizedAttributeSet?.coreAttribute || null,
     selectedFateTitle,
     drawnTalents: selectedPlan && drawPlan ? drawPlan(selectedPlan) : [],
     specialQuestionnaires: result?.specialQuestionnaires || null,

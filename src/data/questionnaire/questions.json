@@ -28,6 +28,59 @@
       ]
     },
     {
+      "id": "attribute-core-strength",
+      "title": "你认为自己作为修仙者，最强的方面是？",
+      "type": "single",
+      "required": true,
+      "mapsTo": "attributeSet",
+      "options": [
+        {
+          "id": "body-core",
+          "label": "A. 铜筋铁骨，力能扛鼎\n【仙躯核心属性3，身法2，神魂0，灵蕴1】",
+          "targets": [],
+          "attributeSet": {
+            "仙躯": 3,
+            "身法": 2,
+            "神魂": 0,
+            "灵蕴": 1
+          }
+        },
+        {
+          "id": "agility-core",
+          "label": "B. 踏雪无痕，身轻如燕\n【仙躯0，身法核心属性3，神魂2，灵蕴1】",
+          "targets": [],
+          "attributeSet": {
+            "仙躯": 0,
+            "身法": 3,
+            "神魂": 2,
+            "灵蕴": 1
+          }
+        },
+        {
+          "id": "soul-core",
+          "label": "C. 神识如网，洞悉秋毫\n【仙躯1，身法0，神魂核心属性3，灵蕴2】",
+          "targets": [],
+          "attributeSet": {
+            "仙躯": 1,
+            "身法": 0,
+            "神魂": 3,
+            "灵蕴": 2
+          }
+        },
+        {
+          "id": "spirit-core",
+          "label": "D. 术法通神，算无遗策\n【仙躯0，身法1，神魂2，灵蕴核心属性3】",
+          "targets": [],
+          "attributeSet": {
+            "仙躯": 0,
+            "身法": 1,
+            "神魂": 2,
+            "灵蕴": 3
+          }
+        }
+      ]
+    },
+    {
       "id": "origin-how-started",
       "title": "你如何踏上仙途？",
       "type": "single",

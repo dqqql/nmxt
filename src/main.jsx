@@ -173,6 +173,7 @@ const pageTabs = [
   { id: 'p4', label: '第四页' },
   { id: 'p5', label: '第五页' },
   { id: 'p6', label: '第六页' },
+  { id: 'background', label: '角色背景' },
 ];
 
 const selectorPanelHints = {
@@ -1601,13 +1602,15 @@ function PageTwo() {
 }
 
 function PageThree() {
-  const { current, upgradeCards } = useSheet();
+  const { current, upgradeCards, markStates } = useSheet();
   const formationFeatureRows = ['固定特征壹', '固定特征贰', '临时特征壹', '临时特征贰', '临时特征叁', '临时特征肆'];
   const followerMoveRows = ['普攻', '初始神通', '神通壹', '神通贰', '神通叁', '秘法壹'];
   const learnedMethodNames = getLearnedMethodNames(current, upgradeCards);
   const hasFormationMethod = learnedMethodNames.includes('阵修');
   const hasPuppetMethod = learnedMethodNames.includes('傀修');
   const hasBeastMethod = learnedMethodNames.includes('兽修');
+  const showsFollowerPanel = hasFormationMethod || hasPuppetMethod || hasBeastMethod;
+  const hasSelectedBeastFollower = Boolean(markStates['p3-follower-kind-beast:0']?.filled);
 
   return (
     <div className="sheet pdfSheet">
@@ -1662,7 +1665,7 @@ function PageThree() {
           </section>
         )}
 
-        {hasPuppetMethod ? (
+        {showsFollowerPanel ? (
           <>
             <section className="pdfBlock followerBasics">
               <div className="pdfTableTitle">随从·基础信息</div>
@@ -1710,12 +1713,12 @@ function PageThree() {
         ) : (
           <section className="pdfBlock methodExclusiveBlank methodExclusiveBlankPuppet">
             <div>
-              <strong>傀修专属页面</strong>
+              <strong>随从专属页面</strong>
             </div>
           </section>
         )}
 
-        {hasBeastMethod ? (
+        {showsFollowerPanel && hasSelectedBeastFollower ? (
           <>
             <section className="pdfBlock bloodlineBlock">
               <div className="pdfTableTitle">灵兽血脉</div>
@@ -1733,13 +1736,66 @@ function PageThree() {
               </div>
             </section>
           </>
-        ) : (
+        ) : !showsFollowerPanel ? (
           <section className="pdfBlock methodExclusiveBlank methodExclusiveBlankBeast">
             <div>
-              <strong>兽修专属页面</strong>
+              <strong>灵兽专属页面</strong>
             </div>
           </section>
-        )}
+        ) : null}
+      </main>
+    </div>
+  );
+}
+
+function PageBackground() {
+  const { current, specialQuestionnaires } = useSheet();
+  const sections = ['source', 'method', 'dao'].map((category) => {
+    const option = current[category];
+    const questions = getSpecialQuestionnaireQuestions(option);
+    return {
+      category,
+      label: specialQuestionnaireLabels[category],
+      option,
+      questions,
+      answers: getSpecialQuestionnaireAnswersForOption(
+        specialQuestionnaires,
+        category,
+        option?.name,
+        questions.length,
+      ),
+    };
+  });
+
+  return (
+    <div className="sheet pdfSheet sheetBackgroundPage">
+      <PdfSheetHeader />
+      <main className="pdfPageBody backgroundPrintGrid">
+        {sections.map(({ category, label, option, questions, answers }) => (
+          <section key={category} className="backgroundQuestionnaireBlock">
+            <header>
+              <span>{label}</span>
+              <strong>{option?.name || '未选择'}</strong>
+            </header>
+            {option && questions.length ? (
+              <div className="backgroundQuestionList">
+                {questions.map((question, index) => (
+                  <article key={`${category}-${index}`} className="backgroundQuestionItem">
+                    <div className="backgroundQuestionText">
+                      <b>{index + 1}</b>
+                      <span>{question}</span>
+                    </div>
+                    <div className="backgroundAnswerText">
+                      {answers[index] || '未填写'}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="backgroundEmptyState">选择{label}后，这里会显示对应问卷与答案。</div>
+            )}
+          </section>
+        ))}
       </main>
     </div>
   );
@@ -1874,7 +1930,8 @@ function renderSheetPage(pageId) {
   if (pageId === 'p3') return <PageThree />;
   if (pageId === 'p4') return <PageFour />;
   if (pageId === 'p5') return <PageFive />;
-  return <PageSix />;
+  if (pageId === 'p6') return <PageSix />;
+  return <PageBackground />;
 }
 
 function PrintPageRenderer() {
@@ -4268,6 +4325,7 @@ function App() {
     promptedInitialMethodName.current = null;
     setSelections({ ...cardState.selections, realm: defaultRealmIndex });
     setAttributes(cardState.attributes);
+    setCoreAttribute(cardState.coreAttribute || null);
     setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });
     setUpgradeChoices([]);
     setBreakthroughChoices(createEmptyBreakthroughChoices());

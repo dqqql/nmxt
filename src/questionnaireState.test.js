@@ -178,7 +178,43 @@ describe('questionnaire state', () => {
     expect(result.selections.source).toBe('木道源');
   });
 
-  it('builds main page state and keeps questionnaire attributes at zero', () => {
+  it('stores the selected attribute set from a questionnaire option', () => {
+    const questionnaire = {
+      questions: [
+        {
+          id: 'attribute-set',
+          type: 'single',
+          mapsTo: 'attributeSet',
+          options: [
+            {
+              id: 'body',
+              label: '铜筋铁骨',
+              targets: ['unused'],
+              attributeSet: { 仙躯: 3, 身法: 2, 神魂: 0, 灵蕴: 1 },
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = resolveQuestionnaireResult({
+      questionnaire,
+      answers: { 'attribute-set': 'body' },
+      libraries,
+    });
+
+    expect(result.attributeSet).toEqual({
+      attributes: {
+        仙躯: '3',
+        身法: '2',
+        神魂: '0',
+        灵蕴: '1',
+      },
+      coreAttribute: '仙躯',
+    });
+  });
+
+  it('builds main page state from the questionnaire attribute set', () => {
     const draws = [];
     const state = createQuestionnaireCardState({
       result: {
@@ -189,6 +225,15 @@ describe('questionnaire state', () => {
           method: '法修',
           dao: '修罗之道',
           fate: '天命壹',
+        },
+        attributeSet: {
+          attributes: {
+            仙躯: '0',
+            身法: '1',
+            神魂: '2',
+            灵蕴: '3',
+          },
+          coreAttribute: '灵蕴',
         },
       },
       options,
@@ -208,10 +253,11 @@ describe('questionnaire state', () => {
     });
     expect(state.attributes).toEqual({
       仙躯: '0',
-      身法: '0',
-      神魂: '0',
-      灵蕴: '0',
+      身法: '1',
+      神魂: '2',
+      灵蕴: '3',
     });
+    expect(state.coreAttribute).toBe('灵蕴');
     expect(state.selectedFateTitle).toBe('天命壹');
     expect(draws).toEqual(['一地阶天赋 + 一地阶天谴']);
     expect(state.drawnTalents).toEqual([
@@ -251,7 +297,7 @@ describe('questionnaire state', () => {
   it('keeps the bundled questionnaire config structurally valid for the current schema', () => {
     const questionIds = new Set();
     const validTypes = new Set(['single', 'multiple']);
-    const validCategories = new Set(['realm', 'origin', 'source', 'method', 'dao', 'fate']);
+    const validCategories = new Set(['realm', 'origin', 'source', 'method', 'dao', 'fate', 'attributeSet']);
 
     questionnaireConfig.questions.forEach((question) => {
       expect(question.id).toBeTypeOf('string');
@@ -270,7 +316,9 @@ describe('questionnaire state', () => {
         expect(optionIds.has(option.id)).toBe(false);
         optionIds.add(option.id);
         expect(Array.isArray(option.targets)).toBe(true);
-        expect(option.targets.length).toBeGreaterThan(0);
+        if (question.mapsTo !== 'attributeSet') {
+          expect(option.targets.length).toBeGreaterThan(0);
+        }
       });
     });
   });
