@@ -31,11 +31,21 @@ describe('combat layout CSS', () => {
   });
 
   it('gives page one separate status, quick-reference, threshold, and talent regions', () => {
+    const statRowSource = mainSource.slice(
+      mainSource.indexOf('function StatRow'),
+      mainSource.indexOf('function DamageThreshold'),
+    );
+
     expect(ruleBody('.rightPane')).toContain('grid-template-rows: 92px minmax(0, 0.84fr) 174px minmax(0, 1.16fr)');
     expect(ruleBody('.pageOneStatusRow')).toContain('grid-template-columns: minmax(0, 1fr) 246px');
     expect(ruleBody('.thresholdPanelBody')).toContain('grid-template-columns: minmax(0, 1fr)');
     expect(ruleBody('.thresholdPanelBody')).toContain('grid-template-rows: repeat(2, minmax(0, 1fr))');
     expect(ruleBody('.thresholdPanel .damageThreshold')).toContain('grid-template-columns: 128px minmax(0, 1fr)');
+    expect(ruleBody('.pageOneStatusRow .statRow.hasNote')).toContain('grid-template-columns: 82px max-content minmax(0, 1fr)');
+    expect(ruleBody('.pageOneStatusRow .statNote')).toContain('white-space: nowrap');
+    expect(ruleBody('.quickReferencePanel .conflictContent p')).toContain('white-space: nowrap');
+    expect(statRowSource).not.toContain('stacked');
+    expect(statRowSource).toContain('separator="，"');
   });
 
   it('moves combat into page two and keeps every existing ability group', () => {

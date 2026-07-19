@@ -1,6 +1,6 @@
 import React, { useState, useContext, createContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChevronRight, CircleAlert, Download, Info, ListChecks, Map, Minus, Plus, Printer, Save, Settings, Shuffle, Star, Trash2, Upload, X } from 'lucide-react';
+import { ChevronRight, CircleAlert, Download, ListChecks, Map, Minus, Plus, Printer, Save, Settings, Shuffle, Star, Trash2, Upload, X } from 'lucide-react';
 import {
   realmOptions,
   originOptions,
@@ -81,6 +81,8 @@ import {
   validateGuideValues,
 } from './guidedCardState';
 import {
+  CHARACTER_PROFILE_CATEGORY,
+  CHARACTER_PROFILE_OPTION_NAME,
   SPECIAL_QUESTIONNAIRE_DRAFT_KEY,
   createEmptySpecialQuestionnaireAnswers,
   getSpecialQuestionnaireAnswersForOption,
@@ -183,9 +185,15 @@ const selectorPanelHints = {
 };
 
 const specialQuestionnaireLabels = {
+  [CHARACTER_PROFILE_CATEGORY]: '角色塑造',
   source: '道源',
   method: '法门',
   dao: '大道',
+};
+
+const characterProfileQuestionnaire = {
+  name: CHARACTER_PROFILE_OPTION_NAME,
+  questions: Array.isArray(questionnaireConfig.profileQuestions) ? questionnaireConfig.profileQuestions : [],
 };
 
 const CARD_AUTOSAVE_KEY = 'nmxt.card.autosave.v1';
@@ -550,13 +558,29 @@ function formatNoteLine(line) {
     .replace(/\s+/g, ' ');
 }
 
-function InlineNote({ text, className = '', stacked = false }) {
+function InlineNote({
+  text,
+  className = '',
+  stacked = false,
+  autoFit = false,
+  fitOptions,
+  separator = ' / ',
+}) {
   if (!text) return null;
   const lines = text.split('\n').map(formatNoteLine).filter(Boolean);
+  const content = stacked ? lines.map((line) => <span key={line}>{line}</span>) : lines.join(separator);
+
+  if (autoFit) {
+    return (
+      <AutoFitText as="span" className={`inlineNote ${className}`.trim()} fitOptions={fitOptions}>
+        {content}
+      </AutoFitText>
+    );
+  }
 
   return (
     <span className={`inlineNote ${className}`.trim()}>
-      {stacked ? lines.map((line) => <span key={line}>{line}</span>) : lines.join(' / ')}
+      {content}
     </span>
   );
 }
@@ -657,7 +681,13 @@ function FieldRow({ label, aside, filled = 0, ghost = 0, wide = false }) {
 }
 
 function InfoPanel() {
-  const { current, canSelectReachedRealm, openRealmHistory, upgradeRealm } = useSheet();
+  const {
+    current,
+    canSelectReachedRealm,
+    openRealmHistory,
+    upgradeRealm,
+    openSpecialQuestionnaire,
+  } = useSheet();
   const realm = current.realm;
   const realmMultiplier = getRealmMultiplier(realm);
 
@@ -682,7 +712,16 @@ function InfoPanel() {
 
         <div className="singleField selectorField">
           <span className="fieldLabel">出身</span>
-          <SelectorBox category="origin" />
+          <div className="originSelectorControl">
+            <SelectorBox category="origin" />
+            <button
+              type="button"
+              className="selectorQuestionnaireButton originQuestionnaireButton printControl"
+              onClick={() => openSpecialQuestionnaire(CHARACTER_PROFILE_CATEGORY)}
+            >
+              问卷
+            </button>
+          </div>
         </div>
 
         <div className="splitFieldRow">
@@ -1019,7 +1058,7 @@ function CounterBox({ title, filled, ghost, note, locked = false, overflowCounte
 function StatRow({ label, filled, ghost, note }) {
   const groupId = `p1-stat-${label}`;
   return (
-    <div className="statRow">
+    <div className={`statRow${note ? ' hasNote' : ''}`}>
       <span className="statLabel">
         <span>{label}</span>
       </span>
@@ -1027,7 +1066,13 @@ function StatRow({ label, filled, ghost, note }) {
         {marks(filled, '', { groupId: `${groupId}-solid` })}
         {marks(ghost, 'ghost', { groupId: `${groupId}-ghost` })}
       </div>
-      <InlineNote text={note} className="statNote" stacked />
+      <InlineNote
+        text={note}
+        className="statNote"
+        autoFit
+        separator="，"
+        fitOptions={{ minRatio: 0.78, minPx: 10.5 }}
+      />
     </div>
   );
 }
@@ -1116,12 +1161,16 @@ function ConflictContent() {
   return (
     <div className="conflictContent">
       <h2>冲突开始时</h2>
-      <p>冲突场景中你的回合　1 轻巧动作</p>
-      <p>战斗动作　2 轻巧 / 1 全力动作</p>
-      <p>
+      <AutoFitText as="p" fitOptions={{ minRatio: 0.72, minPx: 11 }}>
+        冲突场景中你的回合　1 轻巧动作
+      </AutoFitText>
+      <AutoFitText as="p" fitOptions={{ minRatio: 0.72, minPx: 11 }}>
+        战斗动作　2 轻巧 / 1 全力动作
+      </AutoFitText>
+      <AutoFitText as="p" fitOptions={{ minRatio: 0.72, minPx: 11 }}>
         轮次开始时恢复　拆招次数
         {marks(1, '', { groupId: 'conflict-recovery' })}
-      </p>
+      </AutoFitText>
     </div>
   );
 }
@@ -1789,7 +1838,7 @@ function PageThree() {
 
 function PageBackground() {
   const { current, specialQuestionnaires } = useSheet();
-  const sections = ['source', 'method', 'dao'].map((category) => {
+  const selectionSections = ['source', 'method', 'dao'].map((category) => {
     const option = current[category];
     const questions = getSpecialQuestionnaireQuestions(option);
     return {
@@ -1805,19 +1854,38 @@ function PageBackground() {
       ),
     };
   });
+  const profileQuestions = getSpecialQuestionnaireQuestions(characterProfileQuestionnaire);
+  const sections = [
+    ...selectionSections,
+    {
+      category: CHARACTER_PROFILE_CATEGORY,
+      label: specialQuestionnaireLabels[CHARACTER_PROFILE_CATEGORY],
+      option: characterProfileQuestionnaire,
+      questions: profileQuestions,
+      answers: getSpecialQuestionnaireAnswersForOption(
+        specialQuestionnaires,
+        CHARACTER_PROFILE_CATEGORY,
+        CHARACTER_PROFILE_OPTION_NAME,
+        profileQuestions.length,
+      ),
+    },
+  ];
 
   return (
     <div className="sheet pdfSheet sheetBackgroundPage">
       <PdfSheetHeader />
       <main className="pdfPageBody backgroundPrintGrid">
         {sections.map(({ category, label, option, questions, answers }) => (
-          <section key={category} className="backgroundQuestionnaireBlock">
+          <section
+            key={category}
+            className={`backgroundQuestionnaireBlock${category === CHARACTER_PROFILE_CATEGORY ? ' profile' : ''}`}
+          >
             <header>
               <span>{label}</span>
               <strong>{option?.name || '未选择'}</strong>
             </header>
             {option && questions.length ? (
-              <div className="backgroundQuestionList">
+              <div className={`backgroundQuestionList${category === CHARACTER_PROFILE_CATEGORY ? ' profile' : ''}`}>
                 {questions.map((question, index) => (
                   <article key={`${category}-${index}`} className="backgroundQuestionItem">
                     <div className="backgroundQuestionText">
@@ -2616,6 +2684,9 @@ function getQuestionnaireLibraries() {
 
 function getSpecialQuestionnaireOption(category, optionName) {
   if (!optionName) return null;
+  if (category === CHARACTER_PROFILE_CATEGORY) {
+    return optionName === CHARACTER_PROFILE_OPTION_NAME ? characterProfileQuestionnaire : null;
+  }
   const optionsByCategory = {
     source: sourceOptions,
     method: methodOptions,
@@ -2625,6 +2696,7 @@ function getSpecialQuestionnaireOption(category, optionName) {
 }
 
 function getSpecialQuestionnaireOptionList(category) {
+  if (category === CHARACTER_PROFILE_CATEGORY) return [characterProfileQuestionnaire];
   const optionsByCategory = {
     source: sourceOptions,
     method: methodOptions,
@@ -2702,6 +2774,13 @@ function QuestionnairePage() {
       };
     }).filter((group) => group.option && group.questions.length > 0);
   }, [provisionalResult, specialQuestionnaires]);
+  const profileQuestions = getSpecialQuestionnaireQuestions(characterProfileQuestionnaire);
+  const profileAnswers = getSpecialQuestionnaireAnswersForOption(
+    specialQuestionnaires,
+    CHARACTER_PROFILE_CATEGORY,
+    CHARACTER_PROFILE_OPTION_NAME,
+    profileQuestions.length,
+  );
 
   const submit = (event) => {
     event.preventDefault();
@@ -2818,6 +2897,30 @@ function QuestionnairePage() {
             </div>
           </section>
         ) : null}
+
+        <section className="questionnaireSpecialSection questionnaireProfileSection">
+          <header className="questionnaireSpecialHeader">
+            <div>
+              <span>固定问卷</span>
+              <h2>你可以参考以下的问卷来完善你的角色形象。</h2>
+            </div>
+          </header>
+          <div className="questionnaireSpecialList">
+            <SpecialQuestionnaireFields
+              category={CHARACTER_PROFILE_CATEGORY}
+              option={characterProfileQuestionnaire}
+              answers={profileAnswers}
+              showHeader={false}
+              onAnswerChange={(index, value) => setSpecialQuestionnaires((prev) => updateSpecialQuestionnaireAnswer(prev, {
+                category: CHARACTER_PROFILE_CATEGORY,
+                optionName: CHARACTER_PROFILE_OPTION_NAME,
+                index,
+                value,
+                questionCount: profileQuestions.length,
+              }))}
+            />
+          </div>
+        </section>
 
         <footer className="questionnaireFooter">
           <span>填写记录会自动保存在本机，提交后清除。</span>
@@ -3634,8 +3737,11 @@ function SpecialQuestionnaireModal() {
     setSpecialQuestionnaireValue,
   } = useSheet();
   const category = specialQuestionnaireModal?.category || null;
+  const isProfileQuestionnaire = category === CHARACTER_PROFILE_CATEGORY;
   const categoryOptions = useMemo(() => getSpecialQuestionnaireOptionList(category), [category]);
-  const currentOptionName = category ? current?.[category]?.name || '' : '';
+  const currentOptionName = isProfileQuestionnaire
+    ? CHARACTER_PROFILE_OPTION_NAME
+    : category ? current?.[category]?.name || '' : '';
   const [selectedOptionName, setSelectedOptionName] = useState(currentOptionName);
 
   useEffect(() => {
@@ -3675,20 +3781,22 @@ function SpecialQuestionnaireModal() {
           </button>
         </header>
         <div className="specialQuestionnaireModalBody">
-          <label className="specialQuestionnairePicker">
-            <span>切换{specialQuestionnaireLabels[category] || category}</span>
-            <select
-              value={selectedOptionName}
-              onChange={(event) => setSelectedOptionName(event.target.value)}
-            >
-              <option value="">未选择</option>
-              {categoryOptions.map((entry) => (
-                <option key={`${category}-${entry.name}`} value={entry.name}>
-                  {entry.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {!isProfileQuestionnaire ? (
+            <label className="specialQuestionnairePicker">
+              <span>切换{specialQuestionnaireLabels[category] || category}</span>
+              <select
+                value={selectedOptionName}
+                onChange={(event) => setSelectedOptionName(event.target.value)}
+              >
+                <option value="">未选择</option>
+                {categoryOptions.map((entry) => (
+                  <option key={`${category}-${entry.name}`} value={entry.name}>
+                    {entry.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           {option ? (
             <SpecialQuestionnaireFields
               category={category}
@@ -3737,7 +3845,6 @@ function App() {
   }
   const initialState = initialStateRef.current;
   const [tab, setTab] = useState('p1');
-  const [hintOpen, setHintOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -4644,25 +4751,6 @@ function App() {
             {exportError ? (
               <aside id="export-error-popover" className="exportErrorPopover" role="alert">
                 打印导出失败：{exportError}
-              </aside>
-            ) : null}
-          </div>
-          <div className="hintAction">
-            <button
-              type="button"
-              className={`toolButton${hintOpen ? ' on' : ''}`}
-              onClick={() => setHintOpen((open) => !open)}
-              aria-label="提示"
-              aria-expanded={hintOpen}
-              aria-controls="conflict-popover"
-              title="提示"
-            >
-              <Info size={20} strokeWidth={2.2} aria-hidden="true" />
-              <span>提示</span>
-            </button>
-            {hintOpen ? (
-              <aside id="conflict-popover" className="hintPopover" aria-label="冲突开始时">
-                <ConflictContent />
               </aside>
             ) : null}
           </div>

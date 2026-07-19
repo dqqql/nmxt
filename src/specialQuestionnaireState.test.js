@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CHARACTER_PROFILE_CATEGORY,
+  CHARACTER_PROFILE_OPTION_NAME,
   createEmptySpecialQuestionnaireAnswers,
   getSpecialQuestionnaireAnswersForOption,
   normalizeSpecialQuestionnaireAnswers,
@@ -10,6 +12,7 @@ import {
 describe('special questionnaire state', () => {
   it('creates an empty answer store for every supported category', () => {
     expect(createEmptySpecialQuestionnaireAnswers()).toEqual({
+      profile: {},
       source: {},
       method: {},
       dao: {},
@@ -22,6 +25,7 @@ describe('special questionnaire state', () => {
       method: {},
       dao: { 修罗之道: ['乙'] },
     })).toEqual({
+      profile: {},
       source: { 金道源: ['甲', '', ''] },
       method: {},
       dao: { 修罗之道: ['乙'] },
@@ -46,6 +50,7 @@ describe('special questionnaire state', () => {
 
   it('picks only the selected option answers for submission snapshots', () => {
     const store = {
+      profile: { [CHARACTER_PROFILE_OPTION_NAME]: ['形象1', '形象2'] },
       source: { 金道源: ['金1', '金2', '金3'], 木道源: ['木1', '木2', '木3'] },
       method: { 剑修: ['剑1', '剑2', '剑3'] },
       dao: { 修罗之道: ['修1', '修2', '修3'] },
@@ -56,6 +61,7 @@ describe('special questionnaire state', () => {
       method: '剑修',
       dao: '修罗之道',
     })).toEqual({
+      [CHARACTER_PROFILE_CATEGORY]: { [CHARACTER_PROFILE_OPTION_NAME]: ['形象1', '形象2'] },
       source: { 木道源: ['木1', '木2', '木3'] },
       method: { 剑修: ['剑1', '剑2', '剑3'] },
       dao: { 修罗之道: ['修1', '修2', '修3'] },

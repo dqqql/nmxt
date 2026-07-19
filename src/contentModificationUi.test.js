@@ -44,13 +44,39 @@ describe('requested content and layout modifications', () => {
     expect(ruleBody('.methodExclusiveBlankBeast')).toContain('grid-row: 3');
   });
 
-  it('adds a printable character background page for source, method, and dao questionnaire answers', () => {
+  it('adds a printable character background page for selection and fixed profile questionnaire answers', () => {
     expect(mainSource).toContain("{ id: 'background', label: '角色背景' }");
     expect(mainSource).toContain('function PageBackground()');
     expect(mainSource).toContain('className="pdfPageBody backgroundPrintGrid"');
     expect(mainSource).toContain('getSpecialQuestionnaireAnswersForOption(');
+    expect(mainSource).toContain("category: CHARACTER_PROFILE_CATEGORY");
+    expect(mainSource).toContain("className={`backgroundQuestionnaireBlock${category === CHARACTER_PROFILE_CATEGORY ? ' profile' : ''}`}");
     expect(mainSource).toContain('return <PageBackground />');
     expect(ruleBody('.backgroundPrintGrid')).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
+    expect(ruleBody('.backgroundQuestionnaireBlock.profile')).toContain('grid-column: 1 / -1');
+    expect(ruleBody('.backgroundQuestionList.profile')).toContain('grid-template-columns: repeat(4, minmax(0, 1fr))');
+  });
+
+  it('keeps the fixed profile questionnaire visible and exposes it beside origin', () => {
+    expect(mainSource).toContain('questionnaireSpecialSection questionnaireProfileSection');
+    expect(mainSource).toContain('你可以参考以下的问卷来完善你的角色形象。');
+    expect(mainSource).toContain('onClick={() => openSpecialQuestionnaire(CHARACTER_PROFILE_CATEGORY)}');
+    expect(ruleBody('.originSelectorControl')).toContain('grid-template-columns: minmax(0, 1fr) auto');
+  });
+
+  it('keeps long special questionnaires inside a scrollable modal body', () => {
+    expect(ruleBody('.specialQuestionnaireModal')).toContain('grid-template-rows: auto minmax(0, 1fr)');
+    expect(ruleBody('.specialQuestionnaireModal')).toContain('overflow: hidden');
+    expect(ruleBody('.specialQuestionnaireModalBody')).toContain('min-height: 0');
+    expect(ruleBody('.specialQuestionnaireModalBody')).toContain('overflow: auto');
+    expect(ruleBody('.specialQuestionnaireModalBody')).toContain('overscroll-behavior: contain');
+  });
+
+  it('removes the redundant right-side hint tool while keeping the inline quick reference', () => {
+    expect(mainSource).not.toContain('hintOpen');
+    expect(mainSource).not.toContain('conflict-popover');
+    expect(mainSource).not.toContain('className="hintAction"');
+    expect(mainSource).toContain('className="panel quickReferencePanel"');
   });
 
   it('uses the shared interactive solid and ghost mark system for the formation break track', () => {

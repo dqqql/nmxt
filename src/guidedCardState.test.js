@@ -197,6 +197,7 @@ describe('guided card state', () => {
       identity: '外门弟子',
     });
     expect(result.snapshot.specialQuestionnaires).toEqual({
+      profile: {},
       source: { 火道源: ['火答1', '火答2', '火答3'] },
       method: { 法修: ['法答1', '法答2', '法答3'] },
       dao: { 修罗之道: ['道答1', '道答2', '道答3'] },

@@ -1,6 +1,9 @@
 export const SPECIAL_QUESTIONNAIRE_DRAFT_KEY = 'nmxt.questionnaire.specialDraft.v1';
+export const CHARACTER_PROFILE_CATEGORY = 'profile';
+export const CHARACTER_PROFILE_OPTION_NAME = '角色形象';
 
-export const specialQuestionnaireCategories = ['source', 'method', 'dao'];
+export const specialQuestionnaireCategories = [CHARACTER_PROFILE_CATEGORY, 'source', 'method', 'dao'];
+const selectionQuestionnaireCategories = ['source', 'method', 'dao'];
 
 function isPlainObject(value) {
   return value != null && typeof value === 'object' && !Array.isArray(value);
@@ -12,6 +15,7 @@ function normalizeAnswerList(value) {
 
 export function createEmptySpecialQuestionnaireAnswers() {
   return {
+    [CHARACTER_PROFILE_CATEGORY]: {},
     source: {},
     method: {},
     dao: {},
@@ -74,7 +78,13 @@ export function pickSpecialQuestionnaireAnswersForSelections(store, selectionsBy
   const normalized = normalizeSpecialQuestionnaireAnswers(store);
   const next = createEmptySpecialQuestionnaireAnswers();
 
-  specialQuestionnaireCategories.forEach((category) => {
+  if (normalized[CHARACTER_PROFILE_CATEGORY]?.[CHARACTER_PROFILE_OPTION_NAME]) {
+    next[CHARACTER_PROFILE_CATEGORY][CHARACTER_PROFILE_OPTION_NAME] = [
+      ...normalized[CHARACTER_PROFILE_CATEGORY][CHARACTER_PROFILE_OPTION_NAME],
+    ];
+  }
+
+  selectionQuestionnaireCategories.forEach((category) => {
     const optionName = selectionsByCategory?.[category];
     if (!optionName) return;
     if (normalized[category]?.[optionName]) {

@@ -321,5 +321,17 @@ describe('questionnaire state', () => {
         }
       });
     });
+
+    expect(questionnaireConfig.profileQuestions).toHaveLength(7);
+    questionnaireConfig.profileQuestions.forEach((question) => {
+      expect(question).toBeTypeOf('string');
+      expect(question.length).toBeGreaterThan(0);
+    });
+
+    const attributeQuestion = questionnaireConfig.questions.find((question) => question.mapsTo === 'attributeSet');
+    attributeQuestion.options.forEach((option) => {
+      expect(option.label).not.toContain('核心属性');
+      expect(option.label).not.toContain('【');
+    });
   });
 });
