@@ -4525,7 +4525,6 @@ function App() {
 
   const switchTab = (nextTab) => {
     setTab(nextTab);
-    setHintOpen(false);
   };
 
   const renderPage = () => {
@@ -4536,7 +4535,6 @@ function App() {
     if (exporting) return;
     setExporting(true);
     setExportError('');
-    setHintOpen(false);
 
     try {
       const printRoot = document.querySelector('.printPageStack');
@@ -4610,7 +4608,6 @@ function App() {
   });
 
   const openRandomPreview = () => {
-    setHintOpen(false);
     setRandomPreview(drawRandomCard());
   };
 
@@ -4686,7 +4683,6 @@ function App() {
               type="button"
               className={`toolButton${settingsOpen ? ' on' : ''}`}
               onClick={() => {
-                setHintOpen(false);
                 setSettingsOpen((open) => !open);
               }}
               aria-label="设置"
