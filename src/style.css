@@ -7308,3 +7308,325 @@ body {
     cursor: default !important;
   }
 }
+
+/* ===== Page one / page two layout rebuild ===== */
+.leftBlock {
+  grid-template-rows:
+    minmax(0, 1.2fr)
+    minmax(0, 0.28fr)
+    minmax(0, 0.31fr)
+    minmax(70px, 0.15fr);
+}
+
+.rightPane {
+  grid-template-rows: 92px minmax(0, 0.84fr) 174px minmax(0, 1.16fr);
+}
+
+.pageOneStatusRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 246px;
+  gap: var(--panel-gap);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pageOneStatusRow > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+.pageOneStatusRow .statsPanel {
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 10px;
+  overflow: hidden;
+}
+
+.pageOneStatusRow .statRow {
+  grid-template-columns: 82px minmax(0, 1fr) minmax(76px, 0.42fr);
+  gap: 7px;
+  min-height: 0;
+}
+
+.pageOneStatusRow .statMarks {
+  gap: 4px;
+}
+
+.pageOneStatusRow .statNote {
+  font-size: 8px;
+  line-height: 1.05;
+}
+
+.quickReferencePanel {
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.quickReferencePanel .panelTitle,
+.thresholdPanel > .panelTitle {
+  display: grid;
+  place-items: center;
+  padding: 6px 8px;
+  font-size: 16px;
+}
+
+.quickReferencePanel .conflictContent {
+  display: grid;
+  grid-template-rows: auto repeat(3, minmax(0, 1fr));
+  min-height: 0;
+  padding: 8px 10px 10px;
+  overflow: hidden;
+}
+
+.quickReferencePanel .conflictContent h2 {
+  margin-bottom: 3px;
+  font-size: 14px;
+}
+
+.quickReferencePanel .conflictContent p {
+  min-height: 0;
+  padding-left: 8px;
+  font-size: 10.5px;
+}
+
+.quickReferencePanel .conflictContent .mark {
+  width: 18px;
+  height: 18px;
+}
+
+.thresholdPanel {
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.thresholdPanelBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-height: 0;
+  padding: 8px 12px 10px;
+}
+
+.thresholdPanel .damageThreshold {
+  grid-template-columns: 128px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--line);
+}
+
+.thresholdPanel .damageThreshold h4 {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0 10px;
+  border-right: 1px solid var(--line);
+  background: #f7f7f7;
+  font-size: 14px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.thresholdPanel .damageScale {
+  min-width: 0;
+  min-height: 0;
+}
+
+.thresholdPanel .damageScale > span {
+  min-height: 0;
+  border-width: 0 0 0 1px;
+  font-size: 10px;
+}
+
+.thresholdPanel .damageScale > span:first-child {
+  border-left: 0;
+}
+
+.rightPane > .talentBoard {
+  grid-template-rows: 34px repeat(2, minmax(0, 1fr));
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rightPane > .talentBoard .panelTitle {
+  display: grid;
+  place-items: center;
+  padding: 6px 8px;
+  font-size: 16px;
+}
+
+.rightPane > .talentBoard .talentBox {
+  gap: 5px;
+  min-height: 0;
+  padding: 8px 10px;
+  overflow: hidden;
+}
+
+.rightPane > .talentBoard .talentMeta,
+.rightPane > .talentBoard .talentEffect {
+  gap: 7px;
+  min-height: 0;
+  font-size: 13px;
+}
+
+.rightPane > .talentBoard .effectFill {
+  min-height: 0;
+}
+
+.pdfTwoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0 36px;
+  padding-top: 12px;
+}
+
+.pageTwoColumn {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pageTwoColumnLeft {
+  grid-template-rows:
+    minmax(0, 0.82fr)
+    minmax(0, 1fr)
+    minmax(0, 0.82fr)
+    minmax(0, 0.78fr);
+}
+
+.pageTwoColumnRight {
+  grid-template-rows:
+    minmax(0, 0.7fr)
+    minmax(0, 1.28fr)
+    minmax(0, 0.84fr)
+    minmax(0, 0.78fr);
+}
+
+.pageTwoAttackGroup,
+.pageTwoCardGroup {
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  border: 3px solid var(--pdf-line);
+  background: #fff;
+  overflow: hidden;
+}
+
+.pageTwoAttackGroup {
+  grid-template-rows: 34px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.pageTwoAttackGroup > .pdfTableTitle,
+.pageTwoCardGroup > .pdfTableTitle {
+  margin: 0;
+  font-size: 18px;
+}
+
+.pageTwoAttackGroup .combatPanel {
+  min-height: 0;
+  padding: 10px;
+}
+
+.pageTwoAttackGroup .combatSkills {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.pageTwoAttackGroup .combatSkill {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 38px minmax(0, 1fr);
+  min-height: 0;
+  border-color: var(--pdf-line);
+}
+
+.pageTwoAttackGroup .combatSkill b {
+  padding: 4px 8px;
+  background: var(--pdf-soft);
+  color: #181818;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.pageTwoAttackGroup .combatSkill > div {
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.pageTwoCardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-height: 0;
+  padding: 10px;
+}
+
+.pageTwoThreeAcross .pageTwoCardGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pageTwoCard {
+  display: grid;
+  grid-template-rows: 36px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  border: 2px solid var(--pdf-line);
+  background: #fff;
+  overflow: hidden;
+}
+
+.pageTwoCard h3 {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 5px 8px;
+  border-bottom: 2px solid var(--pdf-line);
+  background: var(--pdf-soft);
+  color: #181818;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.1;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pageTwoCard.empty h3 {
+  color: #8d8885;
+  font-weight: 700;
+}
+
+.pageTwoCardText {
+  box-sizing: border-box;
+  min-height: 0;
+  padding: 10px 12px;
+  color: #181818;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+@media print {
+  .quickReferencePanel .conflictContent,
+  .pageTwoCardText {
+    color: #181818 !important;
+  }
+}

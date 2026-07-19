@@ -1246,7 +1246,6 @@ function PageOne() {
   const { current, fateState, fortuneOverflow, setFortuneOverflow, thresholdBonuses } = useSheet();
   const source = current.source;
   const origin = current.origin;
-  const dao = current.dao;
 
   // 道源能力面板顶部用一行小标签显示增益，把主要空间留给能力正文。
   const sourceAbilityContent = source ? (
@@ -1313,24 +1312,12 @@ function PageOne() {
             />
           </section>
 
-          <section className="doublePanels compact">
-            <TextPanel
-              title="道源效果"
-              content={<FilledText value={source ? source.effect : ''} placeholder="选择道源后自动填充" />}
-            />
-            <TextPanel
-              title="大道效果"
-              content={<FilledText value={dao ? dao.effect : ''} placeholder="选择大道后自动填充" />}
-            />
-          </section>
-
           <ResourceStrip />
         </section>
 
         <section className="rightPane">
           <FateRibbon />
-          <TalentBoard />
-          <section className="bottomSection">
+          <section className="pageOneStatusRow">
             <section className="panel statsPanel">
               <StatRow label="正常血量" filled={6} ghost={4} />
               <StatRow label="险境血量" filled={6} ghost={4} />
@@ -1348,6 +1335,15 @@ function PageOne() {
                 ghost={0}
                 note={'【全力动作】恢复一半的灵气格（向下取整）\n并【回气】所有资源'}
               />
+            </section>
+            <section className="panel quickReferencePanel" aria-label="动作与拆招速查">
+              <div className="panelTitle panelTitleCentered">动作 / 拆招速查</div>
+              <ConflictContent />
+            </section>
+          </section>
+          <section className="panel thresholdPanel" aria-label="伤害阈值">
+            <div className="panelTitle panelTitleCentered">伤害阈值</div>
+            <div className="thresholdPanelBody">
               <DamageThreshold
                 title="肉体伤害阈值"
                 value={source ? source.bodyThreshold : null}
@@ -1362,9 +1358,9 @@ function PageOne() {
                 mediumBonus={thresholdBonuses.soulMedium}
                 heavyBonus={thresholdBonuses.soulHeavy}
               />
-            </section>
-            <CombatPanel />
+            </div>
           </section>
+          <TalentBoard />
         </section>
       </main>
     </div>
@@ -1422,6 +1418,27 @@ function PdfTable({ title, rows, prefill = [], className = '', children }) {
           })}
         </>
       )}
+    </section>
+  );
+}
+
+function PageTwoCardGroup({ title, rows, cards = [], className = '' }) {
+  return (
+    <section className={`pageTwoCardGroup ${className}`.trim()} style={{ '--card-count': rows }}>
+      <h2 className="pdfTableTitle">{title}</h2>
+      <div className="pageTwoCardGrid">
+        {Array.from({ length: rows }, (_, index) => {
+          const card = cards[index];
+          return (
+            <article key={`${title}-${index}`} className={`pageTwoCard${card ? ' filled' : ' empty'}`}>
+              <h3>{card?.name || '名称'}</h3>
+              <AutoFitText className="pageTwoCardText" fitOptions={{ minRatio: 0.48, minPx: 8 }}>
+                {card?.text || ''}
+              </AutoFitText>
+            </article>
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -1572,6 +1589,9 @@ function EditableFeatureTable({ rows, namePrefix, effectPrefix, className = '' }
 function PageTwo() {
   const { current, upgradeCards } = useSheet();
   const source = current.source;
+  const dao = current.dao;
+
+  const rowsFor = (title) => pdfSpellGroups.find((group) => group.title === title)?.rows || 0;
 
   const prefillFor = (title) => {
     if (title === '神通') return uniqueCards([...getInitialSourceSkills(source), ...upgradeCards.skills]);
@@ -1587,15 +1607,34 @@ function PageTwo() {
     <div className="sheet pdfSheet sheetPageTwo">
       <PdfSheetHeader />
       <main className="pdfPageBody pdfTwoGrid">
-        {pdfSpellGroups.map(({ title, rows, className }) => (
-          <PdfTable
-            key={title}
-            title={title}
-            rows={rows}
-            className={className}
-            prefill={prefillFor(title)}
+        <div className="pageTwoColumn pageTwoColumnLeft">
+          <section className="pageTwoAttackGroup">
+            <h2 className="pdfTableTitle">普攻</h2>
+            <CombatPanel />
+          </section>
+          <PageTwoCardGroup
+            title="神通"
+            rows={rowsFor('神通')}
+            cards={prefillFor('神通')}
+            className="pageTwoThreeAcross"
           />
-        ))}
+          <PageTwoCardGroup title="秘法" rows={rowsFor('秘法')} cards={prefillFor('秘法')} />
+          <PageTwoCardGroup title="灵宝" rows={rowsFor('灵宝')} cards={prefillFor('灵宝')} />
+        </div>
+        <div className="pageTwoColumn pageTwoColumnRight">
+          <PageTwoCardGroup
+            title="道源 / 大道效果"
+            rows={2}
+            className="pageTwoEffectGroup"
+            cards={[
+              { name: '道源效果', text: source?.effect || '' },
+              { name: '大道效果', text: dao?.effect || '' },
+            ]}
+          />
+          <PageTwoCardGroup title="感悟" rows={rowsFor('感悟')} cards={prefillFor('感悟')} />
+          <PageTwoCardGroup title="本源感悟" rows={rowsFor('本源感悟')} cards={prefillFor('本源感悟')} />
+          <PageTwoCardGroup title="功法" rows={rowsFor('功法')} cards={prefillFor('功法')} />
+        </div>
       </main>
     </div>
   );
