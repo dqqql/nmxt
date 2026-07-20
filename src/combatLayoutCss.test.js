@@ -62,18 +62,18 @@ describe('combat layout CSS', () => {
     expect(pageOneSource).toContain('pageOneStatusRow');
     expect(pageOneSource).toContain('thresholdPanel');
     expect(pageTwoSource).toContain('<CombatPanel />');
-    ['神通', '秘法', '灵玉', '感悟', '本源感悟', '功法'].forEach((title) => {
+    ['神通', '秘法', '灵宝', '感悟', '本源感悟', '功法'].forEach((title) => {
       expect(pageTwoSource).toContain(`title="${title}"`);
       expect(pageTwoSource).toContain(`rows={rowsFor('${title}')}`);
     });
     expect(mainSource).toContain("{ title: '神通', rows: 4");
     expect(mainSource).toContain("{ title: '秘法', rows: 3");
-    expect(mainSource).toContain("{ title: '灵玉', rows: 3");
+    expect(mainSource).toContain("{ title: '灵宝', rows: 3");
     expect(mainSource).toContain("{ title: '功法', rows: 3");
     expect(mainSource).toContain('<b>法门普攻增益一</b>');
     expect(mainSource).toContain('<b>法门普攻增益二</b>');
     expect(pageTwoSource).toContain("{ name: '道源效果', text: source?.effect || '' }");
-    expect(pageTwoSource).toContain("{ name: '道源本源效果', text: '' }");
+    expect(pageTwoSource).not.toContain('道源本源效果');
     expect(pageTwoSource).toContain("{ name: '大道效果', text: dao?.effect || '' }");
   });
 

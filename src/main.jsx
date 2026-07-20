@@ -166,7 +166,7 @@ const pdfSpellGroups = [
   { title: '秘法', rows: 3, className: 'pdfMid' },
   { title: '感悟', rows: 4, className: 'pdfMid' },
   { title: '功法', rows: 3, className: 'pdfShort' },
-  { title: '灵玉', rows: 3, className: 'pdfShort' },
+  { title: '灵宝', rows: 3, className: 'pdfShort' },
 ];
 
 const pageTabs = [
@@ -1652,7 +1652,7 @@ function PageTwo() {
     if (title === '感悟') return getDisplayedInsightCards(upgradeCards);
     if (title === '本源感悟') return getDisplayedOriginInsightCards(upgradeCards);
     if (title === '功法') return uniqueCards(upgradeCards.daoMethods);
-    if (title === '灵玉') return uniqueCards(upgradeCards.treasures);
+    if (title === '灵宝') return uniqueCards(upgradeCards.treasures);
     return [];
   };
 
@@ -1672,16 +1672,15 @@ function PageTwo() {
             className="pageTwoFourAcross"
           />
           <PageTwoCardGroup title="秘法" rows={rowsFor('秘法')} cards={prefillFor('秘法')} className="pageTwoThreeAcross" />
-          <PageTwoCardGroup title="灵玉" rows={rowsFor('灵玉')} cards={prefillFor('灵玉')} className="pageTwoThreeAcross" />
+          <PageTwoCardGroup title="灵宝" rows={rowsFor('灵宝')} cards={prefillFor('灵宝')} className="pageTwoThreeAcross" />
         </div>
         <div className="pageTwoColumn pageTwoColumnRight">
           <PageTwoCardGroup
             title="道源 / 大道效果"
-            rows={3}
-            className="pageTwoEffectGroup pageTwoThreeAcross"
+            rows={2}
+            className="pageTwoEffectGroup"
             cards={[
               { name: '道源效果', text: source?.effect || '' },
-              { name: '道源本源效果', text: '' },
               { name: '大道效果', text: dao?.effect || '' },
             ]}
           />
