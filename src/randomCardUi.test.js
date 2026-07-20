@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const mainSource = readFileSync(new URL('./main.jsx', import.meta.url), 'utf8');
 const cssSource = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
+const toolRailSource = readFileSync(new URL('./ToolRail.jsx', import.meta.url), 'utf8');
 
 function functionBody(name) {
   const start = mainSource.indexOf(`function ${name}`);
@@ -18,13 +19,13 @@ function ruleBody(selector) {
 }
 
 describe('standalone random card UI', () => {
-  it('places the random card action immediately after the guided card action', () => {
-    const guidedIndex = mainSource.indexOf('className="guidedAction"');
-    const randomIndex = mainSource.indexOf('className="randomAction"');
+  it('places random card immediately after guided card in the grouped card menu', () => {
+    const guidedIndex = toolRailSource.indexOf('runAndClose(onGuided)');
+    const randomIndex = toolRailSource.indexOf('runAndClose(onRandom)');
 
     expect(guidedIndex).toBeGreaterThan(-1);
     expect(randomIndex).toBeGreaterThan(guidedIndex);
-    expect(mainSource.slice(guidedIndex, randomIndex)).not.toContain('className="toolButton randomButton"');
+    expect(toolRailSource.slice(guidedIndex, randomIndex)).not.toContain('runAndClose(onQuestionnaire)');
   });
 
   it('reuses guided preview cards in a modal with all three requested actions', () => {

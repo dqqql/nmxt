@@ -1,6 +1,6 @@
 import React, { useState, useContext, createContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChevronRight, CircleAlert, Download, ListChecks, Map, Minus, Plus, Printer, Save, Settings, Shuffle, Star, Trash2, Upload, X } from 'lucide-react';
+import { ChevronRight, CircleAlert, Minus, Plus, Shuffle, Star, Trash2, Upload, X } from 'lucide-react';
 import {
   realmOptions,
   originOptions,
@@ -24,6 +24,7 @@ import {
 } from './data';
 import gameLogo from './assets/game-logo.png';
 import PageSix from './PageSix';
+import ToolRail from './ToolRail';
 import { attachPrintLifecycle, printSheetsWithBrowser } from './exportPdf';
 import {
   createMarkState,
@@ -160,12 +161,12 @@ function getFateDisplayDetails(title) {
 }
 
 const pdfSpellGroups = [
-  { title: '神通', rows: 3, className: 'pdfTall' },
+  { title: '神通', rows: 4, className: 'pdfTall' },
   { title: '本源感悟', rows: 2, className: 'pdfTall' },
-  { title: '秘法', rows: 2, className: 'pdfMid' },
+  { title: '秘法', rows: 3, className: 'pdfMid' },
   { title: '感悟', rows: 4, className: 'pdfMid' },
-  { title: '功法', rows: 2, className: 'pdfShort' },
-  { title: '灵宝', rows: 2, className: 'pdfShort' },
+  { title: '功法', rows: 3, className: 'pdfShort' },
+  { title: '灵玉', rows: 3, className: 'pdfShort' },
 ];
 
 const pageTabs = [
@@ -199,6 +200,7 @@ const characterProfileQuestionnaire = {
 const CARD_AUTOSAVE_KEY = 'nmxt.card.autosave.v1';
 const CARD_SAVE_SLOTS_KEY = 'nmxt.card.saveSlots.v1';
 const CARD_ACTIVE_SAVE_SLOT_KEY = 'nmxt.card.activeSaveSlot.v1';
+const EXTRA_PAGES_ENABLED_KEY = 'nmxt.ui.extraPagesEnabled.v1';
 
 const defaultTexts = {
   name: '',
@@ -1027,9 +1029,9 @@ function OverflowCounter({ value, setValue, label }) {
   );
 }
 
-function CounterBox({ title, filled, ghost, note, locked = false, overflowCounter = null }) {
+function CounterBox({ title, filled, ghost, note, locked = false, overflowCounter = null, className = '' }) {
   return (
-    <section className="panel counterBox">
+    <section className={`panel counterBox ${className}`.trim()}>
       <div className="panelTitle panelTitleCentered counterTitle">
         <span>{title}</span>
         <InlineNote text={note} className="counterNote" />
@@ -1192,13 +1194,13 @@ function CombatPanel() {
           </div>
         </div>
         <div className="combatSkill">
-          <b>法门增益一</b>
+          <b>法门普攻增益一</b>
           <AutoFitText className="combatBoostText" fitOptions={{ minRatio: 0.42, minPx: 6 }}>
             {buffs[0] || ''}
           </AutoFitText>
         </div>
         <div className="combatSkill">
-          <b>法门增益二</b>
+          <b>法门普攻增益二</b>
           <AutoFitText className="combatBoostText" fitOptions={{ minRatio: 0.42, minPx: 6 }}>
             {buffs[1] || ''}
           </AutoFitText>
@@ -1326,7 +1328,15 @@ function PageOne() {
             <section className="middlePane">
               <PortraitPanel />
               <CounterBox
-                title="福缘点上限"
+                title="历练点补充"
+                filled={fateState.trainingSupply}
+                ghost={0}
+                locked
+                note="GM 会使用历练点为故事带来转折与挑战"
+                className="trainingCounterBox"
+              />
+              <CounterBox
+                title="福缘点"
                 filled={fateState.fortuneLimit}
                 ghost={0}
                 locked
@@ -1335,14 +1345,8 @@ function PageOne() {
                   setValue: setFortuneOverflow,
                   label: '溢出福缘点',
                 }}
-                note={'消耗 1 点\n重骰 1-2 个骰子 / 此次检定值 +2 / 为故事增添一笔'}
-              />
-              <CounterBox
-                title="历练点补充"
-                filled={fateState.trainingSupply}
-                ghost={0}
-                locked
-                note="GM 会使用历练点为故事带来转折与挑战"
+                note={'消耗 1 点 / 重骰 1-2 个骰子 / 此次检定值 +2 / 为故事增添一笔'}
+                className="fortuneCounterBox"
               />
             </section>
           </section>
@@ -1648,7 +1652,7 @@ function PageTwo() {
     if (title === '感悟') return getDisplayedInsightCards(upgradeCards);
     if (title === '本源感悟') return getDisplayedOriginInsightCards(upgradeCards);
     if (title === '功法') return uniqueCards(upgradeCards.daoMethods);
-    if (title === '灵宝') return uniqueCards(upgradeCards.treasures);
+    if (title === '灵玉') return uniqueCards(upgradeCards.treasures);
     return [];
   };
 
@@ -1665,24 +1669,25 @@ function PageTwo() {
             title="神通"
             rows={rowsFor('神通')}
             cards={prefillFor('神通')}
-            className="pageTwoThreeAcross"
+            className="pageTwoFourAcross"
           />
-          <PageTwoCardGroup title="秘法" rows={rowsFor('秘法')} cards={prefillFor('秘法')} />
-          <PageTwoCardGroup title="灵宝" rows={rowsFor('灵宝')} cards={prefillFor('灵宝')} />
+          <PageTwoCardGroup title="秘法" rows={rowsFor('秘法')} cards={prefillFor('秘法')} className="pageTwoThreeAcross" />
+          <PageTwoCardGroup title="灵玉" rows={rowsFor('灵玉')} cards={prefillFor('灵玉')} className="pageTwoThreeAcross" />
         </div>
         <div className="pageTwoColumn pageTwoColumnRight">
           <PageTwoCardGroup
             title="道源 / 大道效果"
-            rows={2}
-            className="pageTwoEffectGroup"
+            rows={3}
+            className="pageTwoEffectGroup pageTwoThreeAcross"
             cards={[
               { name: '道源效果', text: source?.effect || '' },
+              { name: '道源本源效果', text: '' },
               { name: '大道效果', text: dao?.effect || '' },
             ]}
           />
           <PageTwoCardGroup title="感悟" rows={rowsFor('感悟')} cards={prefillFor('感悟')} />
           <PageTwoCardGroup title="本源感悟" rows={rowsFor('本源感悟')} cards={prefillFor('本源感悟')} />
-          <PageTwoCardGroup title="功法" rows={rowsFor('功法')} cards={prefillFor('功法')} />
+          <PageTwoCardGroup title="功法" rows={rowsFor('功法')} cards={prefillFor('功法')} className="pageTwoThreeAcross" />
         </div>
       </main>
     </div>
@@ -2041,11 +2046,11 @@ function renderSheetPage(pageId) {
   return <PageBackground />;
 }
 
-function PrintPageRenderer() {
-  const lastPageIndex = pageTabs.length - 1;
+function PrintPageRenderer({ pages }) {
+  const lastPageIndex = pages.length - 1;
   return (
     <div className="printPageStack" aria-hidden="true" inert={true}>
-      {pageTabs.map((page, index) => (
+      {pages.map((page, index) => (
         <section
           key={page.id}
           className={`printPage printPage-${page.id}${index === lastPageIndex ? ' lastPrintPage' : ''}`}
@@ -2281,7 +2286,7 @@ function AttributeChoiceModal() {
   );
 }
 
-function SaveArchiveModal() {
+function SaveArchiveModal({ onJsonImport }) {
   const {
     saveOpen,
     setSaveOpen,
@@ -2294,6 +2299,7 @@ function SaveArchiveModal() {
   } = useSheet();
   const [editingSlotId, setEditingSlotId] = useState(null);
   const [draftName, setDraftName] = useState('');
+  const importInputRef = useRef(null);
 
   useEffect(() => {
     if (!saveOpen) {
@@ -2336,7 +2342,19 @@ function SaveArchiveModal() {
           <button type="button" className="libraryBack" onClick={() => handleSaveCurrent({ forceNew: true })} disabled={full}>
             新建存档
           </button>
+          <button type="button" className="libraryBack saveImportButton" onClick={() => importInputRef.current?.click()}>
+            <Upload size={15} strokeWidth={2.3} aria-hidden="true" />
+            导入 JSON
+          </button>
           <span>当前工作区会自动缓存；手动存档最多 10 个。</span>
+          <input
+            ref={importInputRef}
+            className="settingsFileInput"
+            type="file"
+            accept=".json,application/json"
+            onChange={onJsonImport}
+            tabIndex={-1}
+          />
         </div>
         <div className="saveSlotList">
           {saveSlots.length ? saveSlots.map((slot) => (
@@ -3845,7 +3863,9 @@ function App() {
   }
   const initialState = initialStateRef.current;
   const [tab, setTab] = useState('p1');
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [extraPagesEnabled, setExtraPagesEnabled] = useState(() => (
+    readJsonStorage(EXTRA_PAGES_ENABLED_KEY, false) === true
+  ));
   const [saveOpen, setSaveOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
@@ -3878,14 +3898,26 @@ function App() {
   const [attributeChoicePrompt, setAttributeChoicePrompt] = useState(null);
   const [randomPreview, setRandomPreview] = useState(null);
   const randomNoticeTimer = useRef(null);
-  const settingsActionRef = useRef(null);
-  const importInputRef = useRef(null);
   const promptedInitialMethodName = useRef(null);
   const currentRealmIndex = selections.realm ?? defaultRealmIndex;
   const upgradeCards = useMemo(
     () => aggregateUpgradeChoices(upgradeChoices, currentRealmIndex),
     [upgradeChoices, currentRealmIndex],
   );
+  const visiblePageTabs = useMemo(() => pageTabs.filter((page) => (
+    page.id === 'background'
+    || ['p1', 'p2', 'p3', 'p4'].includes(page.id)
+    || (extraPagesEnabled && ['p5', 'p6'].includes(page.id))
+  )), [extraPagesEnabled]);
+  const printablePageTabs = useMemo(() => pageTabs.filter((page) => (
+    ['p1', 'p2', 'p3', 'p4'].includes(page.id)
+    || (extraPagesEnabled && ['p5', 'p6'].includes(page.id))
+  )), [extraPagesEnabled]);
+
+  useEffect(() => {
+    writeJsonStorage(EXTRA_PAGES_ENABLED_KEY, extraPagesEnabled);
+    if (!visiblePageTabs.some((page) => page.id === tab)) setTab('p1');
+  }, [extraPagesEnabled, tab, visiblePageTabs]);
 
   const openFateDraw = (title) => {
     const plans = fateDraws[title];
@@ -4558,7 +4590,6 @@ function App() {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      setSettingsOpen(false);
       showNotice('角色卡 JSON 已导出。');
     } catch (error) {
       showNotice(error?.message || '导出 JSON 失败。', 2800);
@@ -4573,27 +4604,12 @@ function App() {
     try {
       const importedSnapshot = parseCardJson(await file.text());
       restoreCardSnapshot({ ...importedSnapshot, portrait });
-      setSettingsOpen(false);
+      setSaveOpen(false);
       showNotice('角色卡导入。');
     } catch (error) {
       showNotice(error?.message || '导入 JSON 失败。', 3200);
     }
   };
-
-  useEffect(() => {
-    if (!settingsOpen) return undefined;
-    const closeSettings = (event) => {
-      if (event.type === 'keydown' && event.key !== 'Escape') return;
-      if (event.type === 'pointerdown' && settingsActionRef.current?.contains(event.target)) return;
-      setSettingsOpen(false);
-    };
-    document.addEventListener('pointerdown', closeSettings);
-    document.addEventListener('keydown', closeSettings);
-    return () => {
-      document.removeEventListener('pointerdown', closeSettings);
-      document.removeEventListener('keydown', closeSettings);
-    };
-  }, [settingsOpen]);
 
   const drawRandomCard = () => createRandomCardState({
     options: {
@@ -4658,7 +4674,7 @@ function App() {
     <SheetContext.Provider value={contextValue}>
       <div className="appShell">
         <nav className="pageTabs" aria-label="页面">
-          {pageTabs.map((page) => (
+          {visiblePageTabs.map((page) => (
             <button
               key={page.id}
               type="button"
@@ -4677,125 +4693,27 @@ function App() {
           </div>
         </div>
 
-        <aside className="toolRail" aria-label="工具">
-          <div ref={settingsActionRef} className="settingsAction">
-            <button
-              type="button"
-              className={`toolButton${settingsOpen ? ' on' : ''}`}
-              onClick={() => {
-                setSettingsOpen((open) => !open);
-              }}
-              aria-label="设置"
-              aria-expanded={settingsOpen}
-              aria-controls="settings-popover"
-              title="设置"
-            >
-              <Settings size={20} strokeWidth={2.2} aria-hidden="true" />
-              <span>设置</span>
-            </button>
-            {settingsOpen ? (
-              <aside id="settings-popover" className="settingsPopover" aria-label="设置操作">
-                <strong>角色卡数据</strong>
-                <p>使用 JSON 文件迁移当前角色卡，立绘不会导出或导入。</p>
-                <div className="settingsActions">
-                  <button type="button" onClick={handleJsonExport}>
-                    <Download size={17} strokeWidth={2.2} aria-hidden="true" />
-                    导出 JSON
-                  </button>
-                  <button type="button" onClick={() => importInputRef.current?.click()}>
-                    <Upload size={17} strokeWidth={2.2} aria-hidden="true" />
-                    导入 JSON
-                  </button>
-                </div>
-                <input
-                  ref={importInputRef}
-                  className="settingsFileInput"
-                  type="file"
-                  accept=".json,application/json"
-                  onChange={handleJsonImport}
-                  tabIndex={-1}
-                />
-              </aside>
-            ) : null}
-          </div>
-          <div className="saveAction">
-            <button
-              type="button"
-              className="toolButton"
-              onClick={() => setSaveOpen(true)}
-              aria-label="存档"
-              title="存档"
-            >
-              <Save size={20} strokeWidth={2.2} aria-hidden="true" />
-              <span>存档</span>
-            </button>
-          </div>
-          <div className="exportAction">
-            <button
-              type="button"
-              className="toolButton"
-              onClick={handleExport}
-              disabled={exporting}
-              aria-label={exporting ? '正在准备打印导出' : '打印导出'}
-              aria-busy={exporting}
-              aria-describedby={exportError ? 'export-error-popover' : undefined}
-              title={exporting ? '正在准备打印导出' : '打印导出'}
-            >
-              <Printer size={20} strokeWidth={2.2} aria-hidden="true" />
-              <span>{exporting ? '准备中' : '打印'}</span>
-            </button>
-            {exportError ? (
-              <aside id="export-error-popover" className="exportErrorPopover" role="alert">
-                打印导出失败：{exportError}
-              </aside>
-            ) : null}
-          </div>
-          <div className="questionnaireAction">
-            <button
-              type="button"
-              className="toolButton"
-              onClick={() => { window.location.href = '/wj'; }}
-              aria-label="问卷车卡"
-              title="问卷车卡"
-            >
-              <ListChecks size={20} strokeWidth={2.2} aria-hidden="true" />
-              <span>问卷车卡</span>
-            </button>
-          </div>
-          <div className="guidedAction">
-            <button
-              type="button"
-              className="toolButton"
-              onClick={() => { window.location.href = '/guide'; }}
-              aria-label="引导车卡"
-              title="引导车卡"
-            >
-              <Map size={20} strokeWidth={2.2} aria-hidden="true" />
-              <span>引导车卡</span>
-            </button>
-          </div>
-          <div className="randomAction">
-            <button
-              type="button"
-              className="toolButton randomButton"
-              onClick={openRandomPreview}
-              aria-label="随机车卡"
-              title="随机车卡"
-            >
-              <Shuffle size={20} strokeWidth={2.2} aria-hidden="true" />
-              <span>随机车卡</span>
-            </button>
-          </div>
-        </aside>
+        <ToolRail
+          exporting={exporting}
+          exportError={exportError}
+          onPdfExport={handleExport}
+          onJsonExport={handleJsonExport}
+          onQuestionnaire={() => { window.location.href = '/wj'; }}
+          onGuided={() => { window.location.href = '/guide'; }}
+          onRandom={openRandomPreview}
+          onOpenSave={() => setSaveOpen(true)}
+          extraPagesEnabled={extraPagesEnabled}
+          onExtraPagesChange={setExtraPagesEnabled}
+        />
       </div>
 
-      <PrintPageRenderer />
+      <PrintPageRenderer pages={printablePageTabs} />
 
       <ResourceLibrary />
       <UpgradeSelectionModal />
       <RealmHistoryModal />
       <AttributeChoiceModal />
-      <SaveArchiveModal />
+      <SaveArchiveModal onJsonImport={handleJsonImport} />
       <FateDrawModal />
       <SpecialQuestionnaireModal />
       {randomPreviewValues ? (

@@ -1570,6 +1570,58 @@ textarea {
   padding: 0;
 }
 
+/* The training supply is read left-to-right: label and GM note on the left,
+   then the writable white marks. Fortune keeps its rule and title together
+   above a full-width mark row. */
+.trainingCounterBox {
+  grid-template-columns: minmax(0, 1fr) 88px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
+  padding-bottom: 0;
+}
+
+.trainingCounterBox .counterTitle {
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+  padding: 0;
+}
+
+.trainingCounterBox .counterTitle > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  padding: 8px 6px;
+}
+
+.trainingCounterBox .counterNote {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 7px;
+  border-top: 1px solid var(--line);
+  font-size: 10.5px;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+}
+
+.trainingCounterBox .counterBody {
+  border-left: 1px solid var(--line);
+  background: #fff;
+}
+
+.fortuneCounterBox .counterTitle {
+  gap: 5px;
+  padding: 8px 10px;
+}
+
+.fortuneCounterBox .counterNote {
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: normal;
+}
+
 .overflowCounter {
   display: grid;
   grid-template-columns: 18px 28px 18px;
@@ -3441,7 +3493,7 @@ body {
 }
 
 .middlePane {
-  grid-template-rows: minmax(0, 1fr) 91px 91px;
+  grid-template-rows: minmax(0, 1fr) 76px 106px;
   gap: var(--panel-gap);
 }
 
@@ -5140,12 +5192,19 @@ body {
 
 .saveArchiveToolbar {
   display: grid;
-  grid-template-columns: max-content max-content 1fr;
+  grid-template-columns: max-content max-content max-content 1fr;
   gap: 10px;
   align-items: center;
   padding: 12px 18px;
   border-bottom: 1px solid #d8d2cc;
   background: #f7f4f0;
+}
+
+.saveImportButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .saveArchiveToolbar span {
@@ -7637,6 +7696,27 @@ body {
 
 .pageTwoThreeAcross .pageTwoCardGrid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pageTwoFourAcross .pageTwoCardGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.pageTwoFourAcross .pageTwoCardGrid,
+.pageTwoThreeAcross .pageTwoCardGrid {
+  gap: 7px;
+  padding: 8px;
+}
+
+.pageTwoFourAcross .pageTwoCard h3,
+.pageTwoThreeAcross .pageTwoCard h3 {
+  padding-inline: 5px;
+  font-size: 13px;
+}
+
+.pageTwoFourAcross .pageTwoCardText,
+.pageTwoThreeAcross .pageTwoCardText {
+  padding: 8px;
 }
 
 .pageTwoCard {
