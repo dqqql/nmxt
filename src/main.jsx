@@ -217,6 +217,9 @@ const defaultTexts = {
   formationFeatureEffect0: '【初始特征】轻巧动作，对场景内 2 个敌人进行攻击，造成少量伤害',
   followerName: '',
   followerBonus: '',
+  characterIntroduction: '',
+  characterAppearance: '',
+  immortalJourneyNotes: '',
   followerMoveEffect0: '轻巧动作，【核心属性】点伤害，本回合中主人对这个目标的下一次检定具有优势',
   followerMoveEffect1: '轻巧动作，【核心属性 +2】点伤害，命中未拆招成功目标，施加【脆弱】（二选一）',
 };
@@ -505,7 +508,7 @@ function InfoHint({ text, label = '说明' }) {
 function SheetHeader({ title }) {
   return (
     <header className="sheetHeader">
-      <div className="brand">逆命仙途</div>
+      <img src={gameLogo} alt="逆命仙途" className="sheetLogo" />
       <h1>{title}</h1>
     </header>
   );
@@ -537,17 +540,18 @@ function FillInput({ field, label }) {
   );
 }
 
-function FillTextarea({ field, label }) {
+function FillTextarea({ field, label, placeholder = '', className = '' }) {
   const { texts, setText } = useSheet();
   return (
     <>
       <textarea
-        className="fillTextarea printControl"
+        className={`fillTextarea printControl ${className}`.trim()}
         value={texts[field]}
         onChange={(event) => setText(field, event.target.value)}
         aria-label={label}
+        placeholder={placeholder}
       />
-      <PrintValue value={texts[field]} className="fillTextarea" />
+      <PrintValue value={texts[field]} placeholder={placeholder} className={`fillTextarea ${className}`.trim()} />
     </>
   );
 }
@@ -689,7 +693,6 @@ function InfoPanel() {
     canSelectReachedRealm,
     openRealmHistory,
     upgradeRealm,
-    openSpecialQuestionnaire,
   } = useSheet();
   const realm = current.realm;
   const realmMultiplier = getRealmMultiplier(realm);
@@ -715,16 +718,7 @@ function InfoPanel() {
 
         <div className="singleField selectorField">
           <span className="fieldLabel">出身</span>
-          <div className="originSelectorControl">
-            <SelectorBox category="origin" />
-            <button
-              type="button"
-              className="selectorQuestionnaireButton originQuestionnaireButton printControl"
-              onClick={() => openSpecialQuestionnaire(CHARACTER_PROFILE_CATEGORY)}
-            >
-              问卷
-            </button>
-          </div>
+          <SelectorBox category="origin" />
         </div>
 
         <div className="splitFieldRow">
@@ -1859,20 +1853,21 @@ function PageBackground() {
       ),
     };
   });
-  const profileQuestions = getSpecialQuestionnaireQuestions(characterProfileQuestionnaire);
-  const sections = [
-    ...selectionSections,
+  const profileFields = [
     {
-      category: CHARACTER_PROFILE_CATEGORY,
-      label: specialQuestionnaireLabels[CHARACTER_PROFILE_CATEGORY],
-      option: characterProfileQuestionnaire,
-      questions: profileQuestions,
-      answers: getSpecialQuestionnaireAnswersForOption(
-        specialQuestionnaires,
-        CHARACTER_PROFILE_CATEGORY,
-        CHARACTER_PROFILE_OPTION_NAME,
-        profileQuestions.length,
-      ),
+      field: 'characterIntroduction',
+      title: '角色简介',
+      placeholder: '写下对您的角色的概括性介绍，包括他们的过去、经历和个性特征。请注意，角色真正的性格和背景特质应当在游戏中体现出来，这里只是简短的概括和提示。',
+    },
+    {
+      field: 'characterAppearance',
+      title: '角色形象',
+      placeholder: '写下您的角色的性别、年龄、外貌和服装等外观特征。如果您的角色有什么特征或者与众不同之处，也可以记录在这里。',
+    },
+    {
+      field: 'immortalJourneyNotes',
+      title: '仙途小记',
+      placeholder: '写下您角色经历的重大事件，值得注意的线索，目前的角色的状态和思考，或者其他值得记录的重要信息。',
     },
   ];
 
@@ -1880,17 +1875,17 @@ function PageBackground() {
     <div className="sheet pdfSheet sheetBackgroundPage">
       <PdfSheetHeader />
       <main className="pdfPageBody backgroundPrintGrid">
-        {sections.map(({ category, label, option, questions, answers }) => (
+        {selectionSections.map(({ category, label, option, questions, answers }) => (
           <section
             key={category}
-            className={`backgroundQuestionnaireBlock${category === CHARACTER_PROFILE_CATEGORY ? ' profile' : ''}`}
+            className="backgroundQuestionnaireBlock"
           >
             <header>
               <span>{label}</span>
               <strong>{option?.name || '未选择'}</strong>
             </header>
             {option && questions.length ? (
-              <div className={`backgroundQuestionList${category === CHARACTER_PROFILE_CATEGORY ? ' profile' : ''}`}>
+              <div className="backgroundQuestionList">
                 {questions.map((question, index) => (
                   <article key={`${category}-${index}`} className="backgroundQuestionItem">
                     <div className="backgroundQuestionText">
@@ -1908,6 +1903,21 @@ function PageBackground() {
             )}
           </section>
         ))}
+        <section className="backgroundProfileFields" aria-label="角色背景补充记录">
+          {profileFields.map(({ field, title, placeholder }) => (
+            <article key={field} className="backgroundProfileField">
+              <h2>{title}</h2>
+              <div className="backgroundProfileInput">
+                <FillTextarea
+                  field={field}
+                  label={title}
+                  placeholder={placeholder}
+                  className="backgroundProfileTextarea"
+                />
+              </div>
+            </article>
+          ))}
+        </section>
       </main>
     </div>
   );

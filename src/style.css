@@ -876,10 +876,11 @@ textarea {
   letter-spacing: 1px;
 }
 
-.brand {
-  font-size: clamp(28px, 2vw, 44px);
-  font-weight: 900;
-  letter-spacing: 1px;
+.sheetLogo {
+  width: 124px;
+  height: 48px;
+  object-fit: contain;
+  object-position: left center;
 }
 
 .pageOneLayout {
@@ -3445,17 +3446,6 @@ body {
   letter-spacing: 0;
 }
 
-.brand {
-  max-width: 120px;
-  color: #fff;
-  font-size: 19px;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 0;
-  text-shadow: 2px 2px 0 #5a5a5a, -1px -1px 0 #5a5a5a;
-  transform: skew(-8deg);
-}
-
 .pageOneLayout {
   height: 100%;
   min-height: 0;
@@ -4042,8 +4032,9 @@ body {
     font-size: 25px;
   }
 
-  .brand {
-    font-size: 16px;
+  .sheetLogo {
+    width: 104px;
+    height: 40px;
   }
 
   .panelTitle {
@@ -4418,10 +4409,6 @@ body {
     font-size: 30px;
   }
 
-  .brand {
-    font-size: 19px;
-  }
-
   .panelTitle {
     font-size: 18px;
   }
@@ -4599,10 +4586,6 @@ body {
     font-size: 30px;
   }
 
-  .brand {
-    font-size: 19px;
-  }
-
   .panelTitle {
     font-size: 18px;
   }
@@ -4648,18 +4631,6 @@ body {
 /* 资源库触发方块 */
 .selectorField {
   align-items: center;
-}
-
-.originSelectorControl {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  min-width: 0;
-}
-
-.originQuestionnaireButton {
-  min-width: 54px;
-  padding-inline: 8px;
 }
 
 .selectorBox {
@@ -6341,10 +6312,6 @@ body {
   background: #fff;
 }
 
-.backgroundQuestionnaireBlock.profile {
-  grid-column: 1 / -1;
-}
-
 .backgroundQuestionnaireBlock header {
   display: flex;
   align-items: center;
@@ -6378,46 +6345,6 @@ body {
   min-height: 0;
 }
 
-.backgroundQuestionList.profile {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-}
-
-.backgroundQuestionList.profile .backgroundQuestionItem {
-  border-right: 3px solid var(--pdf-line);
-  border-bottom: 3px solid var(--pdf-line);
-}
-
-.backgroundQuestionList.profile .backgroundQuestionItem:nth-child(4),
-.backgroundQuestionList.profile .backgroundQuestionItem:last-child {
-  border-right: 0;
-}
-
-.backgroundQuestionList.profile .backgroundQuestionItem:nth-child(n + 5) {
-  border-bottom: 0;
-}
-
-.backgroundQuestionList.profile .backgroundQuestionItem:last-child {
-  grid-column: span 2;
-}
-
-.backgroundQuestionList.profile .backgroundQuestionText {
-  padding: 9px 11px 7px;
-  font-size: 13px;
-}
-
-.backgroundQuestionList.profile .backgroundQuestionText b {
-  width: 24px;
-  height: 24px;
-  font-size: 12px;
-}
-
-.backgroundQuestionList.profile .backgroundAnswerText {
-  padding: 9px 13px;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
 .backgroundQuestionItem {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -6439,7 +6366,7 @@ body {
   color: #181818;
   font-size: 16px;
   font-weight: 800;
-  line-height: 1.35;
+  line-height: 2;
 }
 
 .backgroundQuestionText b {
@@ -6457,9 +6384,55 @@ body {
   padding: 14px 18px;
   color: #2c2c2c;
   font-size: 16px;
-  line-height: 1.65;
+  line-height: 2;
   overflow: hidden;
   white-space: pre-wrap;
+}
+
+.backgroundProfileFields {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-height: 0;
+}
+
+.backgroundProfileField {
+  display: grid;
+  grid-template-rows: 36px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+.backgroundProfileField h2 {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: #181818;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.backgroundProfileInput {
+  min-width: 0;
+  min-height: 0;
+}
+
+.backgroundProfileTextarea {
+  min-height: 0;
+  border: 2px solid #c9c9c9;
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #181818;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 2;
+}
+
+.backgroundProfileTextarea::placeholder {
+  color: #777;
+  opacity: 1;
 }
 
 .backgroundEmptyState {
@@ -6469,7 +6442,7 @@ body {
   padding: 24px;
   color: #777;
   font-size: 17px;
-  line-height: 1.6;
+  line-height: 2;
   text-align: center;
 }
 
@@ -6816,9 +6789,16 @@ body {
   min-width: 0;
   padding: 2px 6px;
   border-right: 3px solid var(--pdf-line);
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 800;
   font-style: normal;
   line-height: 1.25;
+  text-align: center;
+}
+
+.thresholdBand .formulaCell {
+  font-size: 15px;
+  font-weight: 800;
   text-align: center;
 }
 
@@ -7561,11 +7541,40 @@ body {
 .thresholdPanel .damageScale > span {
   min-height: 0;
   border-width: 0 0 0 1px;
-  font-size: 10px;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .thresholdPanel .damageScale > span:first-child {
   border-left: 0;
+}
+
+.thresholdPanel .damageScale .thresholdStep {
+  grid-template-rows: 16px minmax(0, 1fr);
+  align-content: stretch;
+  gap: 0;
+  padding: 0;
+}
+
+.thresholdPanel .thresholdStep b {
+  width: 100%;
+  color: #6f6a67;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+}
+
+.thresholdPanel .thresholdStep input {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border-width: 1px 0 0;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
 }
 
 .rightPane > .talentBoard {
@@ -7683,7 +7692,7 @@ body {
 .pageTwoAttackGroup .combatSkill > div {
   padding: 10px 12px;
   font-size: 13px;
-  line-height: 1.35;
+  line-height: 2;
 }
 
 .pageTwoCardGrid {
@@ -7760,7 +7769,7 @@ body {
   color: #181818;
   font-family: var(--font-serif);
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 2;
   overflow: hidden;
   text-align: left;
   white-space: pre-wrap;

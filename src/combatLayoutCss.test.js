@@ -75,6 +75,25 @@ describe('combat layout CSS', () => {
     expect(pageTwoSource).toContain("{ name: '道源效果', text: source?.effect || '' }");
     expect(pageTwoSource).not.toContain('道源本源效果');
     expect(pageTwoSource).toContain("{ name: '大道效果', text: dao?.effect || '' }");
+    expect(pageTwoSource).toContain('<PageTwoCardGroup title="秘法" rows={rowsFor(\'秘法\')} cards={prefillFor(\'秘法\')} />');
+    expect(pageTwoSource).not.toContain('title="秘法" rows={rowsFor(\'秘法\')} cards={prefillFor(\'秘法\')} className="pageTwoThreeAcross"');
+  });
+
+  it('uses double line spacing for multi-line page-two content', () => {
+    expect(ruleBody('.pageTwoAttackGroup .combatSkill > div')).toContain('line-height: 2');
+    expect(ruleBody('.pageTwoCardText')).toContain('line-height: 2');
+  });
+
+  it('makes page-one threshold labels and values fill their cells legibly', () => {
+    const cells = ruleBody('.thresholdPanel .damageScale > span');
+    const steps = ruleBody('.thresholdPanel .damageScale .thresholdStep');
+    const inputs = ruleBody('.thresholdPanel .thresholdStep input');
+    expect(cells).toContain('font-size: 15px');
+    expect(cells).toContain('font-weight: 900');
+    expect(steps).toContain('grid-template-rows: 16px minmax(0, 1fr)');
+    expect(inputs).toContain('font-size: 16px');
+    expect(inputs).toContain('font-weight: 900');
+    expect(inputs).toContain('text-align: center');
   });
 
   it('lays out training supply beside its note and fortune above its mark row', () => {

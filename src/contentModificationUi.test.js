@@ -44,24 +44,41 @@ describe('requested content and layout modifications', () => {
     expect(ruleBody('.methodExclusiveBlankBeast')).toContain('grid-row: 3');
   });
 
-  it('adds a printable character background page for selection and fixed profile questionnaire answers', () => {
+  it('adds a printable character background page with three editable profile fields', () => {
     expect(mainSource).toContain("{ id: 'background', label: '角色背景' }");
     expect(mainSource).toContain('function PageBackground()');
     expect(mainSource).toContain('className="pdfPageBody backgroundPrintGrid"');
     expect(mainSource).toContain('getSpecialQuestionnaireAnswersForOption(');
-    expect(mainSource).toContain("category: CHARACTER_PROFILE_CATEGORY");
-    expect(mainSource).toContain("className={`backgroundQuestionnaireBlock${category === CHARACTER_PROFILE_CATEGORY ? ' profile' : ''}`}");
+    expect(mainSource).toContain('className="backgroundProfileFields"');
+    ['角色简介', '角色形象', '仙途小记'].forEach((title) => expect(mainSource).toContain(`title: '${title}'`));
     expect(mainSource).toContain('return <PageBackground />');
     expect(ruleBody('.backgroundPrintGrid')).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
-    expect(ruleBody('.backgroundQuestionnaireBlock.profile')).toContain('grid-column: 1 / -1');
-    expect(ruleBody('.backgroundQuestionList.profile')).toContain('grid-template-columns: repeat(4, minmax(0, 1fr))');
+    expect(ruleBody('.backgroundProfileFields')).toContain('grid-column: 1 / -1');
+    expect(ruleBody('.backgroundProfileFields')).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
+    expect(ruleBody('.backgroundProfileTextarea')).toContain('line-height: 2');
   });
 
-  it('keeps the fixed profile questionnaire visible and exposes it beside origin', () => {
+  it('uses the same image logo on page one as the later pages', () => {
+    expect(mainSource).toContain('<img src={gameLogo} alt="逆命仙途" className="sheetLogo" />');
+    expect(mainSource).toContain('<img src={gameLogo} alt="逆命仙途" className="pdfLogo" />');
+    expect(ruleBody('.sheetLogo')).toContain('width: 124px');
+    expect(ruleBody('.sheetLogo')).toContain('height: 48px');
+  });
+
+  it('keeps the fixed profile questionnaire in the questionnaire flow but removes it beside origin', () => {
     expect(mainSource).toContain('questionnaireSpecialSection questionnaireProfileSection');
     expect(mainSource).toContain('你可以参考以下的问卷来完善你的角色形象。');
-    expect(mainSource).toContain('onClick={() => openSpecialQuestionnaire(CHARACTER_PROFILE_CATEGORY)}');
-    expect(ruleBody('.originSelectorControl')).toContain('grid-template-columns: minmax(0, 1fr) auto');
+    const infoPanelSource = mainSource.slice(mainSource.indexOf('function InfoPanel()'), mainSource.indexOf('function SideTextPanel('));
+    expect(infoPanelSource).not.toContain('originQuestionnaireButton');
+    expect(infoPanelSource).not.toContain('问卷');
+  });
+
+  it('enlarges, bolds, and centers all text in the follower damage thresholds', () => {
+    const thresholdCells = ruleBody('.thresholdBand span,\n.thresholdBand b,\n.thresholdBand em');
+    expect(thresholdCells).toContain('place-items: center');
+    expect(thresholdCells).toContain('font-size: 15px');
+    expect(thresholdCells).toContain('font-weight: 800');
+    expect(thresholdCells).toContain('text-align: center');
   });
 
   it('keeps long special questionnaires inside a scrollable modal body', () => {
