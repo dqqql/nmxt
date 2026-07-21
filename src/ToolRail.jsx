@@ -109,6 +109,11 @@ export default function ToolRail({
 
   return (
     <aside ref={railRef} className="toolRail toolRail--grouped" aria-label="工具">
+      <div className="toolRailCredit">
+        <span>作者：不冻港</span>
+        <strong>逆命仙途官方车卡器</strong>
+      </div>
+
       <div className="toolRailAction">
         <MenuButton
           menu="settings"

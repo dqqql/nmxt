@@ -24,6 +24,7 @@ import {
 } from './data';
 import gameLogo from './assets/game-logo.png';
 import PageSix from './PageSix';
+import PromoWelcomeModal from './PromoWelcomeModal';
 import ToolRail from './ToolRail';
 import { attachPrintLifecycle, printSheetsWithBrowser } from './exportPdf';
 import {
@@ -163,7 +164,7 @@ function getFateDisplayDetails(title) {
 const pdfSpellGroups = [
   { title: '神通', rows: 4, className: 'pdfTall' },
   { title: '本源感悟', rows: 2, className: 'pdfTall' },
-  { title: '秘法', rows: 3, className: 'pdfMid' },
+  { title: '秘法', rows: 2, className: 'pdfMid' },
   { title: '感悟', rows: 4, className: 'pdfMid' },
   { title: '功法', rows: 3, className: 'pdfShort' },
   { title: '灵宝', rows: 3, className: 'pdfShort' },
@@ -1671,7 +1672,7 @@ function PageTwo() {
             cards={prefillFor('神通')}
             className="pageTwoFourAcross"
           />
-          <PageTwoCardGroup title="秘法" rows={rowsFor('秘法')} cards={prefillFor('秘法')} className="pageTwoThreeAcross" />
+          <PageTwoCardGroup title="秘法" rows={rowsFor('秘法')} cards={prefillFor('秘法')} />
           <PageTwoCardGroup title="灵宝" rows={rowsFor('灵宝')} cards={prefillFor('灵宝')} className="pageTwoThreeAcross" />
         </div>
         <div className="pageTwoColumn pageTwoColumnRight">
@@ -4708,6 +4709,7 @@ function App() {
 
       <PrintPageRenderer pages={printablePageTabs} />
 
+      <PromoWelcomeModal />
       <ResourceLibrary />
       <UpgradeSelectionModal />
       <RealmHistoryModal />

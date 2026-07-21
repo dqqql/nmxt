@@ -1,3 +1,22 @@
+.toolRailCredit {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  width: max-content;
+  gap: 3px;
+  color: #4f4947;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.toolRailCredit strong {
+  font-family: var(--font-serif, serif);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .toolRail--grouped .toolRailAction {
   position: relative;
 }

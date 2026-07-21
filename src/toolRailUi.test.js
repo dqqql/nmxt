@@ -10,6 +10,16 @@ function conditionalMenu(name, nextName) {
 }
 
 describe('grouped tool rail', () => {
+  it('shows the author and official builder credit in the space above the actions', () => {
+    const creditIndex = railSource.indexOf('className="toolRailCredit"');
+    const firstActionIndex = railSource.indexOf('className="toolRailAction"');
+
+    expect(creditIndex).toBeGreaterThan(-1);
+    expect(creditIndex).toBeLessThan(firstActionIndex);
+    expect(railSource).toContain('作者：不冻港');
+    expect(railSource).toContain('逆命仙途官方车卡器');
+  });
+
   it('uses one active-menu state so opening a menu replaces the previous menu', () => {
     expect(railSource).toContain('const [openMenu, setOpenMenu] = useState(null)');
     expect(railSource).toContain('onClick={() => setOpenMenu(open ? null : menu)}');

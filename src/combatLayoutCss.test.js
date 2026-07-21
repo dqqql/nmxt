@@ -67,7 +67,7 @@ describe('combat layout CSS', () => {
       expect(pageTwoSource).toContain(`rows={rowsFor('${title}')}`);
     });
     expect(mainSource).toContain("{ title: '神通', rows: 4");
-    expect(mainSource).toContain("{ title: '秘法', rows: 3");
+    expect(mainSource).toContain("{ title: '秘法', rows: 2");
     expect(mainSource).toContain("{ title: '灵宝', rows: 3");
     expect(mainSource).toContain("{ title: '功法', rows: 3");
     expect(mainSource).toContain('<b>法门普攻增益一</b>');
