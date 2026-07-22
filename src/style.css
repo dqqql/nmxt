@@ -7039,6 +7039,52 @@ body {
   border-top: 3px solid var(--pdf-line);
 }
 
+.learnedSkill {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.learnedSkill + .learnedSkill {
+  border-top: 3px solid var(--pdf-line);
+}
+
+.learnedSkill h3 {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 5px;
+  border-right: 3px solid var(--pdf-line);
+  background: var(--pdf-soft);
+  color: #181818;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.1;
+  writing-mode: vertical-rl;
+}
+
+.learnedSkill.empty h3 {
+  color: #8d8885;
+  font-weight: 700;
+}
+
+.learnedSkillText {
+  box-sizing: border-box;
+  min-height: 0;
+  padding: 10px 12px;
+  color: #181818;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 1.5;
+  overflow: hidden;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
 .bagTable {
   grid-template-rows: 36px minmax(0, 1fr);
 }
@@ -7050,7 +7096,48 @@ body {
 }
 
 .bagRows > div {
+  position: relative;
+  min-height: 0;
   border-top: 3px solid var(--pdf-line);
+}
+
+.pdfEditable {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  color: #181818;
+  font-family: var(--font-serif);
+  font-size: 26px;
+  line-height: 1.5;
+  resize: none;
+}
+
+.craftCard .pdfEditable {
+  place-items: initial;
+  border-right: 0;
+  font-size: 26px;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow: hidden;
+}
+
+@media screen {
+  .pdfEditable:hover {
+    background: #faf9f7;
+  }
+
+  .pdfEditable:focus {
+    background: #fffdf7;
+    box-shadow: inset 0 0 0 2px #8d735a;
+  }
 }
 
 .craftsPanel {
@@ -7076,7 +7163,7 @@ body {
 
 .craftCard {
   display: grid;
-  grid-template-rows: 28px minmax(0, 1fr) 30px 30px;
+  grid-template-rows: 58px minmax(0, 1fr) 52px;
   min-height: 0;
   border: 3px solid var(--pdf-line);
 }
@@ -7097,6 +7184,88 @@ body {
   border-right: 3px solid var(--pdf-line);
   color: #777;
   font-size: 14px;
+}
+
+.craftProgressControl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 98px;
+  align-items: center;
+  min-width: 0;
+  padding: 5px 8px 5px 12px;
+}
+
+.craftProgressTrack {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--progress-count), 18px);
+  align-items: center;
+  justify-content: start;
+  gap: 8px;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.craftProgressTrack::before {
+  position: absolute;
+  right: 9px;
+  left: 9px;
+  height: 2px;
+  background: #777;
+  content: '';
+}
+
+.craftProgressTrack button {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 2px solid #444;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+
+.craftProgressTrack button.filled {
+  background: #2b2b2b;
+  box-shadow: inset 0 0 0 3px #fff;
+}
+
+.craftProgressTrack button:focus-visible {
+  outline: 2px solid #8d735a;
+  outline-offset: 2px;
+}
+
+.craftProgressMax {
+  display: grid;
+  grid-template-columns: auto 54px;
+  align-items: center;
+  gap: 5px;
+  justify-self: end;
+  color: #777;
+  font-family: var(--font-serif);
+  font-size: 12px;
+}
+
+.craftProgressMax > span:first-child {
+  display: inline;
+  border: 0;
+  font-size: 12px;
+}
+
+.craftProgressMax input,
+.craftProgressMax .printTextValue {
+  box-sizing: border-box;
+  width: 54px;
+  height: 38px;
+  padding: 1px 3px;
+  border: 2px solid var(--pdf-line);
+  background: #fff;
+  color: #181818;
+  font: 700 26px/1 var(--font-serif);
+  text-align: center;
 }
 
 @media screen {

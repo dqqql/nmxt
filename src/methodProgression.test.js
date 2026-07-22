@@ -13,6 +13,7 @@ import {
   getMethodQiOriginInsights,
   getMethodQiUpgradeInsights,
   getUnlockedMethodAttackBuffs,
+  getUnlockedMethodTechniques,
 } from './methodProgression';
 
 const swordMethod = {
@@ -203,5 +204,30 @@ describe('method progression helpers', () => {
     ]);
     expect(techniqueSection.items[1].text).toContain('储物格上限 +1');
     expect(getMethodResourceSections(swordMethod).some((section) => section.title === '技艺')).toBe(false);
+  });
+
+  it('unlocks techniques by realm and uses two beginner techniques for an extra crafting method', () => {
+    const alchemyMethod = {
+      name: '丹修',
+      techniques: {
+        qi: { name: '初阶炼丹', text: '炼制初阶丹药。' },
+        foundation: { name: '中阶炼丹', text: '炼制中阶丹药。' },
+      },
+    };
+    const artifactMethod = {
+      name: '器修',
+      techniques: {
+        qi: { name: '初阶铸器', text: '铸造初阶灵器。' },
+        foundation: { name: '中阶铸器', text: '铸造中阶灵器。' },
+      },
+    };
+
+    expect(getUnlockedMethodTechniques(alchemyMethod, { name: '练气后期' }).map((item) => item.name))
+      .toEqual(['初阶炼丹']);
+    expect(getUnlockedMethodTechniques(alchemyMethod, { name: '筑基前期' }).map((item) => item.name))
+      .toEqual(['初阶炼丹', '中阶炼丹']);
+    expect(getUnlockedMethodTechniques(alchemyMethod, { name: '筑基前期' }, {
+      extraMethods: [artifactMethod],
+    }).map((item) => item.name)).toEqual(['初阶炼丹', '初阶铸器']);
   });
 });

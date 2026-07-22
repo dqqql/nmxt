@@ -104,3 +104,17 @@ export function getUnlockedMethodAttackBuffs(method, realm, upgradeCards = {}) {
   }
   return buffs;
 }
+
+export function getUnlockedMethodTechniques(method, realm, upgradeCards = {}) {
+  const primaryTechniques = getMethodTechniqueProgression(method);
+  if (!primaryTechniques.length) return [];
+
+  const isFoundation = realm?.name?.startsWith('筑基') || realm?.name?.startsWith('金丹');
+  if (!isFoundation) return primaryTechniques.slice(0, 1);
+
+  const techniques = primaryTechniques.slice(0, 2);
+  const extraQiTechnique = getMethodTechniqueProgression(upgradeCards.extraMethods?.[0])
+    .find((technique) => technique.stage === 'qi');
+  if (extraQiTechnique) techniques[1] = extraQiTechnique;
+  return techniques;
+}

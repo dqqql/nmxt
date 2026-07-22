@@ -44,6 +44,7 @@ import {
   getMethodResourceSections,
   getMethodTechniqueProgression,
   getUnlockedMethodAttackBuffs,
+  getUnlockedMethodTechniques,
 } from './methodProgression';
 import {
   aggregateUpgradeChoices,
@@ -211,6 +212,25 @@ const defaultTexts = {
   immortalJourneyNotes: '',
   followerMoveEffect0: '轻巧动作，【核心属性】点伤害，本回合中主人对这个目标的下一次检定具有优势',
   followerMoveEffect1: '轻巧动作，【核心属性 +2】点伤害，命中未拆招成功目标，施加【脆弱】（二选一）',
+  bagItem0: '',
+  bagItem1: '',
+  bagItem2: '',
+  craftName0: '',
+  craftName1: '',
+  craftName2: '',
+  craftName3: '',
+  craftEffect0: '',
+  craftEffect1: '',
+  craftEffect2: '',
+  craftEffect3: '',
+  craftProgress0: '0',
+  craftProgress1: '0',
+  craftProgress2: '0',
+  craftProgress3: '0',
+  craftProgressMax0: '6',
+  craftProgressMax1: '6',
+  craftProgressMax2: '6',
+  craftProgressMax3: '6',
 };
 
 const defaultAttributes = { '仙躯': '', '身法': '', '神魂': '', '灵蕴': '' };
@@ -1999,18 +2019,83 @@ function PageFour() {
   );
 }
 
-function CraftCard() {
+function EditablePdfField({ field, label, multiline = false, className = '' }) {
+  const { texts, setText } = useSheet();
+  const Control = multiline ? 'textarea' : 'input';
+  return (
+    <>
+      <Control
+        className={`pdfEditable printControl ${className}`.trim()}
+        type={multiline ? undefined : 'text'}
+        value={texts[field] || ''}
+        onChange={(event) => setText(field, event.target.value)}
+        aria-label={label}
+      />
+      <PrintValue value={texts[field]} className={`pdfEditable ${className}`.trim()} />
+    </>
+  );
+}
+
+function CraftProgress({ index }) {
+  const { texts, setText } = useSheet();
+  const maxField = `craftProgressMax${index}`;
+  const progressField = `craftProgress${index}`;
+  const max = Math.min(12, Math.max(1, Number.parseInt(texts[maxField], 10) || 1));
+  const progress = Math.min(max, Math.max(0, Number.parseInt(texts[progressField], 10) || 0));
+  const setMax = (value) => {
+    const nextMax = Math.min(12, Math.max(1, Number.parseInt(value, 10) || 1));
+    setText(maxField, String(nextMax));
+    if (progress > nextMax) setText(progressField, String(nextMax));
+  };
+  const setProgress = (value) => setText(progressField, String(value === progress ? value - 1 : value));
+
+  return (
+    <div className="craftProgressControl">
+      <div className="craftProgressTrack" style={{ '--progress-count': max }} aria-label={`造物 ${index + 1} 当前进度 ${progress}/${max}`}>
+        {Array.from({ length: max }, (_, step) => {
+          const value = step + 1;
+          return (
+            <button
+              key={value}
+              type="button"
+              className={value <= progress ? 'filled' : ''}
+              onClick={() => setProgress(value)}
+              aria-label={`将造物 ${index + 1} 进度设为 ${value}`}
+              aria-pressed={value <= progress}
+            />
+          );
+        })}
+      </div>
+      <label className="craftProgressMax">
+        <span>上限</span>
+        <input
+          className="printControl"
+          type="number"
+          min="1"
+          max="12"
+          value={max}
+          onChange={(event) => setMax(event.target.value)}
+          aria-label={`造物 ${index + 1} 进度上限`}
+        />
+        <PrintValue value={max} />
+      </label>
+    </div>
+  );
+}
+
+function CraftCard({ index }) {
   return (
     <section className="craftCard">
-      <div><span>名称</span><b /></div>
-      <div><span>效果</span><b /></div>
-      <div><span>总进度</span><b /></div>
-      <div><span>当前进度</span><b /></div>
+      <div><span>名称</span><EditablePdfField field={`craftName${index}`} label={`造物 ${index + 1} 名称`} /></div>
+      <div><span>效果</span><EditablePdfField field={`craftEffect${index}`} label={`造物 ${index + 1} 效果`} multiline /></div>
+      <div className="craftProgressRow"><span>进度</span><CraftProgress index={index} /></div>
     </section>
   );
 }
 
 function PageFive() {
+  const { current, upgradeCards } = useSheet();
+  const techniques = getUnlockedMethodTechniques(current.method, current.realm, upgradeCards);
   return (
     <div className="sheet pdfSheet">
       <PdfSheetHeader />
@@ -2018,18 +2103,32 @@ function PageFive() {
         <PdfTable title="灵宝库" rows={4} className="treasureTable" />
         <PdfTable title="已学习技艺列表" rows={2} className="learnedSkills">
           <div className="learnedSkillRows">
-            {Array.from({ length: 2 }, (_, index) => <div key={index} />)}
+            {Array.from({ length: 2 }, (_, index) => {
+              const technique = techniques[index];
+              return (
+                <article key={index} className={`learnedSkill${technique ? ' filled' : ' empty'}`}>
+                  <h3>{technique?.name || ''}</h3>
+                  <AutoFitText className="learnedSkillText" fitOptions={{ minRatio: 0.48, minPx: 8 }}>
+                    {technique?.text || ''}
+                  </AutoFitText>
+                </article>
+              );
+            })}
           </div>
         </PdfTable>
         <PdfTable title="储物袋" rows={3} className="bagTable">
           <div className="bagRows">
-            {Array.from({ length: 3 }, (_, index) => <div key={index} />)}
+            {Array.from({ length: 3 }, (_, index) => (
+              <div key={index}>
+                <EditablePdfField field={`bagItem${index}`} label={`储物袋第 ${index + 1} 格`} multiline />
+              </div>
+            ))}
           </div>
         </PdfTable>
         <section className="craftsPanel">
           <div className="craftsTitle">技艺造物</div>
           <div className="craftList">
-            {Array.from({ length: 4 }, (_, index) => <CraftCard key={index} />)}
+            {Array.from({ length: 4 }, (_, index) => <CraftCard key={index} index={index} />)}
           </div>
         </section>
       </main>
