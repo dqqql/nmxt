@@ -82,13 +82,9 @@ import {
   validateGuideValues,
 } from './guidedCardState';
 import {
-  CHARACTER_PROFILE_CATEGORY,
-  CHARACTER_PROFILE_OPTION_NAME,
-  SPECIAL_QUESTIONNAIRE_DRAFT_KEY,
   createEmptySpecialQuestionnaireAnswers,
   getSpecialQuestionnaireAnswersForOption,
   normalizeSpecialQuestionnaireAnswers,
-  pickSpecialQuestionnaireAnswersForSelections,
   updateSpecialQuestionnaireAnswer,
 } from './specialQuestionnaireState';
 import {
@@ -186,15 +182,9 @@ const selectorPanelHints = {
 };
 
 const specialQuestionnaireLabels = {
-  [CHARACTER_PROFILE_CATEGORY]: '角色塑造',
   source: '道源',
   method: '法门',
   dao: '大道',
-};
-
-const characterProfileQuestionnaire = {
-  name: CHARACTER_PROFILE_OPTION_NAME,
-  questions: Array.isArray(questionnaireConfig.profileQuestions) ? questionnaireConfig.profileQuestions : [],
 };
 
 const CARD_AUTOSAVE_KEY = 'nmxt.card.autosave.v1';
@@ -868,7 +858,6 @@ function SpecialQuestionnaireFields({
 // 竖排的资源库选择面板（道源 / 法门 / 大道）。
 function SelectorPanel({ title, category, vertical = false }) {
   const hint = selectorPanelHints[category];
-  const { openSpecialQuestionnaire } = useSheet();
 
   return (
     <section className={`panel textPanel selectorPanel${vertical ? ' vertical' : ''}`}>
@@ -877,13 +866,6 @@ function SelectorPanel({ title, category, vertical = false }) {
           <span>{title}</span>
           {hint ? <small>{hint}</small> : null}
         </div>
-        <button
-          type="button"
-          className="selectorQuestionnaireButton printControl"
-          onClick={() => openSpecialQuestionnaire(category)}
-        >
-          问卷
-        </button>
       </div>
       <div className="textPanelBody">
         <SelectorBox category={category} />
@@ -1835,7 +1817,7 @@ function PageThree() {
 }
 
 function PageBackground() {
-  const { current, specialQuestionnaires } = useSheet();
+  const { current, specialQuestionnaires, setSpecialQuestionnaireValue } = useSheet();
   const selectionSections = ['source', 'method', 'dao'].map((category) => {
     const option = current[category];
     const questions = getSpecialQuestionnaireQuestions(option);
@@ -1891,9 +1873,19 @@ function PageBackground() {
                       <b>{index + 1}</b>
                       <span>{question}</span>
                     </div>
-                    <div className="backgroundAnswerText">
-                      {answers[index] || '未填写'}
-                    </div>
+                    <textarea
+                      className="backgroundAnswerText"
+                      value={answers[index] || ''}
+                      onChange={(event) => setSpecialQuestionnaireValue(
+                        category,
+                        option.name,
+                        questions.length,
+                        index,
+                        event.target.value,
+                      )}
+                      aria-label={`${option.name}：${question}`}
+                      placeholder="填写你的回答"
+                    />
                   </article>
                 ))}
               </div>
@@ -2709,27 +2701,108 @@ function getQuestionnaireLibraries() {
   };
 }
 
-function getSpecialQuestionnaireOption(category, optionName) {
-  if (!optionName) return null;
-  if (category === CHARACTER_PROFILE_CATEGORY) {
-    return optionName === CHARACTER_PROFILE_OPTION_NAME ? characterProfileQuestionnaire : null;
-  }
-  const optionsByCategory = {
-    source: sourceOptions,
-    method: methodOptions,
-    dao: daoOptions,
+function getQuestionnaireResultCards(result) {
+  const selections = result?.selections || {};
+  const selected = {
+    realm: realmOptions.find((option) => option.name === selections.realm),
+    origin: originOptions.find((option) => option.name === selections.origin),
+    source: sourceOptions.find((option) => option.name === selections.source),
+    method: methodOptions.find((option) => option.name === selections.method),
+    dao: daoOptions.find((option) => option.name === selections.dao),
   };
-  return optionsByCategory[category]?.find((option) => option.name === optionName) || null;
+  const fateDetails = getFateDisplayDetails(selections.fate || '平平无奇');
+  const attributes = result?.attributeSet?.attributes || result?.attributeSet || {};
+  const coreAttribute = result?.attributeSet?.coreAttribute
+    || guideAttributeTitles.find((title) => String(attributes[title]) === '3')
+    || '';
+
+  return [
+    {
+      title: '境界',
+      heading: selected.realm?.name || selections.realm || '未得出结果',
+      items: [
+        { label: '描述', value: selected.realm?.desc },
+        { label: '效果', value: selected.realm?.effect },
+      ],
+    },
+    {
+      title: '出身',
+      heading: selected.origin?.name || selections.origin || '未得出结果',
+      items: [
+        { label: '描述', value: selected.origin?.desc },
+        { label: '效果', value: selected.origin?.effect },
+      ],
+    },
+    {
+      title: '四维属性',
+      heading: coreAttribute ? `${coreAttribute}为核心属性` : '问卷属性分配',
+      items: guideAttributeTitles.map((title) => ({ label: title, value: String(attributes[title] ?? '0') })),
+    },
+    {
+      title: '道源',
+      heading: selected.source?.name || selections.source || '未得出结果',
+      items: [
+        { label: '描述', value: selected.source?.desc },
+        { label: '能力', value: selected.source?.ability },
+      ],
+    },
+    {
+      title: '法门',
+      heading: selected.method?.name || selections.method || '未得出结果',
+      items: [
+        { label: '描述', value: selected.method?.desc },
+        { label: '攻击增益', value: getUnlockedMethodAttackBuffs(selected.method, null).join('；') },
+      ],
+    },
+    {
+      title: '大道',
+      heading: selected.dao?.name || selections.dao || '未得出结果',
+      items: [
+        { label: '描述', value: selected.dao?.desc },
+        { label: '效果', value: selected.dao?.effect },
+      ],
+    },
+    {
+      kind: 'fate',
+      title: '因果',
+      heading: fateDetails.title || '平平无奇',
+      items: [
+        {
+          label: '数值效果',
+          value: fateDetails.numericEffects.map((effect) => effect.replace(/\s*\n\s*/g, ' ')).join('；') || '无',
+        },
+        { label: '天赋 / 天谴', value: fateDetails.talentRule.replace(/\s*\n\s*/g, ' ') },
+      ],
+    },
+  ];
 }
 
-function getSpecialQuestionnaireOptionList(category) {
-  if (category === CHARACTER_PROFILE_CATEGORY) return [characterProfileQuestionnaire];
-  const optionsByCategory = {
-    source: sourceOptions,
-    method: methodOptions,
-    dao: daoOptions,
-  };
-  return optionsByCategory[category] || [];
+function QuestionnaireResultCards({ result }) {
+  const cards = getQuestionnaireResultCards(result);
+
+  return (
+    <div className="questionnaireResultMasonry">
+      {cards.map((card) => (
+        <article
+          key={card.title}
+          className={`guidePreviewCard questionnaireResultCard${card.kind ? ` questionnaireResultCard-${card.kind}` : ''}`}
+        >
+          <header>
+            <span>{card.title}</span>
+            <h3>{card.heading}</h3>
+          </header>
+          <div className="guidePreviewFields">
+            {card.items.filter((item) => item.value).map((item) => (
+              <div key={item.label} className="guidePreviewField">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
 }
 
 function QuestionnairePage() {
@@ -2737,19 +2810,12 @@ function QuestionnairePage() {
     ...createEmptyAnswers(questionnaireConfig),
     ...readJsonStorage(QUESTIONNAIRE_DRAFT_KEY, {}),
   }));
-  const [specialQuestionnaires, setSpecialQuestionnaires] = useState(() => (
-    normalizeSpecialQuestionnaireAnswers(readJsonStorage(SPECIAL_QUESTIONNAIRE_DRAFT_KEY, {}))
-  ));
   const [errors, setErrors] = useState([]);
   const firstErrorRef = useRef(null);
 
   useEffect(() => {
     writeJsonStorage(QUESTIONNAIRE_DRAFT_KEY, answers);
   }, [answers]);
-
-  useEffect(() => {
-    writeJsonStorage(SPECIAL_QUESTIONNAIRE_DRAFT_KEY, specialQuestionnaires);
-  }, [specialQuestionnaires]);
 
   useEffect(() => {
     if (errors.length > 0 && firstErrorRef.current) {
@@ -2783,32 +2849,6 @@ function QuestionnairePage() {
     });
   }, [answers]);
 
-  const specialQuestionnaireGroups = useMemo(() => {
-    if (!provisionalResult) return [];
-    return ['source', 'method', 'dao'].map((category) => {
-      const option = getSpecialQuestionnaireOption(category, provisionalResult.selections[category]);
-      const questions = getSpecialQuestionnaireQuestions(option);
-      return {
-        category,
-        option,
-        questions,
-        answers: getSpecialQuestionnaireAnswersForOption(
-          specialQuestionnaires,
-          category,
-          option?.name,
-          questions.length,
-        ),
-      };
-    }).filter((group) => group.option && group.questions.length > 0);
-  }, [provisionalResult, specialQuestionnaires]);
-  const profileQuestions = getSpecialQuestionnaireQuestions(characterProfileQuestionnaire);
-  const profileAnswers = getSpecialQuestionnaireAnswersForOption(
-    specialQuestionnaires,
-    CHARACTER_PROFILE_CATEGORY,
-    CHARACTER_PROFILE_OPTION_NAME,
-    profileQuestions.length,
-  );
-
   const submit = (event) => {
     event.preventDefault();
     const nextErrors = validateQuestionnaireAnswers(questionnaireConfig, answers);
@@ -2820,16 +2860,8 @@ function QuestionnairePage() {
       answers,
       libraries: getQuestionnaireLibraries(),
     });
-    writeJsonStorage(QUESTIONNAIRE_RESULT_KEY, {
-      ...result,
-      specialQuestionnaires: pickSpecialQuestionnaireAnswersForSelections(specialQuestionnaires, {
-        source: result.selections.source,
-        method: result.selections.method,
-        dao: result.selections.dao,
-      }),
-    });
+    writeJsonStorage(QUESTIONNAIRE_RESULT_KEY, result);
     removeStorage(QUESTIONNAIRE_DRAFT_KEY);
-    removeStorage(SPECIAL_QUESTIONNAIRE_DRAFT_KEY);
     window.location.href = '/';
   };
 
@@ -2897,57 +2929,17 @@ function QuestionnairePage() {
           })}
         </div>
 
-        {specialQuestionnaireGroups.length > 0 ? (
-          <section className="questionnaireSpecialSection">
-            <header className="questionnaireSpecialHeader">
+        {provisionalResult ? (
+          <section className="questionnaireResultSection" aria-live="polite">
+            <header className="questionnaireResultHeader">
               <div>
-                <span>可选问卷</span>
-                <h2>补充角色细节</h2>
+                <h2>你的角色</h2>
+                <p>以下结果会随你的选择即时更新，生成角色卡后仍可在主界面调整。</p>
               </div>
             </header>
-            <div className="questionnaireSpecialList">
-              {specialQuestionnaireGroups.map((group) => (
-                <SpecialQuestionnaireFields
-                  key={`${group.category}-${group.option?.name}`}
-                  category={group.category}
-                  option={group.option}
-                  answers={group.answers}
-                  onAnswerChange={(index, value) => setSpecialQuestionnaires((prev) => updateSpecialQuestionnaireAnswer(prev, {
-                    category: group.category,
-                    optionName: group.option?.name,
-                    index,
-                    value,
-                    questionCount: group.questions.length,
-                  }))}
-                />
-              ))}
-            </div>
+            <QuestionnaireResultCards result={provisionalResult} />
           </section>
         ) : null}
-
-        <section className="questionnaireSpecialSection questionnaireProfileSection">
-          <header className="questionnaireSpecialHeader">
-            <div>
-              <span>固定问卷</span>
-              <h2>你可以参考以下的问卷来完善你的角色形象。</h2>
-            </div>
-          </header>
-          <div className="questionnaireSpecialList">
-            <SpecialQuestionnaireFields
-              category={CHARACTER_PROFILE_CATEGORY}
-              option={characterProfileQuestionnaire}
-              answers={profileAnswers}
-              showHeader={false}
-              onAnswerChange={(index, value) => setSpecialQuestionnaires((prev) => updateSpecialQuestionnaireAnswer(prev, {
-                category: CHARACTER_PROFILE_CATEGORY,
-                optionName: CHARACTER_PROFILE_OPTION_NAME,
-                index,
-                value,
-                questionCount: profileQuestions.length,
-              }))}
-            />
-          </div>
-        </section>
 
         <footer className="questionnaireFooter">
           <span>填写记录会自动保存在本机，提交后清除。</span>
@@ -3020,8 +3012,6 @@ function GuideOptionStep({
   options,
   value,
   onChange,
-  specialQuestionnaireAnswers,
-  onSpecialQuestionnaireAnswerChange,
 }) {
   const hasSelection = value !== null && value !== undefined && value !== '';
   const detail = hasSelection ? options[Number(value)] || null : null;
@@ -3034,8 +3024,6 @@ function GuideOptionStep({
     { label: '神魂阈值', value: detail.soulThreshold },
   ].filter((item) => item.value) : [];
   const methodResourceSections = category === 'method' ? getMethodResourceSections(detail) : [];
-
-  const questions = getSpecialQuestionnaireQuestions(detail);
 
   return (
     <section className={`guideStepSection guideOptionStep guideOptionStep-${category}`}>
@@ -3101,15 +3089,6 @@ function GuideOptionStep({
         </aside>
       </div>
 
-      {detail && questions.length > 0 ? (
-        <SpecialQuestionnaireFields
-          category={category}
-          option={detail}
-          answers={specialQuestionnaireAnswers}
-          onAnswerChange={onSpecialQuestionnaireAnswerChange}
-          compact
-        />
-      ) : null}
     </section>
   );
 }
@@ -3484,21 +3463,6 @@ function GuidedCardPage() {
     ...current,
     values: { ...current.values, [field]: value },
   }));
-  const updateSpecialQuestionnaireValue = (category, optionName, questionCount, index, value) => (
-    persistDraft((current) => ({
-      ...current,
-      values: {
-        ...current.values,
-        specialQuestionnaires: updateSpecialQuestionnaireAnswer(current.values.specialQuestionnaires, {
-          category,
-          optionName,
-          index,
-          value,
-          questionCount,
-        }),
-      },
-    }))
-  );
   const updateAttribute = (field, value) => persistDraft((current) => ({
     ...current,
     values: applyGuideAttributeValue(current.values, field, value),
@@ -3566,84 +3530,9 @@ function GuidedCardPage() {
     if (step === 0) return <GuideInfoStep values={values} onChange={updateValue} />;
     if (step === 1) return <GuideOptionStep title="出身" category="origin" options={originOptions} value={values.origin} onChange={(value) => updateValue('origin', value)} />;
     if (step === 2) return <GuideAttributeStep values={values.attributes} coreAttribute={values.coreAttribute} onAttributeChange={updateAttribute} onCoreChange={(value) => updateValue('coreAttribute', value)} />;
-    if (step === 3) {
-      const option = values.source != null ? sourceOptions[values.source] : null;
-      const questions = getSpecialQuestionnaireQuestions(option);
-      return (
-        <GuideOptionStep
-          title="道源"
-          category="source"
-          options={sourceOptions}
-          value={values.source}
-          onChange={(value) => updateValue('source', value)}
-          specialQuestionnaireAnswers={getSpecialQuestionnaireAnswersForOption(
-            values.specialQuestionnaires,
-            'source',
-            option?.name,
-            questions.length,
-          )}
-          onSpecialQuestionnaireAnswerChange={(index, nextValue) => updateSpecialQuestionnaireValue(
-            'source',
-            option?.name,
-            questions.length,
-            index,
-            nextValue,
-          )}
-        />
-      );
-    }
-    if (step === 4) {
-      const option = values.method != null ? methodOptions[values.method] : null;
-      const questions = getSpecialQuestionnaireQuestions(option);
-      return (
-        <GuideOptionStep
-          title="法门"
-          category="method"
-          options={methodOptions}
-          value={values.method}
-          onChange={(value) => updateValue('method', value)}
-          specialQuestionnaireAnswers={getSpecialQuestionnaireAnswersForOption(
-            values.specialQuestionnaires,
-            'method',
-            option?.name,
-            questions.length,
-          )}
-          onSpecialQuestionnaireAnswerChange={(index, nextValue) => updateSpecialQuestionnaireValue(
-            'method',
-            option?.name,
-            questions.length,
-            index,
-            nextValue,
-          )}
-        />
-      );
-    }
-    if (step === 5) {
-      const option = values.dao != null ? daoOptions[values.dao] : null;
-      const questions = getSpecialQuestionnaireQuestions(option);
-      return (
-        <GuideOptionStep
-          title="大道"
-          category="dao"
-          options={daoOptions}
-          value={values.dao}
-          onChange={(value) => updateValue('dao', value)}
-          specialQuestionnaireAnswers={getSpecialQuestionnaireAnswersForOption(
-            values.specialQuestionnaires,
-            'dao',
-            option?.name,
-            questions.length,
-          )}
-          onSpecialQuestionnaireAnswerChange={(index, nextValue) => updateSpecialQuestionnaireValue(
-            'dao',
-            option?.name,
-            questions.length,
-            index,
-            nextValue,
-          )}
-        />
-      );
-    }
+    if (step === 3) return <GuideOptionStep title="道源" category="source" options={sourceOptions} value={values.source} onChange={(value) => updateValue('source', value)} />;
+    if (step === 4) return <GuideOptionStep title="法门" category="method" options={methodOptions} value={values.method} onChange={(value) => updateValue('method', value)} />;
+    if (step === 5) return <GuideOptionStep title="大道" category="dao" options={daoOptions} value={values.dao} onChange={(value) => updateValue('dao', value)} />;
     if (step === 6) return (
       <GuideFateStep
         value={values.fateValue}
@@ -3755,99 +3644,6 @@ function RandomCardModal({ values, onCancel, onRedraw, onConfirm }) {
   );
 }
 
-function SpecialQuestionnaireModal() {
-  const {
-    current,
-    specialQuestionnaireModal,
-    closeSpecialQuestionnaire,
-    specialQuestionnaires,
-    setSpecialQuestionnaireValue,
-  } = useSheet();
-  const category = specialQuestionnaireModal?.category || null;
-  const isProfileQuestionnaire = category === CHARACTER_PROFILE_CATEGORY;
-  const categoryOptions = useMemo(() => getSpecialQuestionnaireOptionList(category), [category]);
-  const currentOptionName = isProfileQuestionnaire
-    ? CHARACTER_PROFILE_OPTION_NAME
-    : category ? current?.[category]?.name || '' : '';
-  const [selectedOptionName, setSelectedOptionName] = useState(currentOptionName);
-
-  useEffect(() => {
-    setSelectedOptionName(currentOptionName);
-  }, [currentOptionName, category]);
-
-  const option = useMemo(
-    () => getSpecialQuestionnaireOption(category, selectedOptionName),
-    [category, selectedOptionName],
-  );
-  const questions = getSpecialQuestionnaireQuestions(option);
-  const answers = getSpecialQuestionnaireAnswersForOption(
-    specialQuestionnaires,
-    category,
-    option?.name,
-    questions.length,
-  );
-
-  if (!category) return null;
-
-  return (
-    <div className="specialQuestionnaireOverlay" onClick={closeSpecialQuestionnaire}>
-      <section
-        className="specialQuestionnaireModal"
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${specialQuestionnaireLabels[category] || category}问卷`}
-      >
-        <header className="specialQuestionnaireModalHeader">
-          <div>
-            <span>{specialQuestionnaireLabels[category] || category}</span>
-            <h2>问卷</h2>
-          </div>
-          <button type="button" className="specialQuestionnaireClose" onClick={closeSpecialQuestionnaire} aria-label="关闭问卷">
-            <X size={18} strokeWidth={2.4} aria-hidden="true" />
-          </button>
-        </header>
-        <div className="specialQuestionnaireModalBody">
-          {!isProfileQuestionnaire ? (
-            <label className="specialQuestionnairePicker">
-              <span>切换{specialQuestionnaireLabels[category] || category}</span>
-              <select
-                value={selectedOptionName}
-                onChange={(event) => setSelectedOptionName(event.target.value)}
-              >
-                <option value="">未选择</option>
-                {categoryOptions.map((entry) => (
-                  <option key={`${category}-${entry.name}`} value={entry.name}>
-                    {entry.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          {option ? (
-            <SpecialQuestionnaireFields
-              category={category}
-              option={option}
-              answers={answers}
-              onAnswerChange={(index, value) => setSpecialQuestionnaireValue(
-                category,
-                option?.name,
-                questions.length,
-                index,
-                value,
-              )}
-            />
-          ) : (
-            <div className="specialQuestionnaireEmptyState">
-              这里会显示对应的 3 个问题。你可以先在角色卡中选择一项，或直接在上方手动切换。
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
-  );
-}
-
 function App() {
   const defaultRealmIndex = getDefaultRealmIndex(realmOptions);
   const autosavedCard = readJsonStorage(CARD_AUTOSAVE_KEY, null);
@@ -3901,7 +3697,6 @@ function App() {
   const [breakthroughChoices, setBreakthroughChoices] = useState(() => initialState.snapshot.breakthroughChoices);
   const [breakthroughChoiceDetails, setBreakthroughChoiceDetails] = useState(() => initialState.snapshot.breakthroughChoiceDetails);
   const [maxRealmIndexReached, setMaxRealmIndexReached] = useState(() => initialState.snapshot.maxRealmIndexReached);
-  const [specialQuestionnaireModal, setSpecialQuestionnaireModal] = useState(null);
   const [realmHistoryOpen, setRealmHistoryOpen] = useState(false);
   const [upgradePrompt, setUpgradePrompt] = useState(null);
   const [attributeChoicePrompt, setAttributeChoicePrompt] = useState(null);
@@ -3942,8 +3737,6 @@ function App() {
   const openLibrary = (category) => {
     setLibrary(category);
   };
-  const openSpecialQuestionnaire = (category) => setSpecialQuestionnaireModal({ category });
-  const closeSpecialQuestionnaire = () => setSpecialQuestionnaireModal(null);
   const select = (category, index) => {
     if (category === 'method') {
       if (selections.method === index) return;
@@ -4329,7 +4122,6 @@ function App() {
     setMaxRealmIndexReached(next.maxRealmIndexReached);
     setFateDraw(null);
     setLibrary(null);
-    setSpecialQuestionnaireModal(null);
     setUpgradePrompt(null);
     setAttributeChoicePrompt(null);
     setRealmHistoryOpen(false);
@@ -4403,9 +4195,6 @@ function App() {
     coreAttribute,
     toggleCoreAttribute,
     specialQuestionnaires,
-    openSpecialQuestionnaire,
-    closeSpecialQuestionnaire,
-    specialQuestionnaireModal,
     setSpecialQuestionnaireValue,
     library,
     openLibrary,
@@ -4527,7 +4316,6 @@ function App() {
     setDrawnTalents(cardState.drawnTalents);
     setFateDraw(null);
     setLibrary(null);
-    setSpecialQuestionnaireModal(null);
     removeStorage(QUESTIONNAIRE_RESULT_KEY);
     showNotice('问卷车卡完成！', 2200);
   }, []);
@@ -4559,7 +4347,6 @@ function App() {
     setMarkStates({});
     setFateDraw(null);
     setLibrary(null);
-    setSpecialQuestionnaireModal(null);
     removeStorage(GUIDED_RESULT_KEY);
     showNotice('引导车卡完成！', 2200);
   }, []);
@@ -4657,7 +4444,6 @@ function App() {
     setDrawnTalents(result.drawnTalents);
     setFateDraw(null);
     setLibrary(null);
-    setSpecialQuestionnaireModal(null);
   };
 
   const confirmRandomPreview = () => {
@@ -4724,7 +4510,6 @@ function App() {
       <AttributeChoiceModal />
       <SaveArchiveModal onJsonImport={handleJsonImport} />
       <FateDrawModal />
-      <SpecialQuestionnaireModal />
       {randomPreviewValues ? (
         <RandomCardModal
           values={randomPreviewValues}

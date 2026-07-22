@@ -65,9 +65,9 @@ describe('requested content and layout modifications', () => {
     expect(ruleBody('.sheetLogo')).toContain('height: 48px');
   });
 
-  it('keeps the fixed profile questionnaire in the questionnaire flow but removes it beside origin', () => {
-    expect(mainSource).toContain('questionnaireSpecialSection questionnaireProfileSection');
-    expect(mainSource).toContain('你可以参考以下的问卷来完善你的角色形象。');
+  it('removes the fixed profile questionnaire from the questionnaire flow and beside origin', () => {
+    expect(mainSource).not.toContain('questionnaireSpecialSection questionnaireProfileSection');
+    expect(mainSource).not.toContain('你可以参考以下的问卷来完善你的角色形象。');
     const infoPanelSource = mainSource.slice(mainSource.indexOf('function InfoPanel()'), mainSource.indexOf('function SideTextPanel('));
     expect(infoPanelSource).not.toContain('originQuestionnaireButton');
     expect(infoPanelSource).not.toContain('问卷');
@@ -81,12 +81,10 @@ describe('requested content and layout modifications', () => {
     expect(thresholdCells).toContain('text-align: center');
   });
 
-  it('keeps long special questionnaires inside a scrollable modal body', () => {
-    expect(ruleBody('.specialQuestionnaireModal')).toContain('grid-template-rows: auto minmax(0, 1fr)');
-    expect(ruleBody('.specialQuestionnaireModal')).toContain('overflow: hidden');
-    expect(ruleBody('.specialQuestionnaireModalBody')).toContain('min-height: 0');
-    expect(ruleBody('.specialQuestionnaireModalBody')).toContain('overflow: auto');
-    expect(ruleBody('.specialQuestionnaireModalBody')).toContain('overscroll-behavior: contain');
+  it('removes the obsolete special-questionnaire modal entry flow', () => {
+    expect(mainSource).not.toContain('function SpecialQuestionnaireModal');
+    expect(cssSource).not.toContain('.specialQuestionnaireModal');
+    expect(cssSource).not.toContain('.selectorQuestionnaireButton');
   });
 
   it('removes the redundant right-side hint tool while keeping the inline quick reference', () => {
