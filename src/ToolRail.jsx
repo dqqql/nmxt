@@ -112,6 +112,7 @@ export default function ToolRail({
       <div className="toolRailCredit">
         <span>作者：不冻港</span>
         <strong>逆命仙途官方车卡器</strong>
+        <span>官方Q群796368505</span>
       </div>
 
       <div className="toolRailAction">

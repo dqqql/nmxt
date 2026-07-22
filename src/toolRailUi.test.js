@@ -18,6 +18,7 @@ describe('grouped tool rail', () => {
     expect(creditIndex).toBeLessThan(firstActionIndex);
     expect(railSource).toContain('作者：不冻港');
     expect(railSource).toContain('逆命仙途官方车卡器');
+    expect(railSource).toContain('官方Q群796368505');
   });
 
   it('uses one active-menu state so opening a menu replaces the previous menu', () => {

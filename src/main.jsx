@@ -24,7 +24,6 @@ import {
 } from './data';
 import gameLogo from './assets/game-logo.png';
 import PageSix from './PageSix';
-import PromoWelcomeModal from './PromoWelcomeModal';
 import ToolRail from './ToolRail';
 import { attachPrintLifecycle, printSheetsWithBrowser } from './exportPdf';
 import {
@@ -4719,7 +4718,6 @@ function App() {
 
       <PrintPageRenderer pages={printablePageTabs} />
 
-      <PromoWelcomeModal />
       <ResourceLibrary />
       <UpgradeSelectionModal />
       <RealmHistoryModal />
