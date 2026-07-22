@@ -7200,7 +7200,7 @@ body {
   grid-template-columns: repeat(var(--progress-count), 18px);
   align-items: center;
   justify-content: start;
-  gap: 8px;
+  gap: 24px;
   width: max-content;
   max-width: 100%;
   min-width: 0;
