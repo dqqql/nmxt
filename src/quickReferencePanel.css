@@ -1,0 +1,335 @@
+.quickReferenceBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: #1f1b1ccc;
+  backdrop-filter: blur(4px);
+}
+
+.quickReferenceDialog {
+  display: grid;
+  grid-template-rows: auto auto;
+  width: min(1360px, 100%);
+  max-height: calc(100vh - 56px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid #c9c1ba;
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, #f6f2ec 0%, #eee7de 100%);
+  color: #282425;
+  box-shadow: 0 28px 80px #00000059;
+}
+
+.quickReferenceHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px 18px;
+  border-bottom: 1px solid #c9c1ba;
+  background: #f8f5f0f2;
+}
+
+.quickReferenceTitle {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.quickReferenceEyebrow {
+  color: #806a57;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.quickReferenceHeader h1 {
+  margin: 0;
+  font-family: var(--font-serif, serif);
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1.05;
+}
+
+.quickReferenceHeaderActions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.quickReferenceClose,
+.quickReferenceExportButton {
+  display: grid;
+  place-items: center;
+  height: 42px;
+  border: 1px solid #c9c1ba;
+  border-radius: 7px;
+  background: #fff;
+  color: #282425;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.quickReferenceClose {
+  width: 42px;
+}
+
+.quickReferenceExportButton {
+  grid-template-columns: auto auto;
+  gap: 7px;
+  min-width: 112px;
+  padding: 0 14px;
+  background: #365f64;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.quickReferenceExportButton span {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: 0.08em;
+}
+
+.quickReferenceClose:hover,
+.quickReferenceExportButton:hover {
+  background: #3a3637;
+  color: #fff;
+}
+
+.quickReferenceClose:focus-visible,
+.quickReferenceExportButton:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px #f8f5f0, 0 0 0 5px #3a3637;
+}
+
+.quickReferenceClose:disabled,
+.quickReferenceExportButton:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.quickReferenceWaterfall {
+  padding: 24px;
+  column-count: 3;
+  column-gap: 18px;
+}
+
+.quickReferenceCard {
+  display: inline-block;
+  width: 100%;
+  margin: 0 0 18px;
+  overflow: hidden;
+  break-inside: avoid;
+  border: 1px solid #cfc6bd;
+  border-radius: 7px;
+  background: #fffdfa;
+  box-shadow: 0 6px 18px #40372f12;
+}
+
+.quickReferenceCard > h2 {
+  margin: 0;
+  padding: 11px 15px;
+  background: #365f64;
+  color: #fff;
+  font-family: var(--font-serif, serif);
+  font-size: 19px;
+  letter-spacing: 0.08em;
+}
+
+.quickReferenceEntry {
+  padding: 14px 15px;
+  border-top: 1px solid #e1d9d1;
+}
+
+.quickReferenceCard > h2 + .quickReferenceEntry {
+  border-top: 0;
+}
+
+.quickReferenceEntry h3 {
+  margin: 0 0 6px;
+  color: #5e3f30;
+  font-family: var(--font-serif, serif);
+  font-size: 16px;
+}
+
+.quickReferenceEntry p,
+.quickReferenceNotice {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.quickReferenceEntry .quickReferenceSource {
+  margin-top: 0;
+  color: #806a57;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.quickReferenceEntry strong,
+.quickReferenceNotice strong,
+.quickReferenceStorageList strong {
+  color: #24545b;
+}
+
+.quickReferenceRolls {
+  display: grid;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+}
+
+.quickReferenceRolls li {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 10px 15px;
+  border-top: 1px solid #e7dfd7;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.quickReferenceRolls li:first-child {
+  border-top: 0;
+}
+
+.quickReferenceRolls b {
+  display: inline-grid;
+  place-items: center;
+  min-height: 26px;
+  border-radius: 4px;
+  background: #ede4d9;
+  color: #5e3f30;
+  font-size: 12px;
+}
+
+.quickReferenceNotice {
+  margin: 0;
+  padding: 14px 15px;
+  border-bottom: 1px solid #e1d9d1;
+  background: #f7efe4;
+}
+
+.quickReferenceStorageList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quickReferenceStorageList li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 12px;
+  padding: 11px 15px;
+  border-top: 1px solid #e7dfd7;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.quickReferenceStorageList li:first-child {
+  border-top: 0;
+}
+
+.quickReferenceExportClone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: 1360px;
+  max-height: none;
+  overflow: visible;
+  border-radius: 0;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.quickReferenceExportClone .quickReferenceHeader {
+  position: static;
+}
+
+.quickReferenceExportClone .quickReferenceWaterfall {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
+  column-count: initial !important;
+}
+
+.quickReferenceExportColumn {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.quickReferenceExportColumn .quickReferenceCard {
+  margin: 0;
+}
+
+@media (max-width: 1050px) {
+  .quickReferenceWaterfall {
+    column-count: 2;
+  }
+}
+
+@media (max-width: 680px) {
+  .quickReferenceBackdrop {
+    padding: 0;
+  }
+
+  .quickReferenceDialog {
+    width: 100%;
+    max-height: 100vh;
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .quickReferenceHeader {
+    padding: 16px;
+  }
+
+  .quickReferenceExportButton {
+    min-width: 42px;
+    padding: 0 10px;
+  }
+
+  .quickReferenceExportButton span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .quickReferenceWaterfall {
+    padding: 14px;
+    column-count: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quickReferenceClose,
+  .quickReferenceExportButton {
+    transition: none;
+  }
+}
+
+@media print {
+  .quickReferenceBackdrop {
+    display: none !important;
+  }
+}

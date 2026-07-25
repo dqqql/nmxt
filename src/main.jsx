@@ -1788,12 +1788,13 @@ function PageThree() {
               <div className="pdfTableTitle">随从升级</div>
               <div className="upgradeIntro">当你拥有随从后<br />你每次境界提升时<br />都可以标记一项进行升级</div>
               <div className="upgradeChecks twoCol">
-                <PdfClickableCheck id="p3-follower-upgrade-hp" label="血量格 +1" double />
+                <PdfClickableCheck id="p3-follower-upgrade-hp" label="正常血量格 +1" double />
+                <PdfClickableCheck id="p3-follower-upgrade-danger-hp" label="险境血量格 +1" double />
                 <PdfClickableCheck id="p3-follower-upgrade-counter" label="获得 1 拆招次数（无需消耗灵气）" />
                 <PdfClickableCheck id="p3-follower-upgrade-body" label="肉体中伤与重伤阈值 +1" />
-                <PdfClickableCheck id="p3-follower-upgrade-guard" label="护主 - 当你首次血量归零时，灵兽会保护你" />
+                <PdfClickableCheck id="p3-follower-upgrade-guard" label="护主 - 当你首次血量归零时，如果随从没有退场，随从会保护你，让你以 1 血量格保留下来" />
                 <PdfClickableCheck id="p3-follower-upgrade-soul" label="神魂中伤与重伤阈值 +1" />
-                <PdfClickableCheck id="p3-follower-upgrade-rest" label="长休时，与灵兽玩耍交流，并获得 1 辐缘点" />
+                <PdfClickableCheck id="p3-follower-upgrade-rest" label="长休时，额外奖励 - 与你的随从互动，获得 1 福缘点" />
                 <PdfClickableCheck id="p3-follower-upgrade-bonus" label="检定值 +1" />
               </div>
             </section>

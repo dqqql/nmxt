@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import {
   Braces,
+  BookOpenText,
   Download,
   ListChecks,
   Map,
@@ -10,6 +11,7 @@ import {
   Shuffle,
   UserRound,
 } from 'lucide-react';
+import QuickReferencePanel from './QuickReferencePanel';
 import './toolRail.css';
 
 const MENU_LABELS = {
@@ -67,10 +69,12 @@ export default function ToolRail({
   onExtraPagesChange,
 }) {
   const [openMenu, setOpenMenu] = useState(null);
+  const [quickReferenceOpen, setQuickReferenceOpen] = useState(false);
   const railRef = useRef(null);
   const settingsButtonRef = useRef(null);
   const exportButtonRef = useRef(null);
   const cardButtonRef = useRef(null);
+  const quickReferenceButtonRef = useRef(null);
   const idPrefix = useId();
   const settingsId = `${idPrefix}-settings-menu`;
   const exportId = `${idPrefix}-export-menu`;
@@ -107,8 +111,14 @@ export default function ToolRail({
     handler?.();
   };
 
+  const closeQuickReference = () => {
+    setQuickReferenceOpen(false);
+    requestAnimationFrame(() => quickReferenceButtonRef.current?.focus());
+  };
+
   return (
-    <aside ref={railRef} className="toolRail toolRail--grouped" aria-label="工具">
+    <>
+      <aside ref={railRef} className="toolRail toolRail--grouped" aria-label="工具">
       <div className="toolRailCredit">
         <span>作者：不冻港</span>
         <strong>逆命仙途官方车卡器</strong>
@@ -224,6 +234,7 @@ export default function ToolRail({
 
       <div className="toolRailAction">
         <button
+          ref={quickReferenceButtonRef}
           type="button"
           className="toolButton"
           onClick={() => {
@@ -237,6 +248,30 @@ export default function ToolRail({
           <span>存档</span>
         </button>
       </div>
-    </aside>
+
+      <div className="toolRailAction">
+        <button
+          type="button"
+          className={`toolButton${quickReferenceOpen ? ' on' : ''}`}
+          onClick={() => {
+            setOpenMenu(null);
+            setQuickReferenceOpen(true);
+          }}
+          aria-label="速查"
+          aria-haspopup="dialog"
+          aria-expanded={quickReferenceOpen}
+          title="速查"
+        >
+          <BookOpenText size={20} strokeWidth={2.2} aria-hidden="true" />
+          <span>速查</span>
+        </button>
+      </div>
+      </aside>
+
+      <QuickReferencePanel
+        open={quickReferenceOpen}
+        onClose={closeQuickReference}
+      />
+    </>
   );
 }
