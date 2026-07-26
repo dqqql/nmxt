@@ -1,3 +1,19 @@
+@font-face {
+  font-family: "Niming KingHwa OldSong";
+  src: url("/fonts/kinghwa-old-song.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Niming Jiangxi Zhuokai";
+  src: url("/fonts/jiangxi-zhuokai-2.0.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
 :root {
   --bg: #d8d8d8;
   --paper: #ffffff;
@@ -12,6 +28,8 @@
   --sheet-width: min(1660px, calc(100vw - 48px));
   --sheet-min-width: 1180px;
   --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-old-song: "Niming KingHwa OldSong", "_KingHwa_OldSong", "KingHwaOldSong", "京華老宋体", "京华老宋", var(--font-serif);
+  --font-jiangcheng-kai: "Niming Jiangxi Zhuokai", "江城楷", "江西拙楷2.0", "jiangxizhuokai", "KaiTi", "STKaiti", cursive;
   --page-tab-width: 66px;
   --tool-rail-width: 68px;
 }
@@ -7885,6 +7903,22 @@ body {
   overflow: hidden;
   text-align: left;
   white-space: pre-wrap;
+}
+
+/* 原版字体角色在改版布局中的映射：标签/名称用京华老宋，说明正文用江城楷。 */
+.fieldLabel,
+.originEffectPanel > .panelTitle,
+.damageThreshold h4,
+.pageTwoCard h3 {
+  font-family: var(--font-old-song);
+}
+
+.fortuneCounterBox .counterNote,
+.quickReferencePanel .conflictContent p,
+.doublePanels .textPanelBody,
+.pageTwoAttackGroup .combatSkill > div,
+.pageTwoCardText {
+  font-family: var(--font-jiangcheng-kai);
 }
 
 @media print {

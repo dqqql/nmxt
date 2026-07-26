@@ -821,9 +821,9 @@ function AttributePanel({ title, hint }) {
   );
 }
 
-function TextPanel({ title, hint, content, vertical = false }) {
+function TextPanel({ title, hint, content, vertical = false, className = '' }) {
   return (
-    <section className={`panel textPanel${vertical ? ' vertical' : ''}`}>
+    <section className={`panel textPanel${vertical ? ' vertical' : ''} ${className}`.trim()}>
       <div className="panelTitle">{title}</div>
       <div className="textPanelBody">
         {content != null ? content : hint ? <span>{hint}</span> : null}
@@ -1357,6 +1357,7 @@ function PageOne() {
             <TextPanel title="道源能力" content={sourceAbilityContent} />
             <TextPanel
               title="出身效果"
+              className="originEffectPanel"
               content={<FilledText value={origin ? origin.effect : ''} placeholder="选择出身后自动填充" />}
             />
           </section>
