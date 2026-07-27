@@ -50,6 +50,9 @@ describe('card pack manager UI', () => {
     expect(managerSource).not.toContain('支持 .json 格式文件');
     expect(managerSource).not.toContain('导入 JSON 卡包后，资源会立即接入车卡流程。');
     expect(managerSource).toContain('<span>初始资源</span>');
+    expect(managerSource).toContain("resource.entryKind === 'resource'");
+    expect(managerSource).toContain("? fateKindLabels[entry.kind] || '天赋 / 天谴'");
+    expect(managerSource).toContain('getPackItemCount(pack)');
     expect(managerSource).not.toContain('初始自带');
     expect(managerSource).not.toContain('境界可选');
   });

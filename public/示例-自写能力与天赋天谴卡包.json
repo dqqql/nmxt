@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "id": "example.custom-abilities-and-fates",
+  "name": "示例：自写能力与天赋天谴",
+  "version": "1.0.0",
+  "author": "逆命仙途车卡器",
+  "description": "覆盖卡包可扩展的全部能力类型，并包含一张自定义天赋和一张自定义天谴。可在设置 → 卡包管理中直接导入。",
+  "resources": [
+    {
+      "id": "fire-ability",
+      "parent": { "kind": "source", "name": "火道源" },
+      "type": "source-ability",
+      "realm": "qi-early",
+      "acquisition": "initial",
+      "name": "焚脉",
+      "text": "你以灵火淬炼经脉；每个场景一次，可让一次火焰相关检定获得 +1。",
+      "buff": "火焰相关检定 +1"
+    },
+    {
+      "id": "fire-effect",
+      "parent": { "kind": "source", "name": "火道源" },
+      "type": "source-effect",
+      "realm": "qi-early",
+      "acquisition": "initial",
+      "name": "余烬共鸣",
+      "text": "你能感知附近残留的火行灵气，并大致判断其熄灭时间。"
+    },
+    {
+      "id": "fire-initial-skill",
+      "parent": { "kind": "source", "name": "火道源" },
+      "type": "skill",
+      "realm": "qi-early",
+      "acquisition": "initial",
+      "name": "火萤术",
+      "text": "轻巧动作，放出数枚火萤照明或骚扰目标，造成少量火焰伤害。"
+    },
+    {
+      "id": "fire-qi-skill",
+      "parent": { "kind": "source", "name": "火道源" },
+      "type": "skill",
+      "realm": "qi-middle",
+      "acquisition": "realm-choice",
+      "name": "赤焰锁",
+      "text": "迅捷动作，以火链束缚一名目标；其下次移动前须先通过一次困难检定。"
+    },
+    {
+      "id": "fire-foundation-skill",
+      "parent": { "kind": "source", "name": "火道源" },
+      "type": "skill",
+      "realm": "foundation-middle",
+      "acquisition": "realm-choice",
+      "name": "焚天印",
+      "text": "沉重动作，在区域内留下火行法印；命中的敌人承受中量火焰伤害。"
+    },
+    {
+      "id": "fire-initial-art",
+      "parent": { "kind": "source", "name": "火道源" },
+      "type": "art",
+      "realm": "qi-early",
+      "acquisition": "initial",
+      "name": "温炉诀",
+      "text": "你可稳定寻常火焰，炼丹、炼器或烹饪相关检定获得优势。"
+    },
+    {
+      "id": "fire-foundation-art",
+      "parent": { "kind": "source", "name": "火道源" },
+      "type": "art",
+      "realm": "foundation-middle",
+      "acquisition": "realm-choice",
+      "name": "熔岩遁",
+      "text": "消耗灵气后遁入岩层或火焰中，短距离移动并避开一次寻常攻击。"
+    },
+    {
+      "id": "sword-initial-buff",
+      "parent": { "kind": "method", "name": "剑修" },
+      "type": "attack-buff",
+      "realm": "qi-early",
+      "acquisition": "initial",
+      "name": "初悟剑势",
+      "text": "当你以剑发动攻击时，可将一次少量伤害提升为中量伤害。"
+    },
+    {
+      "id": "sword-foundation-buff",
+      "parent": { "kind": "method", "name": "剑修" },
+      "type": "attack-buff",
+      "realm": "foundation-early",
+      "acquisition": "realm-choice",
+      "name": "剑势连环",
+      "text": "你本回合首次以剑命中后，对同一目标的下一次攻击获得 +1。"
+    },
+    {
+      "id": "sword-initial-technique",
+      "parent": { "kind": "method", "name": "剑修" },
+      "type": "technique",
+      "realm": "qi-early",
+      "acquisition": "initial",
+      "name": "听风辨位",
+      "text": "你可凭借风声判断近处敌人的位置与步法。",
+      "grants": ["在昏暗环境中追踪敌人", "识破简单的步法伪装"]
+    },
+    {
+      "id": "sword-foundation-technique",
+      "parent": { "kind": "method", "name": "剑修" },
+      "type": "technique",
+      "realm": "foundation-early",
+      "acquisition": "realm-choice",
+      "name": "剑匣纳形",
+      "text": "你为剑器开辟专用收纳空间。",
+      "storageCapacityBonus": 1
+    },
+    {
+      "id": "sword-qi-insight",
+      "parent": { "kind": "method", "name": "剑修" },
+      "type": "insight",
+      "realm": "qi-early",
+      "acquisition": "initial",
+      "name": "练气·剑意初生",
+      "text": "你能以剑意压迫意志薄弱的敌人。"
+    },
+    {
+      "id": "sword-late-qi-insight",
+      "parent": { "kind": "method", "name": "剑修" },
+      "type": "insight",
+      "realm": "qi-late",
+      "acquisition": "realm-choice",
+      "name": "练气·剑鸣不绝",
+      "text": "交战开始时，你可令佩剑发出剑鸣，使一名敌人陷入短暂迟疑。"
+    },
+    {
+      "id": "sword-foundation-insight",
+      "parent": { "kind": "method", "name": "剑修" },
+      "type": "insight",
+      "realm": "foundation-early",
+      "acquisition": "realm-choice",
+      "name": "筑基·一线开山",
+      "text": "你可将剑意凝成一线，斩开寻常屏障或岩壁。"
+    },
+    {
+      "id": "sword-late-foundation-insight",
+      "parent": { "kind": "method", "name": "剑修" },
+      "type": "insight",
+      "realm": "foundation-late",
+      "acquisition": "realm-choice",
+      "name": "筑基·万刃归一",
+      "text": "你可收束散乱剑气，使下一次剑术的范围提升一级。"
+    },
+    {
+      "id": "sword-qi-origin-insight",
+      "parent": { "kind": "method", "name": "剑修" },
+      "type": "origin-insight",
+      "realm": "foundation-early",
+      "acquisition": "realm-choice",
+      "name": "练气本源·剑骨",
+      "text": "你以剑骨承载灵气，抵抗缴械与震荡的检定获得 +1。"
+    },
+    {
+      "id": "sword-foundation-origin-insight",
+      "parent": { "kind": "method", "name": "剑修" },
+      "type": "origin-insight",
+      "realm": "golden-core",
+      "acquisition": "realm-choice",
+      "name": "筑基本源·剑心",
+      "text": "你在极端压力下仍可保持剑心澄明，每个场景一次可重掷一次意志相关检定。"
+    },
+    {
+      "id": "asura-effect",
+      "parent": { "kind": "dao", "name": "修罗之道" },
+      "type": "dao-effect",
+      "realm": "qi-early",
+      "acquisition": "initial",
+      "name": "战意回响",
+      "text": "当你击败强敌或承受重伤时，可获得一次战意回响，用于询问主持人战局的一个弱点。"
+    },
+    {
+      "id": "asura-qi-method",
+      "parent": { "kind": "dao", "name": "修罗之道" },
+      "type": "dao-method",
+      "realm": "qi-late",
+      "acquisition": "realm-choice",
+      "name": "血战诀",
+      "text": "战斗中每承受一次伤害，你的下一次近战攻击获得 +1。"
+    },
+    {
+      "id": "asura-foundation-method",
+      "parent": { "kind": "dao", "name": "修罗之道" },
+      "type": "dao-method",
+      "realm": "foundation-late",
+      "acquisition": "realm-choice",
+      "name": "修罗战域",
+      "text": "展开战域后，区域内敌人的撤退与防御检定承受 -1。"
+    }
+  ],
+  "talents": [
+    {
+      "id": "talent-cinder-soul",
+      "kind": "talent",
+      "tier": "人",
+      "name": "烬魂长明",
+      "effect": "每个场景一次，当你因火焰或意志检定失败时，可将其中一枚骰子重掷。"
+    },
+    {
+      "id": "punishment-lonely-lamp",
+      "kind": "punishment",
+      "tier": "地",
+      "name": "孤灯照劫",
+      "effect": "当你独自进入危险场景时，主持人获得 1 点历练；若有同伴同行，该效果不触发。"
+    }
+  ]
+}

@@ -4,6 +4,8 @@ export const CARD_PACK_MAX_RESOURCES = 500;
 
 const idPattern = /^[a-z0-9][a-z0-9._-]*$/;
 const parentKinds = new Set(['source', 'method', 'dao']);
+const fateKinds = new Set(['talent', 'punishment']);
+const fateTiers = new Set(['凡', '人', '地', '天', '仙']);
 const realms = new Set([
   'qi-early',
   'qi-middle',
@@ -49,6 +51,7 @@ export const RESOURCE_TYPE_LABELS = {
   'origin-insight': '本源感悟',
   'dao-effect': '大道效果',
   'dao-method': '功法',
+  'fate-entry': '天赋 / 天谴',
 };
 
 export const REALM_LABELS = {
@@ -178,6 +181,28 @@ function validateResource(resource, index, parentLibraries, errors) {
   }
 }
 
+function validateFateEntry(entry, index, errors) {
+  const base = `talents[${index}]`;
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+    addError(errors, base, '天赋 / 天谴必须是对象。', index);
+    return;
+  }
+  ['id', 'kind', 'tier', 'name', 'effect'].forEach((field) => {
+    if (typeof entry[field] !== 'string' || !entry[field].trim()) {
+      addError(errors, `${base}.${field}`, '此字段为必填字符串。', index);
+    }
+  });
+  if (entry.id && !idPattern.test(entry.id)) {
+    addError(errors, `${base}.id`, '天赋 / 天谴 ID 只能包含小写字母、数字、点、下划线和连字符。', index);
+  }
+  if (entry.kind && !fateKinds.has(entry.kind)) {
+    addError(errors, `${base}.kind`, '类型必须是 talent（天赋）或 punishment（天谴）。', index);
+  }
+  if (entry.tier && !fateTiers.has(entry.tier)) {
+    addError(errors, `${base}.tier`, '品阶必须是 凡、人、地、天 或 仙。', index);
+  }
+}
+
 function slotKey(resource) {
   return [
     resource.parent?.kind,
@@ -186,6 +211,10 @@ function slotKey(resource) {
     resource.realm,
     resource.acquisition,
   ].join('|');
+}
+
+function fateSlotKey(entry) {
+  return [entry.kind, entry.tier].join('|');
 }
 
 function existingNamesForSlot(runtime, resource) {
@@ -250,8 +279,15 @@ export function validateCardPack(pack, {
   }
   if (pack.author != null && typeof pack.author !== 'string') addError(errors, 'author', '作者必须是字符串。');
   if (pack.description != null && typeof pack.description !== 'string') addError(errors, 'description', '说明必须是字符串。');
-  if (!Array.isArray(pack.resources)) addError(errors, 'resources', 'resources 必须是数组。');
+  if (pack.resources != null && !Array.isArray(pack.resources)) addError(errors, 'resources', 'resources 必须是数组。');
+  if (pack.talents != null && !Array.isArray(pack.talents)) addError(errors, 'talents', 'talents 必须是数组。');
+  if (!Array.isArray(pack.resources) && !Array.isArray(pack.talents)) {
+    addError(errors, '$', '卡包至少需要 resources 或 talents 数组。');
+  }
   if (pack.resources?.length > CARD_PACK_MAX_RESOURCES) addError(errors, 'resources', `单个卡包最多包含 ${CARD_PACK_MAX_RESOURCES} 个资源。`);
+  if (((pack.resources?.length || 0) + (pack.talents?.length || 0)) > CARD_PACK_MAX_RESOURCES) {
+    addError(errors, '$', `单个卡包最多包含 ${CARD_PACK_MAX_RESOURCES} 项内容。`);
+  }
 
   const parentLibraries = {
     source: new Set((baseOptions?.source || []).map((entry) => entry.name)),
@@ -276,6 +312,23 @@ export function validateCardPack(pack, {
       namesBySlot.get(key).add(normalizedName);
     }
   });
+  const namesByFateSlot = new Map();
+  (pack.talents || []).forEach((entry, index) => {
+    validateFateEntry(entry, index, errors);
+    if (entry?.id) {
+      if (ids.has(entry.id)) addError(errors, `talents[${index}].id`, `ID「${entry.id}」重复。`, index);
+      ids.add(entry.id);
+    }
+    if (entry?.name) {
+      const key = fateSlotKey(entry);
+      const normalizedName = entry.name.trim();
+      if (!namesByFateSlot.has(key)) namesByFateSlot.set(key, new Set());
+      if (namesByFateSlot.get(key).has(normalizedName)) {
+        addError(errors, `talents[${index}].name`, `同一品阶和类型中名称「${normalizedName}」重复。`, index);
+      }
+      namesByFateSlot.get(key).add(normalizedName);
+    }
+  });
 
   const otherResources = installedPacks
     .filter((entry) => entry.id !== replacingId)
@@ -285,6 +338,16 @@ export function validateCardPack(pack, {
     const conflict = otherResources.find((entry) => slotKey(entry) === slotKey(resource) && entry.name === resource.name);
     if (conflict) {
       addError(errors, `resources[${index}].name`, `与已安装卡包中的同槽资源「${resource.name}」重名。`, index);
+    }
+  });
+  const otherTalents = installedPacks
+    .filter((entry) => entry.id !== replacingId)
+    .flatMap((entry) => entry.talents || []);
+  (pack.talents || []).forEach((entry, index) => {
+    if (!entry?.name) return;
+    const conflict = otherTalents.find((other) => fateSlotKey(other) === fateSlotKey(entry) && other.name === entry.name);
+    if (conflict) {
+      addError(errors, `talents[${index}].name`, `与已安装卡包中的同品阶${entry.kind === 'talent' ? '天赋' : '天谴'}「${entry.name}」重名。`, index);
     }
   });
   const existingRuntime = buildRuntimeOptions(
@@ -297,9 +360,20 @@ export function validateCardPack(pack, {
       addError(errors, `resources[${index}].name`, `与核心规则或已安装卡包中的同槽资源「${resource.name}」重名。`, index);
     }
   });
+  (pack.talents || []).forEach((entry, index) => {
+    if (!entry?.name || !fateKinds.has(entry.kind) || !fateTiers.has(entry.tier)) return;
+    const pool = entry.kind === 'talent' ? baseOptions?.talentPool : baseOptions?.punishmentPool;
+    if ((pool?.[entry.tier] || []).some((other) => other.name === entry.name)) {
+      addError(errors, `talents[${index}].name`, `与核心规则中的${entry.tier}阶${entry.kind === 'talent' ? '天赋' : '天谴'}「${entry.name}」重名。`, index);
+    }
+  });
 
   if (errors.length) throw new CardPackValidationError(errors);
-  return safeClone(pack);
+  return {
+    ...safeClone(pack),
+    resources: safeClone(pack.resources || []),
+    talents: safeClone(pack.talents || []),
+  };
 }
 
 export function parseCardPackJson(text, options = {}) {
@@ -394,10 +468,28 @@ function prepareDaos(daos) {
   }));
 }
 
+function prepareFatePool(pool) {
+  return Object.fromEntries(
+    [...fateTiers].map((tier) => [tier, safeClone(pool?.[tier] || [])]),
+  );
+}
+
+function asPackFateEntry(pack, entry) {
+  return {
+    name: entry.name,
+    effect: entry.effect,
+    _resourceId: `${pack.id}:${entry.id}`,
+    _packId: pack.id,
+    _packName: pack.name,
+  };
+}
+
 export function buildRuntimeOptions(baseOptions, packs = []) {
   const source = prepareSources(baseOptions?.source || []);
   const method = prepareMethods(baseOptions?.method || []);
   const dao = prepareDaos(baseOptions?.dao || []);
+  const talentPool = prepareFatePool(baseOptions?.talentPool);
+  const punishmentPool = prepareFatePool(baseOptions?.punishmentPool);
   const maps = {
     source: new Map(source.map((entry) => [entry.name, entry])),
     method: new Map(method.map((entry) => [entry.name, entry])),
@@ -436,6 +528,10 @@ export function buildRuntimeOptions(baseOptions, packs = []) {
         parent.foundationMethods.push(card);
       }
     });
+    (pack.talents || []).forEach((entry) => {
+      const pool = entry.kind === 'talent' ? talentPool : punishmentPool;
+      if (pool[entry.tier]) pool[entry.tier].push(asPackFateEntry(pack, entry));
+    });
   });
-  return { source, method, dao };
+  return { source, method, dao, talentPool, punishmentPool };
 }

@@ -13,7 +13,8 @@ function ruleBody(selector) {
 
 describe('requested content and layout modifications', () => {
   it('reuses the manual/draw fate dialog in guided card creation', () => {
-    expect(mainSource).toContain('function FateDrawDialog({ fateDraw, closeFateDraw, setDrawnTalents })');
+    expect(mainSource).toContain('function FateDrawDialog({');
+    expect(mainSource).toContain('availableTalentPool = talentPool');
     expect(mainSource).toContain('setGuideFateDraw({ title, plans, fateValue })');
     expect(mainSource).toContain('选择自选或抽取');
     expect(mainSource).toContain('drawnTalentsFateValue: fateValue');

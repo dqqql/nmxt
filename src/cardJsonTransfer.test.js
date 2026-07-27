@@ -28,6 +28,21 @@ describe('card JSON transfer', () => {
     expect(parseCardJson(JSON.stringify(snapshot))).toEqual(snapshot);
   });
 
+  it('preserves manually written talents and punishments in card JSON', () => {
+    const snapshot = {
+      version: 2,
+      texts: { name: '云舒' },
+      drawnTalents: [{
+        kind: 'punishment',
+        tier: '天',
+        name: '劫火缠身',
+        effect: '每次突破时，都要承受一次劫火考验。',
+      }],
+    };
+
+    expect(parseCardJson(createCardJson(snapshot))).toEqual(snapshot);
+  });
+
   it('rejects invalid JSON and non-object roots', () => {
     expect(() => parseCardJson('{')).toThrow('无法解析 JSON 文件');
     expect(() => parseCardJson('[]')).toThrow('不是有效的角色卡数据');

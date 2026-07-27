@@ -20,6 +20,32 @@ import {
 } from './cardPackState';
 import './cardPackManager.css';
 
+const fateKindLabels = { talent: '天赋', punishment: '天谴' };
+
+function getPackItemCount(pack) {
+  return (pack?.resources?.length || 0) + (pack?.talents?.length || 0);
+}
+
+function getPackEntries(pack) {
+  return [
+    ...(pack?.resources || []).map((resource) => ({ ...resource, entryKind: 'resource' })),
+    ...(pack?.talents || []).map((entry) => ({
+      ...entry,
+      entryKind: 'fate',
+      type: 'fate-entry',
+      text: entry.effect,
+      parent: { name: '天赋 / 天谴' },
+      realm: entry.tier,
+    })),
+  ];
+}
+
+function getEntryTypeLabel(entry) {
+  return entry.entryKind === 'fate'
+    ? fateKindLabels[entry.kind] || '天赋 / 天谴'
+    : RESOURCE_TYPE_LABELS[entry.type] || entry.type;
+}
+
 function getFocusable(root) {
   return [...(root?.querySelectorAll(
     'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
@@ -48,22 +74,23 @@ export default function CardPackManager({
   const closeRef = useRef(null);
 
   const selectedPack = packs.find((pack) => pack.id === selectedPackId) || packs[0] || null;
+  const selectedPackEntries = useMemo(() => getPackEntries(selectedPack), [selectedPack]);
   const filteredResources = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
-    return (selectedPack?.resources || []).filter((resource) => {
+    return selectedPackEntries.filter((resource) => {
       const searchable = `${resource.name} ${resource.text} ${resource.parent?.name}`.toLocaleLowerCase();
       return (!query || searchable.includes(query))
         && (!parentFilter || resource.parent?.name === parentFilter)
         && (!typeFilter || resource.type === typeFilter)
         && (!realmFilter || resource.realm === realmFilter);
     });
-  }, [selectedPack, search, parentFilter, typeFilter, realmFilter]);
+  }, [selectedPackEntries, search, parentFilter, typeFilter, realmFilter]);
   const selectedResource = filteredResources.find((resource) => resource.id === selectedResourceId)
     || filteredResources[0]
     || null;
-  const parentNames = [...new Set((selectedPack?.resources || []).map((resource) => resource.parent?.name).filter(Boolean))];
-  const typeNames = [...new Set((selectedPack?.resources || []).map((resource) => resource.type).filter(Boolean))];
-  const realmNames = [...new Set((selectedPack?.resources || []).map((resource) => resource.realm).filter(Boolean))];
+  const parentNames = [...new Set(selectedPackEntries.map((resource) => resource.parent?.name).filter(Boolean))];
+  const typeNames = [...new Set(selectedPackEntries.map((resource) => resource.type).filter(Boolean))];
+  const realmNames = [...new Set(selectedPackEntries.map((resource) => resource.realm).filter(Boolean))];
 
   useEffect(() => {
     if (!open) return undefined;
@@ -213,7 +240,7 @@ export default function CardPackManager({
                 aria-pressed={selectedPack?.id === pack.id}
               >
                 <strong>{pack.name}</strong>
-                <span>v{pack.version} · {pack.resources.length} 项资源</span>
+                <span>v{pack.version} · {getPackItemCount(pack)} 项内容</span>
                 <small>{pack.author || pack.id}</small>
               </button>
             )) : (
@@ -267,9 +294,11 @@ export default function CardPackManager({
                         className={selectedResource?.id === resource.id ? 'selected' : ''}
                         onClick={() => setSelectedResourceId(resource.id)}
                       >
-                        <span>{RESOURCE_TYPE_LABELS[resource.type] || resource.type}</span>
+                        <span>{getEntryTypeLabel(resource)}</span>
                         <strong>{resource.name}</strong>
-                        <small>{resource.parent.name} · {REALM_LABELS[resource.realm] || resource.realm}</small>
+                        {resource.entryKind === 'resource' ? (
+                          <small>{resource.parent.name} · {REALM_LABELS[resource.realm] || resource.realm}</small>
+                        ) : null}
                       </button>
                     ))}
                     {!filteredResources.length ? <div className="cardPackNoResults">没有符合筛选条件的资源。</div> : null}
@@ -278,13 +307,13 @@ export default function CardPackManager({
                     {selectedResource ? (
                       <>
                         <div className="cardPackBadges">
-                          <span>{RESOURCE_TYPE_LABELS[selectedResource.type] || selectedResource.type}</span>
-                          <span>{REALM_LABELS[selectedResource.realm] || selectedResource.realm}</span>
+                          <span>{getEntryTypeLabel(selectedResource)}</span>
+                          <span>{selectedResource.entryKind === 'fate' ? `${selectedResource.tier}阶` : REALM_LABELS[selectedResource.realm] || selectedResource.realm}</span>
                           {selectedResource.acquisition === 'initial' ? <span>初始资源</span> : null}
                         </div>
                         <h4>{selectedResource.name}</h4>
                         <dl>
-                          <div><dt>父资源</dt><dd>{selectedResource.parent.name}</dd></div>
+                          <div><dt>{selectedResource.entryKind === 'fate' ? '卡池' : '父资源'}</dt><dd>{selectedResource.entryKind === 'fate' ? '天赋 / 天谴' : selectedResource.parent.name}</dd></div>
                           <div><dt>资源 ID</dt><dd><code>{selectedResource.id}</code></dd></div>
                           {selectedResource.buff ? <div><dt>增益</dt><dd>{selectedResource.buff}</dd></div> : null}
                           {selectedResource.grants?.length ? <div><dt>附带内容</dt><dd>{selectedResource.grants.join('、')}</dd></div> : null}
@@ -311,7 +340,7 @@ export default function CardPackManager({
                     <Database size={25} aria-hidden="true" />
                     <div>
                       <h4>支持的内容</h4>
-                      <p>只能扩展已有道源、法门和大道的子资源。</p>
+                      <p>可扩展已有道源、法门、大道的子资源，以及天赋 / 天谴卡池。</p>
                     </div>
                   </article>
                   <article>
@@ -341,8 +370,8 @@ export default function CardPackManager({
               <h3 id="replace-pack-title">替换同 ID 卡包？</h3>
               <p>
                 「{pendingReplacement.existing.name}」将从 v{pendingReplacement.existing.version}
-                （{pendingReplacement.existing.resources.length} 项）更新为 v{pendingReplacement.pack.version}
-                （{pendingReplacement.pack.resources.length} 项）。
+                （{getPackItemCount(pendingReplacement.existing)} 项）更新为 v{pendingReplacement.pack.version}
+                （{getPackItemCount(pendingReplacement.pack)} 项）。
               </p>
               <small>已有角色会保留已选资源快照，新选择使用新版本。</small>
               <div>
@@ -358,7 +387,7 @@ export default function CardPackManager({
             <div>
               <Trash2 size={24} aria-hidden="true" />
               <h3 id="delete-pack-title">删除「{pendingDelete.name}」？</h3>
-              <p>将移除 {pendingDelete.resources.length} 项候选资源。检测到 {countPackReferences(pendingDelete.id, snapshots)} 个角色存档引用此卡包。</p>
+              <p>将移除 {getPackItemCount(pendingDelete)} 项内容。检测到 {countPackReferences(pendingDelete.id, snapshots)} 个角色存档引用此卡包。</p>
               <small>角色已选内容会保留快照，但以后无法重新选择这些资源。</small>
               <div>
                 <button type="button" onClick={() => setPendingDelete(null)}>取消</button>

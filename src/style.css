@@ -1925,6 +1925,31 @@ textarea {
   border-right: 1px solid var(--line);
 }
 
+.talentBoxButton {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.talentBoxButton:focus-visible {
+  position: relative;
+  z-index: 2;
+  outline: 3px solid #5f4b3f66;
+  outline-offset: -3px;
+}
+
+.talentBox.filled.interactiveCardSurface:hover {
+  background-color: rgba(95, 75, 63, 0.055);
+}
+
 .talentBox:nth-child(2n + 1) {
   border-right: 0;
 }
@@ -8095,6 +8120,33 @@ body {
 
 .manualCardFields input:focus,
 .manualCardFields textarea:focus {
+  border-color: #5f4b3f;
+  outline: 3px solid #5f4b3f24;
+}
+
+.talentEditorSelectors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.talentEditorSelectors label {
+  display: grid;
+  gap: 8px;
+}
+
+.talentEditorSelectors select {
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid #cfc5bd;
+  border-radius: 8px;
+  background: #fff;
+  color: #27211e;
+  font: 15px/1.5 var(--font-sans);
+}
+
+.talentEditorSelectors select:focus {
   border-color: #5f4b3f;
   outline: 3px solid #5f4b3f24;
 }

@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { daoOptions, methodOptions, sourceOptions } from './data';
+import { daoOptions, methodOptions, punishmentPool, sourceOptions, talentPool } from './data';
 import {
   CardPackValidationError,
   buildRuntimeOptions,
@@ -8,7 +9,13 @@ import {
   upsertCardPack,
 } from './cardPackState';
 
-const baseOptions = { source: sourceOptions, method: methodOptions, dao: daoOptions };
+const baseOptions = {
+  source: sourceOptions,
+  method: methodOptions,
+  dao: daoOptions,
+  talentPool,
+  punishmentPool,
+};
 const validPack = {
   schemaVersion: 1,
   id: 'tests.fire-pack',
@@ -129,6 +136,56 @@ describe('card pack state', () => {
     expect(runtime.source.find((entry) => entry.name === '火道源').initialSkillOptions).toHaveLength(2);
     expect(runtime.method.find((entry) => entry.name === '剑修').initialAttackBuffOptions).toHaveLength(2);
     expect(runtime.dao.find((entry) => entry.name === '修罗之道').effectOptions).toHaveLength(2);
+  });
+
+  it('parses and merges packaged talents and punishments into their matching tiers', () => {
+    const pack = parseCardPackJson(JSON.stringify({
+      ...validPack,
+      talents: [
+        {
+          id: 'ember-heart',
+          kind: 'talent',
+          tier: '人',
+          name: '烬心不灭',
+          effect: '你在火焰与意志相关检定中具有优势。',
+        },
+        {
+          id: 'cold-calamity',
+          kind: 'punishment',
+          tier: '地',
+          name: '寒煞入骨',
+          effect: '你受到寒冷伤害时，主持人获得 1 点历练。',
+        },
+      ],
+    }), { baseOptions });
+    const runtime = buildRuntimeOptions(baseOptions, [pack]);
+
+    expect(runtime.talentPool['人'].at(-1)).toMatchObject({
+      name: '烬心不灭',
+      _resourceId: 'tests.fire-pack:ember-heart',
+    });
+    expect(runtime.punishmentPool['地'].at(-1)).toMatchObject({
+      name: '寒煞入骨',
+      _resourceId: 'tests.fire-pack:cold-calamity',
+    });
+  });
+
+  it('reports invalid packaged talent fields without importing the pack', () => {
+    expect(() => parseCardPackJson(JSON.stringify({
+      ...validPack,
+      talents: [{ id: 'bad-talent', kind: 'gift', tier: '玄', name: '', effect: '' }],
+    }), { baseOptions })).toThrow(CardPackValidationError);
+  });
+
+  it('keeps the published custom-ability and fate sample importable', () => {
+    const sample = readFileSync(
+      new URL('../public/示例-自写能力与天赋天谴卡包.json', import.meta.url),
+      'utf8',
+    );
+    const pack = parseCardPackJson(sample, { baseOptions });
+
+    expect(pack.resources).toHaveLength(20);
+    expect(pack.talents).toHaveLength(2);
   });
 
   it('upserts by stable pack id and removes without mutating other packs', () => {

@@ -135,6 +135,8 @@ const BASE_RESOURCE_OPTIONS = {
   source: baseSourceOptions,
   method: baseMethodOptions,
   dao: baseDaoOptions,
+  talentPool,
+  punishmentPool,
 };
 const initialCardPacks = readStoredCardPacks();
 const initialRuntimeOptions = buildRuntimeOptions(BASE_RESOURCE_OPTIONS, initialCardPacks);
@@ -302,6 +304,25 @@ function createEmptyCardSnapshot(defaultRealmIndex) {
   };
 }
 
+function normalizeDrawnTalents(entries) {
+  if (!Array.isArray(entries)) return [];
+
+  return entries.slice(0, 4).flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return [];
+    const name = typeof entry.name === 'string' ? entry.name.trim() : '';
+    const effect = typeof entry.effect === 'string' ? entry.effect.trim() : '';
+    if (!name || !effect || !tierMeta[entry.tier]) return [];
+
+    return [{
+      ...entry,
+      name,
+      effect,
+      kind: entry.kind === 'punishment' ? 'punishment' : 'talent',
+      tier: entry.tier,
+    }];
+  });
+}
+
 function normalizeCardSnapshot(snapshot, defaultRealmIndex) {
   const empty = createEmptyCardSnapshot(defaultRealmIndex);
   if (!snapshot) return empty;
@@ -322,7 +343,7 @@ function normalizeCardSnapshot(snapshot, defaultRealmIndex) {
       ...(snapshot.breakthroughChoices || {}),
     },
     breakthroughChoiceDetails: snapshot.breakthroughChoiceDetails || empty.breakthroughChoiceDetails,
-    drawnTalents: snapshot.drawnTalents || empty.drawnTalents,
+    drawnTalents: normalizeDrawnTalents(snapshot.drawnTalents),
     maxRealmIndexReached: snapshot.maxRealmIndexReached ?? defaultRealmIndex,
     cardLibraries: normalizeCardLibraryState(snapshot.cardLibraries),
     manualCards: normalizeManualCards(snapshot.manualCards),
@@ -1004,7 +1025,7 @@ function FateRibbon() {
 }
 
 function TalentBoard() {
-  const { drawnTalents } = useSheet();
+  const { drawnTalents, openTalentEditor, deleteTalentEntry } = useSheet();
 
   return (
     <section className="panel talentBoard">
@@ -1013,25 +1034,32 @@ function TalentBoard() {
         const entry = drawnTalents[index];
         if (!entry) {
           return (
-            <div key={index} className="talentBox empty">
+            <button
+              key={index}
+              type="button"
+              className="talentBox talentBoxButton empty"
+              onClick={() => openTalentEditor(index)}
+              aria-label="添加天赋或天谴"
+              title="点击添加天赋或天谴"
+            >
               <span className="talentEmptyRune" aria-hidden="true">命</span>
               <div className="talentMeta"><span>名称</span><div className="lineFill" /></div>
               <div className="talentMeta"><span>品阶</span><div className="lineFill" /></div>
               <div className="talentEffect">
                 <span>效果</span>
                 <div className="effectFill">
-                  <span className="talentEmptyHint">✦ 点击上方「因果值」抽取</span>
+                  <span className="talentEmptyHint">✦ 点击添加天赋 / 天谴</span>
                 </div>
               </div>
-            </div>
+            </button>
           );
         }
-        const meta = tierMeta[entry.tier];
+        const meta = tierMeta[entry.tier] || tierMeta['凡'];
         const kindLabel = entry.kind === 'talent' ? '天赋' : '天谴';
         return (
-          <div
+          <article
             key={index}
-            className={`talentBox filled tier-${meta.tone} kind-${entry.kind}`}
+            className={`talentBox filled interactiveCardSurface tier-${meta.tone} kind-${entry.kind}`}
           >
             <div className="talentMeta">
               <span>名称</span>
@@ -1050,7 +1078,15 @@ function TalentBoard() {
               <span>效果</span>
               <AutoFitText className="effectFill text">{entry.effect}</AutoFitText>
             </div>
-          </div>
+            <CardActionMenu
+              cardName={`${meta.label}${kindLabel}「${entry.name}」`}
+              actions={[{
+                label: '删除',
+                destructive: true,
+                onSelect: () => deleteTalentEntry(index),
+              }]}
+            />
+          </article>
         );
       })}
     </section>
@@ -2718,7 +2754,26 @@ function getFateChoices(fateDraw) {
   ];
 }
 
-function FateDrawDialog({ fateDraw, closeFateDraw, setDrawnTalents }) {
+function drawFatePlan(plan, availableTalentPool, availablePunishmentPool) {
+  if (!plan?.items) return [];
+  return plan.items.flatMap(({ kind, tier, count }) => {
+    const pool = kind === 'talent' ? availableTalentPool[tier] : availablePunishmentPool[tier];
+    const candidates = [...(pool || [])];
+    return Array.from({ length: count }, () => {
+      if (!candidates.length) return null;
+      const index = Math.floor(Math.random() * candidates.length);
+      return { kind, tier, ...candidates.splice(index, 1)[0] };
+    }).filter(Boolean);
+  });
+}
+
+function FateDrawDialog({
+  fateDraw,
+  closeFateDraw,
+  setDrawnTalents,
+  availableTalentPool = talentPool,
+  availablePunishmentPool = punishmentPool,
+}) {
   const [plan, setPlan] = useState(null);
   const [phase, setPhase] = useState('choose'); // choose | manual | shuffle | reveal
   const [results, setResults] = useState([]);
@@ -2731,7 +2786,7 @@ function FateDrawDialog({ fateDraw, closeFateDraw, setDrawnTalents }) {
     setPlan(selectedPlan);
     setManualPlans([]);
     setManualSelections([]);
-    setResults(drawByPlan(selectedPlan));
+    setResults(drawFatePlan(selectedPlan, availableTalentPool, availablePunishmentPool));
     setPhase('shuffle');
     timerRef.current = setTimeout(() => setPhase('reveal'), 1250);
   };
@@ -2751,7 +2806,10 @@ function FateDrawDialog({ fateDraw, closeFateDraw, setDrawnTalents }) {
   };
 
   const selectManualEntry = (slotIndex, slot, poolIndex) => {
-    const pool = getPoolForFateSlot(slot, { talentPool, punishmentPool });
+    const pool = getPoolForFateSlot(slot, {
+      talentPool: availableTalentPool,
+      punishmentPool: availablePunishmentPool,
+    });
     const entry = pool[poolIndex];
     setManualSelections((prev) => {
       const next = [...prev];
@@ -2838,7 +2896,10 @@ function FateDrawDialog({ fateDraw, closeFateDraw, setDrawnTalents }) {
             ) : null}
             <div className="manualSlotList">
               {manualSlots.map((slot, slotIndex) => {
-                const pool = getPoolForFateSlot(slot, { talentPool, punishmentPool });
+                const pool = getPoolForFateSlot(slot, {
+                  talentPool: availableTalentPool,
+                  punishmentPool: availablePunishmentPool,
+                });
                 const selected = manualSelections[slotIndex];
                 return (
                   <section key={slot.key} className="manualSlot">
@@ -2931,13 +2992,117 @@ function FateDrawDialog({ fateDraw, closeFateDraw, setDrawnTalents }) {
 }
 
 function FateDrawModal() {
-  const { fateDraw, closeFateDraw, setDrawnTalents } = useSheet();
+  const {
+    fateDraw,
+    closeFateDraw,
+    setDrawnTalents,
+    runtimeTalentPool,
+    runtimePunishmentPool,
+  } = useSheet();
   return (
     <FateDrawDialog
       fateDraw={fateDraw}
       closeFateDraw={closeFateDraw}
       setDrawnTalents={setDrawnTalents}
+      availableTalentPool={runtimeTalentPool}
+      availablePunishmentPool={runtimePunishmentPool}
     />
+  );
+}
+
+function TalentEditorModal() {
+  const { talentEditorSlot, setTalentEditorSlot, addCustomTalent } = useSheet();
+  const [kind, setKind] = useState('talent');
+  const [tier, setTier] = useState('凡');
+  const [name, setName] = useState('');
+  const [effect, setEffect] = useState('');
+
+  useEffect(() => {
+    setKind('talent');
+    setTier('凡');
+    setName('');
+    setEffect('');
+  }, [talentEditorSlot]);
+
+  if (talentEditorSlot == null) return null;
+  const ready = Boolean(name.trim() && effect.trim());
+  const kindLabel = kind === 'punishment' ? '天谴' : '天赋';
+
+  return (
+    <div
+      className="libraryOverlay talentEditorOverlay"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) setTalentEditorSlot(null);
+      }}
+    >
+      <form
+        className="libraryModal manualCardModal talentEditorModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="talent-editor-title"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (ready) addCustomTalent(talentEditorSlot, { kind, tier, name, effect });
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setTalentEditorSlot(null);
+        }}
+      >
+        <header className="libraryHeader">
+          <div>
+            <span className="cardExchangeKicker">手动填写 · 会随角色卡 JSON 保存</span>
+            <h2 id="talent-editor-title">添加天赋 / 天谴</h2>
+          </div>
+          <button type="button" className="libraryClose" onClick={() => setTalentEditorSlot(null)} aria-label="关闭添加天赋天谴窗口">
+            <X size={22} />
+          </button>
+        </header>
+        <div className="manualCardFields talentEditorFields">
+          <div className="talentEditorSelectors">
+            <label>
+              <span>类型</span>
+              <select value={kind} onChange={(event) => setKind(event.target.value)}>
+                <option value="talent">天赋</option>
+                <option value="punishment">天谴</option>
+              </select>
+            </label>
+            <label>
+              <span>品阶</span>
+              <select value={tier} onChange={(event) => setTier(event.target.value)}>
+                {Object.entries(tierMeta).map(([key, meta]) => (
+                  <option key={key} value={key}>{meta.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label>
+            <span>{kindLabel}名称</span>
+            <input
+              type="text"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              autoFocus
+              maxLength={80}
+              placeholder={`输入${kindLabel}名称`}
+            />
+          </label>
+          <label>
+            <span>具体内容</span>
+            <textarea
+              value={effect}
+              onChange={(event) => setEffect(event.target.value)}
+              maxLength={1200}
+              placeholder={`输入${kindLabel}效果或说明`}
+            />
+          </label>
+        </div>
+        <footer className="manualCardActions">
+          <button type="button" className="libraryBack" onClick={() => setTalentEditorSlot(null)}>取消</button>
+          <button type="submit" className="libraryDone" disabled={!ready}>确认添加</button>
+        </footer>
+      </form>
+    </div>
   );
 }
 
@@ -4076,6 +4241,8 @@ function App() {
   sourceOptions = runtimeOptions.source;
   methodOptions = runtimeOptions.method;
   daoOptions = runtimeOptions.dao;
+  const runtimeTalentPool = runtimeOptions.talentPool || talentPool;
+  const runtimePunishmentPool = runtimeOptions.punishmentPool || punishmentPool;
   LIBRARY.source.options = sourceOptions;
   LIBRARY.method.options = methodOptions;
   LIBRARY.dao.options = daoOptions;
@@ -4095,6 +4262,7 @@ function App() {
   // 抽卡弹窗目标：{ title, plans } 或 null。drawnTalents 为已填入卡面的天赋 / 天谴。
   const [fateDraw, setFateDraw] = useState(null);
   const [drawnTalents, setDrawnTalents] = useState(() => initialState.snapshot.drawnTalents);
+  const [talentEditorSlot, setTalentEditorSlot] = useState(null);
   // 立绘图片（data URL），切页不丢失。
   const [portrait, setPortrait] = useState(() => initialState.snapshot.portrait);
   const [selectedFateTitle, setSelectedFateTitle] = useState(() => initialState.snapshot.selectedFateTitle);
@@ -4169,6 +4337,25 @@ function App() {
     if (plans) setFateDraw({ title, plans });
   };
   const closeFateDraw = () => setFateDraw(null);
+  const openTalentEditor = (slotIndex) => setTalentEditorSlot(slotIndex);
+  const addCustomTalent = (slotIndex, entry) => {
+    setDrawnTalents((currentTalents) => {
+      const next = [...currentTalents];
+      next[slotIndex] = {
+        kind: entry.kind === 'punishment' ? 'punishment' : 'talent',
+        tier: tierMeta[entry.tier] ? entry.tier : '凡',
+        name: entry.name.trim(),
+        effect: entry.effect.trim(),
+      };
+      return next;
+    });
+    setTalentEditorSlot(null);
+    showNotice('已添加手动天赋 / 天谴。');
+  };
+  const deleteTalentEntry = (slotIndex) => {
+    setDrawnTalents((currentTalents) => currentTalents.filter((_, index) => index !== slotIndex));
+    showNotice('已删除天赋 / 天谴。');
+  };
   const showNotice = (message, duration = 2400) => {
     setNoticeMessage(message);
     if (randomNoticeTimer.current) clearTimeout(randomNoticeTimer.current);
@@ -4795,6 +4982,7 @@ function App() {
     setManualCards(next.manualCards);
     setInitialResourceChoices(next.initialResourceChoices);
     setFateDraw(null);
+    setTalentEditorSlot(null);
     setLibrary(null);
     upgradePromptQueue.current = [];
     setUpgradePromptState(null);
@@ -4880,6 +5068,13 @@ function App() {
     closeFateDraw,
     drawnTalents,
     setDrawnTalents,
+    runtimeTalentPool,
+    runtimePunishmentPool,
+    talentEditorSlot,
+    setTalentEditorSlot,
+    openTalentEditor,
+    addCustomTalent,
+    deleteTalentEntry,
     portrait,
     setPortrait,
     selectedFateTitle,
@@ -5009,6 +5204,7 @@ function App() {
     setDiceEffects(getFateState(cardState.selectedFateTitle).diceEffects);
     setDrawnTalents(cardState.drawnTalents);
     setFateDraw(null);
+    setTalentEditorSlot(null);
     setLibrary(null);
     removeStorage(QUESTIONNAIRE_RESULT_KEY);
     showNotice('问卷车卡完成！', 2200);
@@ -5044,6 +5240,7 @@ function App() {
     setFortuneOverflow(0);
     setMarkStates({});
     setFateDraw(null);
+    setTalentEditorSlot(null);
     setLibrary(null);
     removeStorage(GUIDED_RESULT_KEY);
     showNotice('引导车卡完成！', 2200);
@@ -5114,7 +5311,7 @@ function App() {
       dao: daoOptions,
     },
     fateDraws,
-    drawPlan: drawByPlan,
+    drawPlan: (plan) => drawFatePlan(plan, runtimeTalentPool, runtimePunishmentPool),
   });
 
   const openRandomPreview = () => {
@@ -5145,6 +5342,7 @@ function App() {
     setDiceEffects(getFateState(result.selectedFateTitle).diceEffects);
     setDrawnTalents(result.drawnTalents);
     setFateDraw(null);
+    setTalentEditorSlot(null);
     setLibrary(null);
   };
 
@@ -5213,6 +5411,7 @@ function App() {
       <AttributeChoiceModal />
       <SaveArchiveModal onJsonImport={handleJsonImport} />
       <FateDrawModal />
+      <TalentEditorModal />
       <CardLibraryExchangeModal />
       <ManualCardModal />
       <CardPackManager
