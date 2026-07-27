@@ -156,6 +156,36 @@
   box-shadow: 0 0 0 2px #fff, 0 0 0 4px #3a3637;
 }
 
+.toolRailSettingsAction {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+  margin-top: 13px;
+  padding: 10px;
+  text-align: left;
+  color: var(--ink, #282425);
+  background: #f7f5f3;
+  border: 1px solid #d8d5d2;
+  border-radius: 6px;
+}
+
+.toolRailSettingsAction > span {
+  display: grid;
+  gap: 2px;
+}
+
+.toolRailSettingsAction small {
+  color: #6e6966;
+  font-size: 11px;
+}
+
+.toolRailSettingsAction:hover,
+.toolRailSettingsAction:focus-visible {
+  background: #efedeb;
+  box-shadow: 0 0 0 2px #d8d5d2;
+}
+
 .toolRailError {
   margin: 10px 0 0;
   padding-top: 9px;

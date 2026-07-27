@@ -33,7 +33,7 @@ describe('breakthrough UI integration', () => {
   it('connects the static sixth page to screen tabs and the print page sequence', () => {
     expect(mainSource).toContain("import PageSix from './PageSix'");
     expect(mainSource).toContain("{ id: 'p6', label: '第六页' }");
-    expect(mainSource).toContain('return <PageSix />');
+    expect(mainSource).toContain('return <PageSixConnected />');
     expect(mainSource).toContain('return renderSheetPage(tab)');
   });
 });

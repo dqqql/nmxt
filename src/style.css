@@ -7859,6 +7859,7 @@ body {
 }
 
 .pageTwoCard {
+  position: relative;
   display: grid;
   grid-template-rows: 36px minmax(0, 1fr);
   min-width: 0;
@@ -7866,6 +7867,248 @@ body {
   border: 2px solid var(--pdf-line);
   background: #fff;
   overflow: hidden;
+}
+
+.interactiveCardSurface {
+  position: relative;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.interactiveCardSurface:hover,
+.interactiveCardSurface:focus-within {
+  z-index: 4;
+  border-color: #c6bbb2;
+  box-shadow: 0 7px 16px #31261e28;
+  transform: translateY(-3px);
+}
+
+.cardActionLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cardActionTrigger {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.cardActionTrigger:focus-visible {
+  outline: 3px solid #5f4b3f;
+  outline-offset: -4px;
+}
+
+.cardActionMenu {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  min-width: max-content;
+  padding: 6px;
+  border: 1px solid #cfc4bb;
+  border-radius: 8px;
+  background: #fffefc;
+  box-shadow: 0 8px 22px #2c221c35;
+  pointer-events: auto;
+  transform: translateX(-50%);
+}
+
+.cardActionMenu button {
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid #d3c9c1;
+  border-radius: 5px;
+  background: #f7f3ef;
+  color: #2d2927;
+  font: 700 12px/1 var(--font-sans);
+  cursor: pointer;
+}
+
+.cardActionMenu button:hover,
+.cardActionMenu button:focus-visible {
+  border-color: #5f4b3f;
+  background: #eee6df;
+  outline: 2px solid #5f4b3f30;
+  outline-offset: 1px;
+}
+
+.cardActionMenu button.destructive {
+  border-color: #e2c4c0;
+  background: #fff5f3;
+  color: #9f2d24;
+}
+
+.interactiveTreasureLibrary > .pdfTableTitle {
+  position: relative;
+}
+
+.interactiveTreasureLibrary > .pdfTableTitle > span {
+  position: absolute;
+  right: 12px;
+  color: #777;
+  font: 700 13px/1 var(--font-sans);
+}
+
+.interactiveTreasureLibrary .pdfTableRow > div {
+  position: relative;
+  overflow: hidden;
+}
+
+.treasureLibraryEffect > span {
+  display: block;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+}
+
+.cardExchangeModal {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 40px));
+}
+
+.cardExchangeModal .libraryHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.cardExchangeKicker {
+  color: #8b7565;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.cardExchangeSource {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 22px 0;
+  padding: 12px 14px;
+  border: 1px solid #ddd4cd;
+  border-radius: 8px;
+  background: #f7f3ef;
+}
+
+.cardExchangeSource span,
+.cardExchangeHint {
+  color: #776d66;
+  font-size: 13px;
+}
+
+.cardExchangeHint {
+  margin: 14px 22px 8px;
+}
+
+.cardExchangeChoices {
+  display: grid;
+  gap: 10px;
+  padding: 8px 22px 24px;
+  overflow: auto;
+}
+
+.cardExchangeChoices button {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  width: 100%;
+  padding: 13px 15px;
+  border: 1px solid #d8d0c9;
+  border-radius: 8px;
+  background: #fff;
+  color: #28221f;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cardExchangeChoices button:hover,
+.cardExchangeChoices button:focus-visible {
+  border-color: #342c27;
+  outline: 2px solid #342c2730;
+  outline-offset: 1px;
+}
+
+.cardExchangeChoices button span {
+  color: #615852;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.manualCardModal {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.manualCardModal .libraryHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.manualCardFields {
+  display: grid;
+  gap: 18px;
+  padding: 24px 24px 18px;
+}
+
+.manualCardFields label {
+  display: grid;
+  gap: 8px;
+}
+
+.manualCardFields label > span {
+  color: #3c332d;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.manualCardFields input,
+.manualCardFields textarea {
+  width: 100%;
+  border: 1px solid #cfc5bd;
+  border-radius: 8px;
+  background: #fff;
+  color: #27211e;
+  font: 15px/1.5 var(--font-sans);
+}
+
+.manualCardFields input {
+  min-height: 44px;
+  padding: 9px 12px;
+}
+
+.manualCardFields textarea {
+  min-height: 170px;
+  padding: 11px 12px;
+  resize: vertical;
+}
+
+.manualCardFields input:focus,
+.manualCardFields textarea:focus {
+  border-color: #5f4b3f;
+  outline: 3px solid #5f4b3f24;
+}
+
+.manualCardActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 24px 24px;
+}
+
+.manualCardActions .libraryBack,
+.manualCardActions .libraryDone {
+  min-width: 96px;
 }
 
 .pageTwoCard h3 {
@@ -7925,5 +8168,20 @@ body {
   .quickReferencePanel .conflictContent,
   .pageTwoCardText {
     color: #181818 !important;
+  }
+
+  .treasureLibraryEffect > span {
+    padding-bottom: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactiveCardSurface {
+    transition: none;
+  }
+
+  .interactiveCardSurface:hover,
+  .interactiveCardSurface:focus-within {
+    transform: none;
   }
 }

@@ -5,8 +5,8 @@ import PageSix from './PageSix';
 const componentSource = readFileSync(new URL('./PageSix.jsx', import.meta.url), 'utf8');
 const cssSource = readFileSync(new URL('./pageSix.css', import.meta.url), 'utf8');
 
-describe('static sixth sheet page', () => {
-  it('renders the shared card heading and all six static libraries', () => {
+describe('interactive sixth sheet page', () => {
+  it('renders the shared card heading and all six libraries', () => {
     expect(PageSix).toBeTypeOf('function');
     expect(componentSource).toContain("import gameLogo from './assets/game-logo.png'");
     expect(componentSource).toContain('角色卡 - 基础信息');
@@ -15,7 +15,11 @@ describe('static sixth sheet page', () => {
       expect(componentSource).toContain(`title: '${title}'`);
     });
 
-    expect(componentSource).not.toMatch(/<(input|textarea|button|select)\b/);
+    expect(componentSource).toContain("import CardActionMenu from './CardActionMenu'");
+    expect(componentSource).toContain("label: '移出'");
+    expect(componentSource).toContain("label: '交换'");
+    expect(componentSource).toContain("label: '删除'");
+    expect(componentSource).toContain('<textarea');
   });
 
   it('keeps the requested row counts and only shows column headings in the upper four libraries', () => {

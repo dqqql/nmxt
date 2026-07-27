@@ -2,6 +2,7 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import {
   Braces,
   BookOpenText,
+  Boxes,
   Download,
   ListChecks,
   Map,
@@ -65,6 +66,7 @@ export default function ToolRail({
   onGuided,
   onRandom,
   onOpenSave,
+  onOpenCardPacks,
   extraPagesEnabled = false,
   onExtraPagesChange,
 }) {
@@ -153,6 +155,17 @@ export default function ToolRail({
               />
               <i aria-hidden="true" />
             </label>
+            <button
+              type="button"
+              className="toolRailSettingsAction"
+              onClick={() => runAndClose(onOpenCardPacks)}
+            >
+              <Boxes size={17} strokeWidth={2.2} aria-hidden="true" />
+              <span>
+                <b>卡包管理</b>
+                <small>导入、查看或删除扩展资源</small>
+              </span>
+            </button>
           </ToolMenu>
         ) : null}
       </div>

@@ -1,12 +1,12 @@
-import React, { useState, useContext, createContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useState, useContext, createContext, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChevronRight, CircleAlert, Minus, Plus, Shuffle, Star, Trash2, Upload, X } from 'lucide-react';
 import {
   realmOptions,
   originOptions,
-  sourceOptions,
-  methodOptions,
-  daoOptions,
+  sourceOptions as baseSourceOptions,
+  methodOptions as baseMethodOptions,
+  daoOptions as baseDaoOptions,
   talentPool,
   punishmentPool,
   tierMeta,
@@ -24,7 +24,24 @@ import {
 } from './data';
 import gameLogo from './assets/game-logo.png';
 import PageSix from './PageSix';
+import CardActionMenu from './CardActionMenu';
 import ToolRail from './ToolRail';
+import CardPackManager from './CardPackManager';
+import {
+  buildRuntimeOptions,
+  readStoredCardPacks,
+  writeStoredCardPacks,
+} from './cardPackState';
+import {
+  CARD_LIBRARY_CONFIG,
+  createManualCard,
+  deleteLibraryCard,
+  exchangeCards,
+  getCardLibraryView,
+  moveCard,
+  normalizeCardLibraryState,
+  normalizeManualCards,
+} from './cardLibraryState';
 import { attachPrintLifecycle, printSheetsWithBrowser } from './exportPdf';
 import {
   createMarkState,
@@ -113,6 +130,17 @@ import {
 } from './saveArchive';
 import { createCardJson, getCardJsonFileName, parseCardJson } from './cardJsonTransfer';
 import './style.css';
+
+const BASE_RESOURCE_OPTIONS = {
+  source: baseSourceOptions,
+  method: baseMethodOptions,
+  dao: baseDaoOptions,
+};
+const initialCardPacks = readStoredCardPacks();
+const initialRuntimeOptions = buildRuntimeOptions(BASE_RESOURCE_OPTIONS, initialCardPacks);
+let sourceOptions = initialRuntimeOptions.source;
+let methodOptions = initialRuntimeOptions.method;
+let daoOptions = initialRuntimeOptions.dao;
 
 function getFateState(title) {
   const next = [...baseDiceEffects];
@@ -251,7 +279,7 @@ function createEmptyBreakthroughChoices() {
 
 function createEmptyCardSnapshot(defaultRealmIndex) {
   return {
-    version: 1,
+    version: 2,
     selections: { realm: defaultRealmIndex, origin: null, source: null, method: null, dao: null },
     texts: { ...defaultTexts },
     attributes: { ...defaultAttributes },
@@ -268,6 +296,9 @@ function createEmptyCardSnapshot(defaultRealmIndex) {
     breakthroughChoices: createEmptyBreakthroughChoices(),
     breakthroughChoiceDetails: {},
     maxRealmIndexReached: defaultRealmIndex,
+    cardLibraries: normalizeCardLibraryState(),
+    manualCards: normalizeManualCards(),
+    initialResourceChoices: {},
   };
 }
 
@@ -293,6 +324,9 @@ function normalizeCardSnapshot(snapshot, defaultRealmIndex) {
     breakthroughChoiceDetails: snapshot.breakthroughChoiceDetails || empty.breakthroughChoiceDetails,
     drawnTalents: snapshot.drawnTalents || empty.drawnTalents,
     maxRealmIndexReached: snapshot.maxRealmIndexReached ?? defaultRealmIndex,
+    cardLibraries: normalizeCardLibraryState(snapshot.cardLibraries),
+    manualCards: normalizeManualCards(snapshot.manualCards),
+    initialResourceChoices: snapshot.initialResourceChoices || empty.initialResourceChoices,
   };
 }
 
@@ -468,6 +502,32 @@ function uniqueCards(cards) {
     seen.add(card.name);
     return true;
   });
+}
+
+function markRemovedPackResource(card, packs = []) {
+  if (!card?._packId || packs.some((pack) => pack.id === card._packId)) return card;
+  return {
+    ...card,
+    name: card.name?.includes('来源已移除') ? card.name : `${card.name}（来源已移除）`,
+    text: card.text?.includes('【来源卡包已移除】') ? card.text : `${card.text || ''}\n【来源卡包已移除】`,
+    _sourceRemoved: true,
+  };
+}
+
+function getLibraryCardPools(current, upgradeCards, manualCards = {}) {
+  return {
+    spells: [...uniqueCards([
+      ...(current.source?._selectedInitialSkill ? [current.source._selectedInitialSkill] : getInitialSourceSkills(current.source)),
+      ...upgradeCards.skills,
+    ]), ...(manualCards.spells || [])],
+    arts: [...uniqueCards([
+      ...(current.source?._selectedInitialArt ? [current.source._selectedInitialArt] : getInitialSourceArts(current.source)),
+      ...upgradeCards.arts,
+    ]), ...(manualCards.arts || [])],
+    insights: [...uniqueCards(getDisplayedInsightCards(upgradeCards)), ...(manualCards.insights || [])],
+    originInsights: [...uniqueCards(getDisplayedOriginInsightCards(upgradeCards)), ...(manualCards.originInsights || [])],
+    treasures: [...uniqueCards(upgradeCards.treasures), ...(manualCards.treasures || [])],
+  };
 }
 
 function getLearnedMethodNames(current, upgradeCards = {}) {
@@ -1472,7 +1532,8 @@ function PdfTable({ title, rows, prefill = [], className = '', children }) {
   );
 }
 
-function PageTwoCardGroup({ title, rows, cards = [], className = '' }) {
+function PageTwoCardGroup({ title, category, rows, cards = [], libraryView, onMove, onExchange, onAdd, className = '' }) {
+  const libraryTitle = CARD_LIBRARY_CONFIG[category]?.libraryTitle;
   return (
     <section className={`pageTwoCardGroup ${className}`.trim()} style={{ '--card-count': rows }}>
       <h2 className="pdfTableTitle">{title}</h2>
@@ -1480,11 +1541,37 @@ function PageTwoCardGroup({ title, rows, cards = [], className = '' }) {
         {Array.from({ length: rows }, (_, index) => {
           const card = cards[index];
           return (
-            <article key={`${title}-${index}`} className={`pageTwoCard${card ? ' filled' : ' empty'}`}>
+            <article
+              key={card?.key || `${title}-${index}`}
+              className={`pageTwoCard${card ? ' filled' : ' empty'}${libraryView ? ' interactiveCardSurface' : ''}`}
+            >
               <h3>{card?.name || '名称'}</h3>
               <AutoFitText className="pageTwoCardText" fitOptions={{ minRatio: 0.48, minPx: 8 }}>
                 {card?.text || ''}
               </AutoFitText>
+              {card && libraryView ? (
+                <CardActionMenu
+                  cardName={card.name}
+                  actions={[
+                    ...(!libraryView.libraryFull ? [{
+                      label: `存入${libraryTitle}`,
+                      onSelect: () => onMove(category, card.key, 'library'),
+                    }] : []),
+                    ...(libraryView.library.length ? [{
+                      label: '交换',
+                      onSelect: () => onExchange(category, card, 'slot'),
+                    }] : []),
+                  ]}
+                />
+              ) : libraryView ? (
+                <CardActionMenu
+                  cardName={`空白${title}卡片`}
+                  actions={[{
+                    label: '添加',
+                    onSelect: () => onAdd(category),
+                  }]}
+                />
+              ) : null}
             </article>
           );
         })}
@@ -1637,19 +1724,26 @@ function EditableFeatureTable({ rows, namePrefix, effectPrefix, className = '' }
 }
 
 function PageTwo() {
-  const { current, upgradeCards } = useSheet();
+  const {
+    current,
+    upgradeCards,
+    libraryViews,
+    moveLibraryCard,
+    beginLibraryExchange,
+    openManualCardPrompt,
+  } = useSheet();
   const source = current.source;
   const dao = current.dao;
 
   const rowsFor = (title) => pdfSpellGroups.find((group) => group.title === title)?.rows || 0;
 
   const prefillFor = (title) => {
-    if (title === '神通') return uniqueCards([...getInitialSourceSkills(source), ...upgradeCards.skills]);
-    if (title === '秘法') return uniqueCards([...getInitialSourceArts(source), ...upgradeCards.arts]);
-    if (title === '感悟') return getDisplayedInsightCards(upgradeCards);
-    if (title === '本源感悟') return getDisplayedOriginInsightCards(upgradeCards);
+    if (title === '神通') return libraryViews.spells.slots;
+    if (title === '秘法') return libraryViews.arts.slots;
+    if (title === '感悟') return libraryViews.insights.slots;
+    if (title === '本源感悟') return libraryViews.originInsights.slots;
     if (title === '功法') return uniqueCards(upgradeCards.daoMethods);
-    if (title === '灵宝') return uniqueCards(upgradeCards.treasures);
+    if (title === '灵宝') return libraryViews.treasures.slots;
     return [];
   };
 
@@ -1664,12 +1758,17 @@ function PageTwo() {
           </section>
           <PageTwoCardGroup
             title="神通"
+            category="spells"
             rows={rowsFor('神通')}
             cards={prefillFor('神通')}
+            libraryView={libraryViews.spells}
+            onMove={moveLibraryCard}
+            onExchange={beginLibraryExchange}
+            onAdd={openManualCardPrompt}
             className="pageTwoFourAcross"
           />
-          <PageTwoCardGroup title="秘法" rows={rowsFor('秘法')} cards={prefillFor('秘法')} />
-          <PageTwoCardGroup title="灵宝" rows={rowsFor('灵宝')} cards={prefillFor('灵宝')} className="pageTwoThreeAcross" />
+          <PageTwoCardGroup title="秘法" category="arts" rows={rowsFor('秘法')} cards={prefillFor('秘法')} libraryView={libraryViews.arts} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} />
+          <PageTwoCardGroup title="灵宝" category="treasures" rows={rowsFor('灵宝')} cards={prefillFor('灵宝')} libraryView={libraryViews.treasures} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} className="pageTwoThreeAcross" />
         </div>
         <div className="pageTwoColumn pageTwoColumnRight">
           <PageTwoCardGroup
@@ -1681,8 +1780,8 @@ function PageTwo() {
               { name: '大道效果', text: dao?.effect || '' },
             ]}
           />
-          <PageTwoCardGroup title="感悟" rows={rowsFor('感悟')} cards={prefillFor('感悟')} />
-          <PageTwoCardGroup title="本源感悟" rows={rowsFor('本源感悟')} cards={prefillFor('本源感悟')} />
+          <PageTwoCardGroup title="感悟" category="insights" rows={rowsFor('感悟')} cards={prefillFor('感悟')} libraryView={libraryViews.insights} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} />
+          <PageTwoCardGroup title="本源感悟" category="originInsights" rows={rowsFor('本源感悟')} cards={prefillFor('本源感悟')} libraryView={libraryViews.originInsights} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} />
           <PageTwoCardGroup title="功法" rows={rowsFor('功法')} cards={prefillFor('功法')} className="pageTwoThreeAcross" />
         </div>
       </main>
@@ -2095,6 +2194,54 @@ function CraftCard({ index }) {
   );
 }
 
+function TreasureLibrary() {
+  const { libraryViews, moveLibraryCard, beginLibraryExchange, deleteCardFromLibrary } = useSheet();
+  const view = libraryViews.treasures;
+  return (
+    <section className="pdfTable treasureTable interactiveTreasureLibrary" style={{ '--rows': 4 }}>
+      <div className="pdfTableTitle">
+        灵宝库
+        <span>{view.library.length}/4</span>
+      </div>
+      <div className="pdfTableHead">
+        <span>名称</span>
+        <span>效果</span>
+      </div>
+      {Array.from({ length: 4 }, (_, index) => {
+        const card = view.library[index];
+        return (
+          <article key={card?.key || index} className={`pdfTableRow${card ? ' filled interactiveCardSurface' : ' empty'}`}>
+            <div>{card?.name || ''}</div>
+            <div className="treasureLibraryEffect">
+              <span>{card?.text || ''}</span>
+              {card ? (
+                <CardActionMenu
+                  cardName={card.name}
+                  actions={[
+                    ...(!view.slotFull ? [{
+                      label: '移出',
+                      onSelect: () => moveLibraryCard('treasures', card.key, 'slot'),
+                    }] : []),
+                    ...(view.slots.length ? [{
+                      label: '交换',
+                      onSelect: () => beginLibraryExchange('treasures', card, 'library'),
+                    }] : []),
+                    {
+                      label: '删除',
+                      destructive: true,
+                      onSelect: () => deleteCardFromLibrary('treasures', card.key),
+                    },
+                  ]}
+                />
+              ) : null}
+            </div>
+          </article>
+        );
+      })}
+    </section>
+  );
+}
+
 function PageFive() {
   const { current, upgradeCards } = useSheet();
   const techniques = getUnlockedMethodTechniques(current.method, current.realm, upgradeCards);
@@ -2102,7 +2249,7 @@ function PageFive() {
     <div className="sheet pdfSheet">
       <PdfSheetHeader />
       <main className="pdfPageBody pdfFiveGrid">
-        <PdfTable title="灵宝库" rows={4} className="treasureTable" />
+        <TreasureLibrary />
         <PdfTable title="已学习技艺列表" rows={2} className="learnedSkills">
           <div className="learnedSkillRows">
             {Array.from({ length: 2 }, (_, index) => {
@@ -2138,13 +2285,41 @@ function PageFive() {
   );
 }
 
+function PageSixConnected() {
+  const {
+    libraryViews,
+    moveLibraryCard,
+    beginLibraryExchange,
+    deleteCardFromLibrary,
+    texts,
+    setText,
+  } = useSheet();
+  const recordValues = {
+    storage: Array.from({ length: 4 }, (_, index) => texts[`pageSixStorage${index}`] || ''),
+    soulSea: Array.from({ length: 4 }, (_, index) => texts[`pageSixSoulSea${index}`] || ''),
+  };
+  return (
+    <PageSix
+      libraryViews={libraryViews}
+      onMove={moveLibraryCard}
+      onExchange={beginLibraryExchange}
+      onDelete={deleteCardFromLibrary}
+      records={recordValues}
+      onRecordChange={(area, index, value) => setText(
+        area === 'storage' ? `pageSixStorage${index}` : `pageSixSoulSea${index}`,
+        value,
+      )}
+    />
+  );
+}
+
 function renderSheetPage(pageId) {
   if (pageId === 'p1') return <PageOne />;
   if (pageId === 'p2') return <PageTwo />;
   if (pageId === 'p3') return <PageThree />;
   if (pageId === 'p4') return <PageFour />;
   if (pageId === 'p5') return <PageFive />;
-  if (pageId === 'p6') return <PageSix />;
+  if (pageId === 'p6') return <PageSixConnected />;
   return <PageBackground />;
 }
 
@@ -2221,7 +2396,7 @@ function UpgradeSelectionModal() {
   const {
     upgradePrompt,
     setUpgradePrompt,
-    appendUpgradeCards,
+    commitPromptSelections,
   } = useSheet();
   const [selected, setSelected] = useState({});
 
@@ -2243,7 +2418,7 @@ function UpgradeSelectionModal() {
       sourceKind: section.sourceKind,
       cards: selected[section.key] ? [selected[section.key]] : [],
     }));
-    appendUpgradeCards(selectedSections);
+    commitPromptSelections(selectedSections);
     setUpgradePrompt(null);
   };
 
@@ -2251,7 +2426,7 @@ function UpgradeSelectionModal() {
     <div className="libraryOverlay" onClick={() => setUpgradePrompt(null)} role="presentation">
       <div className="libraryModal methodInsightModal upgradeModal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={upgradePrompt.title}>
         <header className="libraryHeader">
-          <h2>升级选择<span className="librarySep">·</span>{upgradePrompt.title}</h2>
+          <h2>{upgradePrompt.kind === 'initial-resources' ? '资源选择' : '升级选择'}<span className="librarySep">·</span>{upgradePrompt.title}</h2>
           <button type="button" className="libraryClose" onClick={() => setUpgradePrompt(null)} aria-label="关闭">
             <X size={18} strokeWidth={2.4} aria-hidden="true" />
           </button>
@@ -3745,6 +3920,127 @@ function RandomCardModal({ values, onCancel, onRedraw, onConfirm }) {
   );
 }
 
+function CardLibraryExchangeModal() {
+  const {
+    libraryExchange,
+    setLibraryExchange,
+    confirmLibraryExchange,
+    libraryViews,
+  } = useSheet();
+  if (!libraryExchange) return null;
+
+  const config = CARD_LIBRARY_CONFIG[libraryExchange.category];
+  const targets = libraryExchange.location === 'slot'
+    ? libraryViews[libraryExchange.category].library
+    : libraryViews[libraryExchange.category].slots;
+  return (
+    <div className="libraryOverlay cardExchangeOverlay" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) setLibraryExchange(null);
+    }}>
+      <section className="libraryModal cardExchangeModal" role="dialog" aria-modal="true" aria-labelledby="card-exchange-title">
+        <header className="libraryHeader">
+          <div>
+            <span className="cardExchangeKicker">一换一 · 容量不变</span>
+            <h2 id="card-exchange-title">交换{config.title}</h2>
+          </div>
+          <button type="button" className="libraryClose" onClick={() => setLibraryExchange(null)} aria-label="关闭交换窗口">
+            <X size={22} />
+          </button>
+        </header>
+        <div className="cardExchangeSource">
+          <span>将要换出</span>
+          <strong>{libraryExchange.card.name}</strong>
+        </div>
+        <p className="cardExchangeHint">
+          选择一张{libraryExchange.location === 'slot' ? config.libraryTitle : '槽位内卡片'}完成交换。
+        </p>
+        <div className="cardExchangeChoices">
+          {targets.map((card) => (
+            <button type="button" key={card.key} onClick={() => confirmLibraryExchange(card)}>
+              <strong>{card.name}</strong>
+              <span>{card.text}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ManualCardModal() {
+  const { manualCardPrompt, setManualCardPrompt, addManualCard } = useSheet();
+  const [name, setName] = useState('');
+  const [text, setText] = useState('');
+
+  useEffect(() => {
+    setName('');
+    setText('');
+  }, [manualCardPrompt?.category]);
+
+  if (!manualCardPrompt) return null;
+  const config = CARD_LIBRARY_CONFIG[manualCardPrompt.category];
+  const ready = Boolean(name.trim() && text.trim());
+  return (
+    <div
+      className="libraryOverlay manualCardOverlay"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) setManualCardPrompt(null);
+      }}
+    >
+      <form
+        className="libraryModal manualCardModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="manual-card-title"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (ready) addManualCard(manualCardPrompt.category, { name, text });
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setManualCardPrompt(null);
+        }}
+      >
+        <header className="libraryHeader">
+          <div>
+            <span className="cardExchangeKicker">手动卡 · 不参与自动生成</span>
+            <h2 id="manual-card-title">添加{config.title}</h2>
+          </div>
+          <button type="button" className="libraryClose" onClick={() => setManualCardPrompt(null)} aria-label="关闭添加卡片窗口">
+            <X size={22} />
+          </button>
+        </header>
+        <div className="manualCardFields">
+          <label>
+            <span>标题</span>
+            <input
+              type="text"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              autoFocus
+              maxLength={80}
+              placeholder={`输入${config.title}标题`}
+            />
+          </label>
+          <label>
+            <span>内容</span>
+            <textarea
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              maxLength={1200}
+              placeholder={`输入${config.title}效果或说明`}
+            />
+          </label>
+        </div>
+        <footer className="manualCardActions">
+          <button type="button" className="libraryBack" onClick={() => setManualCardPrompt(null)}>取消</button>
+          <button type="submit" className="libraryDone" disabled={!ready}>确认添加</button>
+        </footer>
+      </form>
+    </div>
+  );
+}
+
 function App() {
   const defaultRealmIndex = getDefaultRealmIndex(realmOptions);
   const autosavedCard = readJsonStorage(CARD_AUTOSAVE_KEY, null);
@@ -3772,6 +4068,18 @@ function App() {
   const [extraPagesEnabled, setExtraPagesEnabled] = useState(() => (
     readJsonStorage(EXTRA_PAGES_ENABLED_KEY, false) === true
   ));
+  const [cardPacks, setCardPacks] = useState(() => initialCardPacks);
+  const runtimeOptions = useMemo(
+    () => buildRuntimeOptions(BASE_RESOURCE_OPTIONS, cardPacks),
+    [cardPacks],
+  );
+  sourceOptions = runtimeOptions.source;
+  methodOptions = runtimeOptions.method;
+  daoOptions = runtimeOptions.dao;
+  LIBRARY.source.options = sourceOptions;
+  LIBRARY.method.options = methodOptions;
+  LIBRARY.dao.options = daoOptions;
+  const [cardPackManagerOpen, setCardPackManagerOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
@@ -3799,16 +4107,43 @@ function App() {
   const [breakthroughChoiceDetails, setBreakthroughChoiceDetails] = useState(() => initialState.snapshot.breakthroughChoiceDetails);
   const [maxRealmIndexReached, setMaxRealmIndexReached] = useState(() => initialState.snapshot.maxRealmIndexReached);
   const [realmHistoryOpen, setRealmHistoryOpen] = useState(false);
-  const [upgradePrompt, setUpgradePrompt] = useState(null);
+  const [upgradePrompt, setUpgradePromptState] = useState(null);
+  const upgradePromptQueue = useRef([]);
+  const setUpgradePrompt = useCallback((prompt) => {
+    if (!prompt) {
+      setUpgradePromptState(upgradePromptQueue.current.shift() || null);
+      return;
+    }
+    setUpgradePromptState((currentPrompt) => {
+      if (!currentPrompt) return prompt;
+      const signature = `${prompt.title}:${prompt.realmIndex}:${(prompt.sections || []).map((section) => section.key).join(',')}`;
+      const queued = upgradePromptQueue.current.some((entry) => (
+        `${entry.title}:${entry.realmIndex}:${(entry.sections || []).map((section) => section.key).join(',')}` === signature
+      ));
+      if (!queued) upgradePromptQueue.current.push(prompt);
+      return currentPrompt;
+    });
+  }, []);
   const [attributeChoicePrompt, setAttributeChoicePrompt] = useState(null);
+  const [cardLibraries, setCardLibraries] = useState(() => initialState.snapshot.cardLibraries);
+  const [manualCards, setManualCards] = useState(() => initialState.snapshot.manualCards);
+  const [initialResourceChoices, setInitialResourceChoices] = useState(
+    () => initialState.snapshot.initialResourceChoices,
+  );
+  const [libraryExchange, setLibraryExchange] = useState(null);
+  const [manualCardPrompt, setManualCardPrompt] = useState(null);
   const [randomPreview, setRandomPreview] = useState(null);
   const randomNoticeTimer = useRef(null);
   const promptedInitialMethodName = useRef(null);
+  const promptedInitialResourceSignatures = useRef(new Set());
   const currentRealmIndex = selections.realm ?? defaultRealmIndex;
-  const upgradeCards = useMemo(
-    () => aggregateUpgradeChoices(upgradeChoices, currentRealmIndex),
-    [upgradeChoices, currentRealmIndex],
-  );
+  const upgradeCards = useMemo(() => {
+    const aggregated = aggregateUpgradeChoices(upgradeChoices, currentRealmIndex);
+    return Object.fromEntries(Object.entries(aggregated).map(([key, cards]) => [
+      key,
+      cards.map((card) => markRemovedPackResource(card, cardPacks)),
+    ]));
+  }, [upgradeChoices, currentRealmIndex, cardPacks]);
   const visiblePageTabs = useMemo(() => pageTabs.filter((page) => (
     page.id === 'background'
     || ['p1', 'p2', 'p3', 'p4'].includes(page.id)
@@ -3823,6 +4158,11 @@ function App() {
     writeJsonStorage(EXTRA_PAGES_ENABLED_KEY, extraPagesEnabled);
     if (!visiblePageTabs.some((page) => page.id === tab)) setTab('p1');
   }, [extraPagesEnabled, tab, visiblePageTabs]);
+
+  const updateCardPacks = (nextPacks) => {
+    writeStoredCardPacks(nextPacks);
+    setCardPacks(nextPacks);
+  };
 
   const openFateDraw = (title) => {
     const plans = fateDraws[title];
@@ -3846,8 +4186,29 @@ function App() {
       if (nextPrompt) promptedInitialMethodName.current = nextMethod?.name || null;
       setSelections((prev) => ({ ...prev, method: index }));
       setUpgradeChoices((prev) => removeMethodInsightChoices(prev));
+      setInitialResourceChoices((prev) => {
+        const next = { ...prev };
+        delete next.methodAttackBuff;
+        delete next.methodTechnique;
+        return next;
+      });
       setUpgradePrompt(nextPrompt);
       return;
+    }
+    if (category === 'source') {
+      setUpgradeChoices((prev) => prev.filter((choice) => choice.sourceKind !== 'source'));
+      setInitialResourceChoices((prev) => {
+        const next = { ...prev };
+        ['sourceAbility', 'sourceEffect', 'sourceSkill', 'sourceArt'].forEach((key) => delete next[key]);
+        return next;
+      });
+    } else if (category === 'dao') {
+      setUpgradeChoices((prev) => prev.filter((choice) => choice.sourceKind !== 'dao'));
+      setInitialResourceChoices((prev) => {
+        const next = { ...prev };
+        delete next.daoEffect;
+        return next;
+      });
     }
     setSelections((prev) => ({ ...prev, [category]: index }));
   };
@@ -3939,8 +4300,42 @@ function App() {
     }
     return true;
   };
-  const appendUpgradeCards = (cardsBySection) => {
+  const commitPromptSelections = (cardsBySection) => {
+    if (upgradePrompt?.kind === 'initial-resources') {
+      setInitialResourceChoices((prev) => ({
+        ...prev,
+        ...Object.fromEntries(cardsBySection.flatMap((section) => (
+          section.cards?.[0]
+            ? [[section.target.replace(/^initial:/, ''), {
+              ...section.cards[0],
+              _choiceMode: 'explicit',
+              _parentKind: section.sourceKind,
+            }]]
+            : []
+        ))),
+      }));
+      return;
+    }
     const realmIndex = upgradePrompt?.realmIndex ?? currentRealmIndex;
+    const selectedTechnique = cardsBySection.find((section) => section.target === 'methodTechniques')?.cards?.[0];
+    if (selectedTechnique && upgradePrompt?.title === '筑基前期突破选项') {
+      const previousBonus = getFoundationTechniqueStorageBonus(current.method);
+      const nextBonus = selectedTechnique.storageCapacityBonus || 0;
+      const delta = nextBonus - previousBonus;
+      if (delta) {
+        setMarkStates((store) => applyGhostCapacityDelta(store, 'p1-stat-储物格-ghost', 5, delta));
+      }
+      setBreakthroughChoiceDetails((prev) => ({
+        ...prev,
+        'foundation-early': {
+          ...(prev['foundation-early'] || {}),
+          fixed: {
+            ...(prev['foundation-early']?.fixed || {}),
+            techniqueStorageBonus: nextBonus,
+          },
+        },
+      }));
+    }
     setUpgradeChoices((prev) => appendUpgradeChoices(prev, {
       realmIndex,
       cardsBySection,
@@ -4045,6 +4440,32 @@ function App() {
     if (step.autoEffects.includes('realm-breakthrough')) {
       applyRealmBreakthroughEffects(step);
     }
+    if (step.automaticSelections?.length) {
+      setUpgradeChoices((prev) => appendUpgradeChoices(prev, {
+        realmIndex: nextIndex,
+        cardsBySection: step.automaticSelections,
+      }));
+      const automaticTechnique = step.automaticSelections
+        .find((section) => section.target === 'methodTechniques')?.cards?.[0];
+      if (automaticTechnique) {
+        const previousBonus = getFoundationTechniqueStorageBonus(current.method);
+        const nextBonus = automaticTechnique.storageCapacityBonus || 0;
+        const delta = nextBonus - previousBonus;
+        if (delta) {
+          setMarkStates((store) => applyGhostCapacityDelta(store, 'p1-stat-储物格-ghost', 5, delta));
+        }
+        setBreakthroughChoiceDetails((prev) => ({
+          ...prev,
+          [step.id]: {
+            ...(prev[step.id] || {}),
+            fixed: {
+              ...(prev[step.id]?.fixed || {}),
+              techniqueStorageBonus: nextBonus,
+            },
+          },
+        }));
+      }
+    }
     if (step.selectionPrompt?.sections?.length) {
       setUpgradePrompt({ ...step.selectionPrompt, realmIndex: nextIndex });
     }
@@ -4058,7 +4479,8 @@ function App() {
   const openRealmHistory = () => setRealmHistoryOpen(true);
   const selectReachedRealm = (realmIndex) => {
     setSelections((prev) => ({ ...prev, realm: realmIndex }));
-    setUpgradePrompt(null);
+    upgradePromptQueue.current = [];
+    setUpgradePromptState(null);
     setRealmHistoryOpen(false);
     if (realmIndex < currentRealmIndex) {
       const foundationIndex = getBreakthroughRealmIndex('foundation-early');
@@ -4159,13 +4581,158 @@ function App() {
     }));
   };
 
-  const current = {
+  const baseCurrent = {
     realm: selections.realm != null ? realmOptions[selections.realm] : null,
     origin: selections.origin != null ? originOptions[selections.origin] : null,
     source: selections.source != null ? sourceOptions[selections.source] : null,
     method: selections.method != null ? methodOptions[selections.method] : null,
     dao: selections.dao != null ? daoOptions[selections.dao] : null,
   };
+  const choiceFor = (key, options = []) => {
+    const stored = initialResourceChoices[key];
+    if (stored) return markRemovedPackResource(stored, cardPacks);
+    return options[0] ? { ...options[0], _choiceMode: 'auto' } : null;
+  };
+  const selectedSourceAbility = choiceFor('sourceAbility', baseCurrent.source?.abilityOptions);
+  const selectedSourceEffect = choiceFor('sourceEffect', baseCurrent.source?.effectOptions);
+  const selectedSourceSkill = choiceFor('sourceSkill', baseCurrent.source?.initialSkillOptions);
+  const selectedSourceArt = choiceFor('sourceArt', baseCurrent.source?.initialArtOptions);
+  const selectedMethodAttackBuff = choiceFor('methodAttackBuff', baseCurrent.method?.initialAttackBuffOptions);
+  const selectedMethodTechnique = choiceFor('methodTechnique', baseCurrent.method?.initialTechniqueOptions);
+  const selectedDaoEffect = choiceFor('daoEffect', baseCurrent.dao?.effectOptions);
+  const current = {
+    ...baseCurrent,
+    source: baseCurrent.source ? {
+      ...baseCurrent.source,
+      ability: selectedSourceAbility?.text || '',
+      buff: selectedSourceAbility?.buff || '',
+      effect: selectedSourceEffect?.text || '',
+      _selectedInitialSkill: selectedSourceSkill,
+      _selectedInitialArt: selectedSourceArt,
+    } : null,
+    method: baseCurrent.method ? {
+      ...baseCurrent.method,
+      attackBuffs: [
+        selectedMethodAttackBuff?.text || baseCurrent.method.attackBuffs?.[0],
+        upgradeCards.methodAttackBuffs.at(-1)?.text || baseCurrent.method.attackBuffs?.[1],
+      ].filter(Boolean),
+      techniques: baseCurrent.method.techniques || selectedMethodTechnique ? {
+        ...(baseCurrent.method.techniques || {}),
+        qi: selectedMethodTechnique || baseCurrent.method.techniques?.qi,
+        foundation: upgradeCards.methodTechniques.at(-1) || baseCurrent.method.techniques?.foundation,
+      } : undefined,
+    } : null,
+    dao: baseCurrent.dao ? {
+      ...baseCurrent.dao,
+      effect: selectedDaoEffect?.text || '',
+    } : null,
+  };
+  const libraryCardPools = getLibraryCardPools(current, upgradeCards, manualCards);
+  const libraryViews = Object.fromEntries(
+    Object.entries(libraryCardPools).map(([category, cards]) => [
+      category,
+      getCardLibraryView(category, cards, cardLibraries),
+    ]),
+  );
+  const moveLibraryCard = (category, key, location) => {
+    const view = libraryViews[category];
+    const destinationFull = location === 'library' ? view?.libraryFull : view?.slotFull;
+    if (destinationFull) {
+      showNotice(`目标${location === 'library' ? '库' : '槽位'}已满，请使用交换。`);
+      return;
+    }
+    setCardLibraries((state) => moveCard(state, key, location));
+    showNotice(location === 'library' ? `已存入${CARD_LIBRARY_CONFIG[category].libraryTitle}。` : '已移出并放回卡片槽位。');
+  };
+  const beginLibraryExchange = (category, card, location) => {
+    const oppositeCards = location === 'slot' ? libraryViews[category]?.library : libraryViews[category]?.slots;
+    if (!oppositeCards?.length) {
+      showNotice('对侧没有可交换的卡片。');
+      return;
+    }
+    setLibraryExchange({ category, card, location });
+  };
+  const confirmLibraryExchange = (targetCard) => {
+    if (!libraryExchange) return;
+    const slotKey = libraryExchange.location === 'slot' ? libraryExchange.card.key : targetCard.key;
+    const libraryKey = libraryExchange.location === 'library' ? libraryExchange.card.key : targetCard.key;
+    setCardLibraries((state) => exchangeCards(state, slotKey, libraryKey));
+    setLibraryExchange(null);
+    showNotice('卡片已交换。');
+  };
+  const deleteCardFromLibrary = (category, key) => {
+    setCardLibraries((state) => deleteLibraryCard(state, key));
+    showNotice(`已从${CARD_LIBRARY_CONFIG[category].libraryTitle}删除。`);
+  };
+  const openManualCardPrompt = (category) => setManualCardPrompt({ category });
+  const addManualCard = (category, values) => {
+    const card = createManualCard(values);
+    setManualCards((state) => ({
+      ...state,
+      [category]: [...(state[category] || []), card],
+    }));
+    setManualCardPrompt(null);
+    showNotice(`已添加手动${CARD_LIBRARY_CONFIG[category].title}卡。`);
+  };
+  useEffect(() => {
+    const definitions = [
+      { key: 'sourceAbility', title: '道源能力', options: baseCurrent.source?.abilityOptions || [], sourceKind: 'source' },
+      { key: 'sourceEffect', title: '道源效果', options: baseCurrent.source?.effectOptions || [], sourceKind: 'source' },
+      { key: 'sourceSkill', title: '初始神通', options: baseCurrent.source?.initialSkillOptions || [], sourceKind: 'source' },
+      { key: 'sourceArt', title: '初始秘法', options: baseCurrent.source?.initialArtOptions || [], sourceKind: 'source' },
+      { key: 'methodAttackBuff', title: '入门攻击增益', options: baseCurrent.method?.initialAttackBuffOptions || [], sourceKind: 'method' },
+      { key: 'methodTechnique', title: '初始技艺', options: baseCurrent.method?.initialTechniqueOptions || [], sourceKind: 'method' },
+      { key: 'daoEffect', title: '大道效果', options: baseCurrent.dao?.effectOptions || [], sourceKind: 'dao' },
+    ];
+    const automatic = {};
+    definitions.forEach((definition) => {
+      if (definition.options.length === 1 && !initialResourceChoices[definition.key]) {
+        automatic[definition.key] = {
+          ...definition.options[0],
+          _choiceMode: 'auto',
+          _parentKind: definition.sourceKind,
+        };
+      }
+    });
+    if (Object.keys(automatic).length) {
+      setInitialResourceChoices((prev) => ({ ...prev, ...automatic }));
+      return;
+    }
+    if (upgradePrompt) return;
+    const sections = definitions.flatMap((definition) => {
+      if (definition.options.length <= 1) return [];
+      const stored = initialResourceChoices[definition.key];
+      if (stored?._choiceMode === 'explicit') return [];
+      const signature = `${definition.key}:${definition.options.map((option) => option._resourceId || option.name).join(',')}`;
+      if (promptedInitialResourceSignatures.current.has(signature)) return [];
+      promptedInitialResourceSignatures.current.add(signature);
+      return [{
+        key: `initial-${definition.key}`,
+        title: definition.title,
+        hint: '导入卡包后该资源有多个候选，请选择 1 项',
+        limit: 1,
+        target: `initial:${definition.key}`,
+        sourceKind: definition.sourceKind,
+        options: definition.options,
+      }];
+    });
+    if (sections.length) {
+      setUpgradePrompt({
+        kind: 'initial-resources',
+        title: '初始资源选择',
+        realmIndex: defaultRealmIndex,
+        sections,
+      });
+    }
+  }, [
+    baseCurrent.source,
+    baseCurrent.method,
+    baseCurrent.dao,
+    cardPacks,
+    defaultRealmIndex,
+    initialResourceChoices,
+    upgradePrompt,
+  ]);
   useEffect(() => {
     const methodName = current.method?.name || null;
     if (!methodName) {
@@ -4184,7 +4751,7 @@ function App() {
   }, [current.method, defaultRealmIndex, upgradeCards.initialInsights.length, upgradePrompt]);
   const fateState = getFateState(selectedFateTitle);
   const createCardSnapshot = () => ({
-    version: 1,
+    version: 2,
     selections,
     texts,
     attributes,
@@ -4201,6 +4768,9 @@ function App() {
     breakthroughChoices,
     breakthroughChoiceDetails,
     maxRealmIndexReached,
+    cardLibraries,
+    manualCards,
+    initialResourceChoices,
   });
   const restoreCardSnapshot = (snapshot) => {
     const next = normalizeCardSnapshot(snapshot, defaultRealmIndex);
@@ -4221,11 +4791,17 @@ function App() {
     setBreakthroughChoices(next.breakthroughChoices);
     setBreakthroughChoiceDetails(next.breakthroughChoiceDetails);
     setMaxRealmIndexReached(next.maxRealmIndexReached);
+    setCardLibraries(next.cardLibraries);
+    setManualCards(next.manualCards);
+    setInitialResourceChoices(next.initialResourceChoices);
     setFateDraw(null);
     setLibrary(null);
-    setUpgradePrompt(null);
+    upgradePromptQueue.current = [];
+    setUpgradePromptState(null);
     setAttributeChoicePrompt(null);
     setRealmHistoryOpen(false);
+    setLibraryExchange(null);
+    setManualCardPrompt(null);
   };
   const persistSaveSlots = (nextSlots) => {
     setSaveSlots(nextSlots);
@@ -4340,11 +4916,22 @@ function App() {
     selectReachedRealm,
     upgradePrompt,
     setUpgradePrompt,
-    appendUpgradeCards,
+    commitPromptSelections,
     attributeChoicePrompt,
     setAttributeChoicePrompt,
     confirmAttributeChoices,
     triggerBreakthroughOption,
+    libraryViews,
+    moveLibraryCard,
+    beginLibraryExchange,
+    deleteCardFromLibrary,
+    libraryExchange,
+    setLibraryExchange,
+    confirmLibraryExchange,
+    manualCardPrompt,
+    setManualCardPrompt,
+    openManualCardPrompt,
+    addManualCard,
   };
 
   useEffect(() => {
@@ -4376,6 +4963,9 @@ function App() {
     breakthroughChoices,
     breakthroughChoiceDetails,
     maxRealmIndexReached,
+    cardLibraries,
+    manualCards,
+    initialResourceChoices,
   ]);
 
   useEffect(() => () => {
@@ -4405,6 +4995,9 @@ function App() {
     setCoreAttribute(cardState.coreAttribute || null);
     setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });
     setUpgradeChoices([]);
+    setCardLibraries(normalizeCardLibraryState());
+    setManualCards(normalizeManualCards());
+    setInitialResourceChoices({});
     setBreakthroughChoices(createEmptyBreakthroughChoices());
     setBreakthroughChoiceDetails({});
     setMarkStates({});
@@ -4434,11 +5027,15 @@ function App() {
     setSpecialQuestionnaires(normalizeSpecialQuestionnaireAnswers(snapshot.specialQuestionnaires));
     setThresholdBonuses({ ...defaultThresholdBonuses, ...(snapshot.thresholdBonuses || {}) });
     setUpgradeChoices(snapshot.upgradeChoices || []);
+    setCardLibraries(normalizeCardLibraryState(snapshot.cardLibraries));
+    setManualCards(normalizeManualCards(snapshot.manualCards));
+    setInitialResourceChoices(snapshot.initialResourceChoices || {});
     setBreakthroughChoices(createEmptyBreakthroughChoices());
     setBreakthroughChoiceDetails({});
     setMaxRealmIndexReached(snapshot.maxRealmIndexReached ?? defaultRealmIndex);
     setRealmHistoryOpen(false);
-    setUpgradePrompt(null);
+    upgradePromptQueue.current = [];
+    setUpgradePromptState(null);
     setAttributeChoicePrompt(null);
     setSelectedFateTitle(snapshot.selectedFateTitle || null);
     setDiceEffects(snapshot.diceEffects || baseDiceEffects);
@@ -4531,13 +5128,17 @@ function App() {
     setCoreAttribute(result.coreAttribute);
     setThresholdBonuses({ all: 0, bodyMedium: 0, soulMedium: 0, bodyHeavy: 0, soulHeavy: 0 });
     setUpgradeChoices([]);
+    setCardLibraries(normalizeCardLibraryState());
+    setManualCards(normalizeManualCards());
+    setInitialResourceChoices({});
     setBreakthroughChoices(createEmptyBreakthroughChoices());
     setBreakthroughChoiceDetails({});
     setMarkStates({});
     setMaxRealmIndexReached(defaultRealmIndex);
     setRealmHistoryOpen(false);
     setActiveSlot(null);
-    setUpgradePrompt(null);
+    upgradePromptQueue.current = [];
+    setUpgradePromptState(null);
     setAttributeChoicePrompt(null);
     setSpecialQuestionnaires(createEmptySpecialQuestionnaireAnswers());
     setSelectedFateTitle(result.selectedFateTitle);
@@ -4598,6 +5199,7 @@ function App() {
           onGuided={() => { window.location.href = '/guide'; }}
           onRandom={openRandomPreview}
           onOpenSave={() => setSaveOpen(true)}
+          onOpenCardPacks={() => setCardPackManagerOpen(true)}
           extraPagesEnabled={extraPagesEnabled}
           onExtraPagesChange={setExtraPagesEnabled}
         />
@@ -4611,6 +5213,22 @@ function App() {
       <AttributeChoiceModal />
       <SaveArchiveModal onJsonImport={handleJsonImport} />
       <FateDrawModal />
+      <CardLibraryExchangeModal />
+      <ManualCardModal />
+      <CardPackManager
+        open={cardPackManagerOpen}
+        packs={cardPacks}
+        baseOptions={BASE_RESOURCE_OPTIONS}
+        snapshots={[
+          createCardSnapshot(),
+          ...saveSlots.map((slot) => slot.snapshot),
+        ]}
+        onChange={updateCardPacks}
+        onClose={() => {
+          setCardPackManagerOpen(false);
+          requestAnimationFrame(() => document.querySelector('[aria-label="设置"]')?.focus());
+        }}
+      />
       {randomPreviewValues ? (
         <RandomCardModal
           values={randomPreviewValues}

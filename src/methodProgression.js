@@ -31,26 +31,41 @@ export function getMethodFoundationInsights(method) {
   return getCardsByNamePrefix(method?.insights || [], '筑基·');
 }
 
-export function getMethodFoundationUpgradeInsights(method, selectedInsights = []) {
+export function getMethodFoundationUpgradeInsights(method, selectedInsights = [], milestone = null) {
   const selectedNames = new Set((selectedInsights || []).map((card) => card?.name).filter(Boolean));
-  return getMethodFoundationInsights(method).filter((card) => !selectedNames.has(card.name));
+  const packInsights = milestone === 'foundation-early'
+    ? method?.packFoundationEarlyInsights || []
+    : milestone === 'foundation-late'
+      ? method?.packFoundationLateInsights || []
+      : [...(method?.packFoundationEarlyInsights || []), ...(method?.packFoundationLateInsights || [])];
+  return [
+    ...getMethodFoundationInsights(method),
+    ...packInsights,
+  ].filter((card) => !selectedNames.has(card.name));
 }
 
 export function getMethodInitialInsights(method) {
-  return getMethodQiInsights(method);
+  return [...getMethodQiInsights(method), ...(method?.packInitialInsights || [])];
 }
 
 export function getMethodQiUpgradeInsights(method, selectedInitialInsights = []) {
   const selectedNames = new Set((selectedInitialInsights || []).map((card) => card?.name).filter(Boolean));
-  return getMethodQiInsights(method).filter((card) => !selectedNames.has(card.name));
+  return [...getMethodQiInsights(method), ...(method?.packQiInsights || [])]
+    .filter((card) => !selectedNames.has(card.name));
 }
 
 export function getMethodQiOriginInsights(method) {
-  return getCardsByNamePrefix(method?.originInsights || [], '练气本源·');
+  return [
+    ...getCardsByNamePrefix(method?.originInsights || [], '练气本源·'),
+    ...(method?.packQiOriginInsights || []),
+  ];
 }
 
 export function getMethodFoundationOriginInsights(method) {
-  return getCardsByNamePrefix(method?.originInsights || [], '筑基本源·');
+  return [
+    ...getCardsByNamePrefix(method?.originInsights || [], '筑基本源·'),
+    ...(method?.packFoundationOriginInsights || []),
+  ];
 }
 
 export function getMethodTechniqueProgression(method) {

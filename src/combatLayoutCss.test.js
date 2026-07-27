@@ -75,7 +75,7 @@ describe('combat layout CSS', () => {
     expect(pageTwoSource).toContain("{ name: '道源效果', text: source?.effect || '' }");
     expect(pageTwoSource).not.toContain('道源本源效果');
     expect(pageTwoSource).toContain("{ name: '大道效果', text: dao?.effect || '' }");
-    expect(pageTwoSource).toContain('<PageTwoCardGroup title="秘法" rows={rowsFor(\'秘法\')} cards={prefillFor(\'秘法\')} />');
+    expect(pageTwoSource).toMatch(/<PageTwoCardGroup title="秘法" category="arts" rows=\{rowsFor\('秘法'\)\}/);
     expect(pageTwoSource).not.toContain('title="秘法" rows={rowsFor(\'秘法\')} cards={prefillFor(\'秘法\')} className="pageTwoThreeAcross"');
   });
 

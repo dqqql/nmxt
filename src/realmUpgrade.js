@@ -90,6 +90,8 @@ const foundationTreasurePlaceholders = [
 const emptyUpgradeCards = {
   skills: [],
   arts: [],
+  methodAttackBuffs: [],
+  methodTechniques: [],
   initialInsights: [],
   insights: [],
   originInsights: [],
@@ -135,11 +137,13 @@ export function getMaxReachedRealmAfterSelection(maxReachedIndex, selectedRealmI
 }
 
 export function getInitialSourceSkills(source) {
+  if (source?.initialSkillOptions) return source.initialSkillOptions;
   if (source?.initialSkill) return [source.initialSkill];
   return source?.skills?.[0] ? [source.skills[0]] : [];
 }
 
 export function getInitialSourceArts(source) {
+  if (source?.initialArtOptions) return source.initialArtOptions;
   if (source?.initialArt) return [source.initialArt];
   return source?.arts?.[0] ? [source.arts[0]] : [];
 }
@@ -276,10 +280,42 @@ export function createUpgradeStep({
       toast: '突破成功：境界乘值 +1，真元上限 +1，灵气上限 +2，核心属性 +1，所有阈值 +3，法门进阶。',
       autoEffects: ['realm-breakthrough'],
       automaticEffects: getFixedBreakthroughEffects('foundation-early'),
+      automaticSelections: [
+        ...(method?.foundationAttackBuffOptions?.length === 1 ? [{
+          key: 'method-attack-buff-auto',
+          target: 'methodAttackBuffs',
+          sourceKind: 'method',
+          cards: [method.foundationAttackBuffOptions[0]],
+        }] : []),
+        ...(method?.foundationTechniqueOptions?.length === 1 ? [{
+          key: 'method-technique-auto',
+          target: 'methodTechniques',
+          sourceKind: 'method',
+          cards: [method.foundationTechniqueOptions[0]],
+        }] : []),
+      ],
       breakthroughChoices: breakthroughChoices('foundation-early'),
       selectionPrompt: {
         title: '筑基前期突破选项',
         sections: cardSections([
+          ...(method?.foundationAttackBuffOptions?.length > 1 ? [{
+            key: 'method-attack-buff',
+            title: '进阶攻击增益',
+            hint: `来自 ${method.name}`,
+            limit: 1,
+            target: 'methodAttackBuffs',
+            sourceKind: 'method',
+            options: method.foundationAttackBuffOptions,
+          }] : []),
+          ...(method?.foundationTechniqueOptions?.length > 1 ? [{
+            key: 'method-technique',
+            title: '进阶技艺',
+            hint: `来自 ${method.name}`,
+            limit: 1,
+            target: 'methodTechniques',
+            sourceKind: 'method',
+            options: method.foundationTechniqueOptions,
+          }] : []),
           {
             key: 'origin-insight',
             title: '本源感悟卡',
@@ -296,7 +332,7 @@ export function createUpgradeStep({
             limit: 1,
             target: 'insights',
             sourceKind: 'method',
-            options: getMethodFoundationUpgradeInsights(method, upgradeCards.insights),
+            options: getMethodFoundationUpgradeInsights(method, upgradeCards.insights, 'foundation-early'),
           },
           {
             key: 'treasure',
@@ -358,7 +394,7 @@ export function createUpgradeStep({
             limit: 1,
             target: 'insights',
             sourceKind: 'method',
-            options: getMethodFoundationUpgradeInsights(method, upgradeCards.insights),
+            options: getMethodFoundationUpgradeInsights(method, upgradeCards.insights, 'foundation-late'),
           },
           {
             key: 'dao-method',
