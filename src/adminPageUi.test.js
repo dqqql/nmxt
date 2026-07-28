@@ -21,6 +21,9 @@ describe('marketplace admin UI', () => {
     expect(adminSource).toContain('<b>版本</b>');
     expect(adminSource).toContain('<b>作者</b>');
     expect(adminSource).toContain('author: draft.author');
+    expect(adminSource).toContain('JSON.parse(payloadText)');
+    expect(adminSource).toContain("{ version: payload.version }");
+    expect(adminSource).toContain("{ author: payload.author }");
     expect(adminSource).not.toContain('商城版本');
     expect(adminSource).not.toContain('（从 JSON 读取）');
   });

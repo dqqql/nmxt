@@ -113,7 +113,19 @@ function ResourceEditor({ draft, onChange, onCancel, onSaved }) {
   const loadFile = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = '';
-    if (file) update('payloadText', await file.text());
+    if (!file) return;
+    const payloadText = await file.text();
+    let metadata = {};
+    try {
+      const payload = JSON.parse(payloadText);
+      metadata = {
+        ...(typeof payload?.version === 'string' ? { version: payload.version } : {}),
+        ...(typeof payload?.author === 'string' ? { author: payload.author } : {}),
+      };
+    } catch {
+      // Keep the imported text editable so the validation panel can report malformed JSON.
+    }
+    onChange({ ...draft, ...metadata, payloadText });
   };
   const save = async (event) => {
     event.preventDefault();
