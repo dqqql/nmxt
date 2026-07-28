@@ -6,12 +6,13 @@ const mainSource = readFileSync(new URL('./main.jsx', import.meta.url), 'utf8');
 const railSource = readFileSync(new URL('./ToolRail.jsx', import.meta.url), 'utf8');
 
 describe('community resource UI', () => {
-  it('adds community resources directly below card-pack management in settings', () => {
+  it('adds community resources directly below card-pack management in the resource menu', () => {
     const cardPackIndex = railSource.indexOf('<b>卡包管理</b>');
     const communityIndex = railSource.indexOf('<b>社区资源</b>');
     expect(cardPackIndex).toBeGreaterThan(-1);
     expect(communityIndex).toBeGreaterThan(cardPackIndex);
     expect(railSource).toContain('runAndClose(onOpenCommunityResources)');
+    expect(railSource).toContain("menu=\"resources\"");
   });
 
   it('supports JSON import, per-resource loading, and deletion', () => {

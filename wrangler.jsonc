@@ -1,0 +1,19 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "niming-card-builder",
+	"compatibility_date": "2026-07-28",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"pages_build_output_dir": "./dist",
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "niming-card-builder",
+			"database_id": "81bcef20-01be-4f89-b789-174f275fdb0b",
+			"preview_database_id": "DB",
+			"migrations_dir": "migrations",
+			"remote": true
+		}
+	]
+}

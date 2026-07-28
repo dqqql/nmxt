@@ -3,6 +3,7 @@ import {
   parseCommunityResourceJson,
   readStoredCommunityResources,
   removeCommunityResourcePack,
+  upsertCommunityResourcePack,
   writeStoredCommunityResources,
   validateCommunityResourcePack,
 } from './communityResourceState';
@@ -47,6 +48,15 @@ describe('community resource packs', () => {
   it('removes a pack by its unique name', () => {
     expect(removeCommunityResourcePack([{ name: '甲' }, { name: '乙' }], '甲'))
       .toEqual([{ name: '乙' }]);
+  });
+
+  it('updates a same-name marketplace package without duplicating it', () => {
+    expect(upsertCommunityResourcePack(
+      [{ name: '同名包', author: '旧作者', cards: [] }],
+      { name: '同名包', author: '新作者', cards: [{ type: 'arts', name: '新卡', text: '内容' }] },
+    )).toEqual([
+      { name: '同名包', author: '新作者', cards: [{ type: 'arts', name: '新卡', text: '内容' }] },
+    ]);
   });
 
   it('supports manually loadable talents and punishments with a tier', () => {

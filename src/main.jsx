@@ -28,9 +28,13 @@ import CardActionMenu from './CardActionMenu';
 import ToolRail from './ToolRail';
 import CardPackManager from './CardPackManager';
 import CommunityResourceManager from './CommunityResourceManager';
+import ResourceMarketplace from './ResourceMarketplace';
+import AdminPage from './AdminPage';
 import {
   buildRuntimeOptions,
   readStoredCardPacks,
+  upsertCardPack,
+  validateCardPack,
   writeStoredCardPacks,
 } from './cardPackState';
 import {
@@ -46,8 +50,16 @@ import {
 } from './cardLibraryState';
 import {
   readStoredCommunityResources,
+  upsertCommunityResourcePack,
+  validateCommunityResourcePack,
   writeStoredCommunityResources,
 } from './communityResourceState';
+import {
+  readMarketplaceInstalls,
+  registerMarketplaceInstall,
+  removeMarketplaceInstall,
+  writeMarketplaceInstalls,
+} from './marketplaceState';
 import { attachPrintLifecycle, printSheetsWithBrowser } from './exportPdf';
 import {
   createMarkState,
@@ -146,6 +158,7 @@ const BASE_RESOURCE_OPTIONS = {
 };
 const initialCardPacks = readStoredCardPacks();
 const initialCommunityResourcePacks = readStoredCommunityResources();
+const initialMarketplaceInstalls = readMarketplaceInstalls();
 const initialRuntimeOptions = buildRuntimeOptions(BASE_RESOURCE_OPTIONS, initialCardPacks);
 let sourceOptions = initialRuntimeOptions.source;
 let methodOptions = initialRuntimeOptions.method;
@@ -4260,6 +4273,7 @@ function App() {
   ));
   const [cardPacks, setCardPacks] = useState(() => initialCardPacks);
   const [communityResourcePacks, setCommunityResourcePacks] = useState(() => initialCommunityResourcePacks);
+  const [marketplaceInstalls, setMarketplaceInstalls] = useState(() => initialMarketplaceInstalls);
   const runtimeOptions = useMemo(
     () => buildRuntimeOptions(BASE_RESOURCE_OPTIONS, cardPacks),
     [cardPacks],
@@ -4275,6 +4289,7 @@ function App() {
   LIBRARY.dao.options = daoOptions;
   const [cardPackManagerOpen, setCardPackManagerOpen] = useState(false);
   const [communityResourceManagerOpen, setCommunityResourceManagerOpen] = useState(false);
+  const [marketplaceOpen, setMarketplaceOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
@@ -4356,12 +4371,53 @@ function App() {
   }, [extraPagesEnabled, tab, visiblePageTabs]);
 
   const updateCardPacks = (nextPacks) => {
+    const nextIds = new Set(nextPacks.map((pack) => pack.id));
+    const removedIds = cardPacks.filter((pack) => !nextIds.has(pack.id)).map((pack) => pack.id);
+    if (removedIds.length) {
+      const nextInstalls = removedIds.reduce(
+        (entries, id) => removeMarketplaceInstall(entries, 'card-pack', id),
+        marketplaceInstalls,
+      );
+      writeMarketplaceInstalls(nextInstalls);
+      setMarketplaceInstalls(nextInstalls);
+    }
     writeStoredCardPacks(nextPacks);
     setCardPacks(nextPacks);
   };
   const updateCommunityResourcePacks = (nextPacks) => {
+    const nextNames = new Set(nextPacks.map((pack) => pack.name));
+    const removedNames = communityResourcePacks
+      .filter((pack) => !nextNames.has(pack.name))
+      .map((pack) => pack.name);
+    if (removedNames.length) {
+      const nextInstalls = removedNames.reduce(
+        (entries, name) => removeMarketplaceInstall(entries, 'community', name),
+        marketplaceInstalls,
+      );
+      writeMarketplaceInstalls(nextInstalls);
+      setMarketplaceInstalls(nextInstalls);
+    }
     writeStoredCommunityResources(nextPacks);
     setCommunityResourcePacks(nextPacks);
+  };
+  const installMarketplaceResource = async (listing) => {
+    if (listing.resourceType === 'card-pack') {
+      const pack = validateCardPack(listing.payload, {
+        baseOptions: BASE_RESOURCE_OPTIONS,
+        installedPacks: cardPacks,
+        replacingId: listing.packageKey,
+      });
+      updateCardPacks(upsertCardPack(cardPacks, pack));
+    } else if (listing.resourceType === 'community') {
+      const otherPacks = communityResourcePacks.filter((pack) => pack.name !== listing.packageKey);
+      const pack = validateCommunityResourcePack(listing.payload, otherPacks);
+      updateCommunityResourcePacks(upsertCommunityResourcePack(communityResourcePacks, pack));
+    } else {
+      throw new Error('商城返回了未知的资源类型。');
+    }
+    const nextInstalls = registerMarketplaceInstall(marketplaceInstalls, listing);
+    writeMarketplaceInstalls(nextInstalls);
+    setMarketplaceInstalls(nextInstalls);
   };
 
   const openFateDraw = (title) => {
@@ -5475,6 +5531,7 @@ function App() {
           onGuided={() => { window.location.href = '/guide'; }}
           onRandom={openRandomPreview}
           onOpenSave={() => setSaveOpen(true)}
+          onOpenMarketplace={() => setMarketplaceOpen(true)}
           onOpenCardPacks={() => setCardPackManagerOpen(true)}
           onOpenCommunityResources={() => setCommunityResourceManagerOpen(true)}
           extraPagesEnabled={extraPagesEnabled}
@@ -5493,6 +5550,17 @@ function App() {
       <TalentEditorModal />
       <CardLibraryExchangeModal />
       <ManualCardModal />
+      <ResourceMarketplace
+        open={marketplaceOpen}
+        cardPacks={cardPacks}
+        communityPacks={communityResourcePacks}
+        installs={marketplaceInstalls}
+        onInstall={installMarketplaceResource}
+        onClose={() => {
+          setMarketplaceOpen(false);
+          requestAnimationFrame(() => document.querySelector('[aria-label="资源"]')?.focus());
+        }}
+      />
       <CardPackManager
         open={cardPackManagerOpen}
         packs={cardPacks}
@@ -5504,7 +5572,7 @@ function App() {
         onChange={updateCardPacks}
         onClose={() => {
           setCardPackManagerOpen(false);
-          requestAnimationFrame(() => document.querySelector('[aria-label="设置"]')?.focus());
+          requestAnimationFrame(() => document.querySelector('[aria-label="资源"]')?.focus());
         }}
       />
       <CommunityResourceManager
@@ -5514,7 +5582,7 @@ function App() {
         onLoad={loadCommunityResource}
         onClose={() => {
           setCommunityResourceManagerOpen(false);
-          requestAnimationFrame(() => document.querySelector('[aria-label="设置"]')?.focus());
+          requestAnimationFrame(() => document.querySelector('[aria-label="资源"]')?.focus());
         }}
       />
       {randomPreviewValues ? (
@@ -5537,5 +5605,8 @@ function App() {
 const path = window.location.pathname;
 
 createRoot(document.getElementById('root')).render(
-  path === '/wj' ? <QuestionnairePage /> : path === '/guide' ? <GuidedCardPage /> : <App />,
+  path === '/wj' ? <QuestionnairePage />
+    : path === '/guide' ? <GuidedCardPage />
+      : path === '/admin' || path === '/admin/' ? <AdminPage />
+        : <App />,
 );

@@ -11,6 +11,7 @@ import {
   Save,
   Settings,
   Shuffle,
+  Store,
   UserRound,
 } from 'lucide-react';
 import QuickReferencePanel from './QuickReferencePanel';
@@ -18,6 +19,7 @@ import './toolRail.css';
 
 const MENU_LABELS = {
   settings: '设置',
+  resources: '资源',
   export: '导出',
   card: '车卡',
 };
@@ -67,6 +69,7 @@ export default function ToolRail({
   onGuided,
   onRandom,
   onOpenSave,
+  onOpenMarketplace,
   onOpenCardPacks,
   onOpenCommunityResources,
   extraPagesEnabled = false,
@@ -77,11 +80,13 @@ export default function ToolRail({
   const railRef = useRef(null);
   const settingsButtonRef = useRef(null);
   const exportButtonRef = useRef(null);
+  const resourcesButtonRef = useRef(null);
   const cardButtonRef = useRef(null);
   const quickReferenceButtonRef = useRef(null);
   const idPrefix = useId();
   const settingsId = `${idPrefix}-settings-menu`;
   const exportId = `${idPrefix}-export-menu`;
+  const resourcesId = `${idPrefix}-resources-menu`;
   const cardId = `${idPrefix}-card-menu`;
   const exportErrorId = `${idPrefix}-export-error`;
 
@@ -95,6 +100,7 @@ export default function ToolRail({
       if (event.key !== 'Escape') return;
       const activeButton = {
         settings: settingsButtonRef,
+        resources: resourcesButtonRef,
         export: exportButtonRef,
         card: cardButtonRef,
       }[openMenu];
@@ -157,27 +163,35 @@ export default function ToolRail({
               />
               <i aria-hidden="true" />
             </label>
-            <button
-              type="button"
-              className="toolRailSettingsAction"
-              onClick={() => runAndClose(onOpenCardPacks)}
-            >
-              <Boxes size={17} strokeWidth={2.2} aria-hidden="true" />
-              <span>
-                <b>卡包管理</b>
-                <small>导入、查看或删除扩展资源</small>
-              </span>
+          </ToolMenu>
+        ) : null}
+      </div>
+
+      <div className="toolRailAction">
+        <MenuButton
+          menu="resources"
+          openMenu={openMenu}
+          setOpenMenu={setOpenMenu}
+          buttonRef={resourcesButtonRef}
+          controls={resourcesId}
+          icon={LibraryBig}
+        >
+          资源
+        </MenuButton>
+        {openMenu === 'resources' ? (
+          <ToolMenu id={resourcesId} label="资源选项">
+            <strong>扩展资源</strong>
+            <button type="button" className="toolRailSettingsAction toolRailMarketplaceAction" onClick={() => runAndClose(onOpenMarketplace)}>
+              <Store size={17} strokeWidth={2.2} aria-hidden="true" />
+              <span><b>资源商城</b><small>浏览并直接安装官方与第三方资源</small></span>
             </button>
-            <button
-              type="button"
-              className="toolRailSettingsAction"
-              onClick={() => runAndClose(onOpenCommunityResources)}
-            >
+            <button type="button" className="toolRailSettingsAction" onClick={() => runAndClose(onOpenCardPacks)}>
+              <Boxes size={17} strokeWidth={2.2} aria-hidden="true" />
+              <span><b>卡包管理</b><small>导入、查看或删除扩展资源</small></span>
+            </button>
+            <button type="button" className="toolRailSettingsAction" onClick={() => runAndClose(onOpenCommunityResources)}>
               <LibraryBig size={17} strokeWidth={2.2} aria-hidden="true" />
-              <span>
-                <b>社区资源</b>
-                <small>导入并载入玩家共享卡片</small>
-              </span>
+              <span><b>社区资源</b><small>导入并载入玩家共享卡片</small></span>
             </button>
           </ToolMenu>
         ) : null}

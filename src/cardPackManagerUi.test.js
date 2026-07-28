@@ -6,7 +6,7 @@ const railSource = readFileSync(new URL('./ToolRail.jsx', import.meta.url), 'utf
 const cssSource = readFileSync(new URL('./cardPackManager.css', import.meta.url), 'utf8');
 
 describe('card pack manager UI', () => {
-  it('opens from settings and offers import, inspect, filter, replacement, and deletion flows', () => {
+  it('opens from resources and offers import, inspect, filter, replacement, and deletion flows', () => {
     expect(railSource).toContain('runAndClose(onOpenCardPacks)');
     expect(railSource).toContain('卡包管理');
     expect(managerSource).toContain('accept=".json,application/json"');

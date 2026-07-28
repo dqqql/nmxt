@@ -30,7 +30,7 @@ describe('grouped tool rail', () => {
   });
 
   it('keeps settings limited to the extra-page switch', () => {
-    const settingsMenu = conditionalMenu('settings', 'export');
+    const settingsMenu = conditionalMenu('settings', 'resources');
 
     expect(settingsMenu).toContain('额外页面');
     expect(settingsMenu).toContain('role="switch"');

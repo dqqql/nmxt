@@ -133,6 +133,14 @@ export function addCommunityResourcePack(packs, pack) {
   return [...(packs || []), safeClone(pack)];
 }
 
+export function upsertCommunityResourcePack(packs, pack) {
+  const index = (packs || []).findIndex((entry) => entry.name === pack.name);
+  if (index < 0) return addCommunityResourcePack(packs, pack);
+  return (packs || []).map((entry, currentIndex) => (
+    currentIndex === index ? safeClone(pack) : entry
+  ));
+}
+
 export function removeCommunityResourcePack(packs, packName) {
   return (packs || []).filter((pack) => pack.name !== packName);
 }
