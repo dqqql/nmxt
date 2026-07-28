@@ -43,6 +43,12 @@ export function validateMarketplaceDraft(input) {
   if (!MARKETPLACE_STATUSES.includes(input?.status)) {
     fields.push({ path: 'status', message: '状态必须是草稿或已上架。' });
   }
+  if (typeof input?.version !== 'string' || !input.version.trim()) {
+    fields.push({ path: 'version', message: '版本不能为空。' });
+  }
+  if (typeof input?.author !== 'string' || !input.author.trim()) {
+    fields.push({ path: 'author', message: '作者不能为空。' });
+  }
   if (!input?.payload || typeof input.payload !== 'object' || Array.isArray(input.payload)) {
     fields.push({ path: 'payload', message: '资源包 JSON 必须是对象。' });
   } else if (byteLength(input.payload) > CARD_PACK_MAX_BYTES) {
@@ -55,31 +61,35 @@ export function validateMarketplaceDraft(input) {
 
   try {
     if (input.resourceType === 'card-pack') {
-      const payload = validateCardPack(input.payload, { baseOptions: BASE_RESOURCE_OPTIONS });
+      const payload = validateCardPack({
+        ...input.payload,
+        version: input.version.trim(),
+        author: input.author.trim(),
+      }, { baseOptions: BASE_RESOURCE_OPTIONS });
       return {
         source: input.source,
         resourceType: input.resourceType,
         status: input.status,
-        version: payload.version,
+        version: input.version.trim(),
         name: payload.name,
-        author: payload.author?.trim() || '佚名',
+        author: input.author.trim(),
         packageKey: payload.id,
         description: input.description.trim(),
         itemCount: (payload.resources?.length || 0) + (payload.talents?.length || 0) + (payload.treasures?.length || 0),
         payload,
       };
     }
-    if (typeof input.version !== 'string' || !input.version.trim()) {
-      throw new MarketplaceValidationError([{ path: 'version', message: '社区资源必须填写商城版本。' }]);
-    }
-    const payload = validateCommunityResourcePack(input.payload);
+    const payload = validateCommunityResourcePack({
+      ...input.payload,
+      author: input.author.trim(),
+    });
     return {
       source: input.source,
       resourceType: input.resourceType,
       status: input.status,
       version: input.version.trim(),
       name: payload.name,
-      author: payload.author,
+      author: input.author.trim(),
       packageKey: payload.name,
       description: input.description.trim(),
       itemCount: payload.cards.length,

@@ -21,6 +21,7 @@ const EMPTY_DRAFT = {
   source: 'official',
   resourceType: 'card-pack',
   version: '',
+  author: '',
   description: '',
   status: 'draft',
   payloadText: '',
@@ -123,6 +124,7 @@ function ResourceEditor({ draft, onChange, onCancel, onSaved }) {
         source: draft.source,
         resourceType: draft.resourceType,
         version: draft.version,
+        author: draft.author,
         description: draft.description,
         status: draft.status,
         payload: JSON.parse(draft.payloadText),
@@ -152,10 +154,13 @@ function ResourceEditor({ draft, onChange, onCancel, onSaved }) {
       <div className="adminEditorGrid">
         <label><b>来源</b><select value={draft.source} onChange={(event) => update('source', event.target.value)}><option value="official">官方</option><option value="third-party">第三方</option></select></label>
         <label><b>资源类型</b><select value={draft.resourceType} onChange={(event) => update('resourceType', event.target.value)} disabled={Boolean(draft.id)}><option value="card-pack">卡包</option><option value="community">社区资源</option></select></label>
-        <label><b>状态</b><select value={draft.status} onChange={(event) => update('status', event.target.value)}><option value="draft">草稿</option><option value="published">已上架</option></select></label>
         <label>
-          <b>商城版本{draft.resourceType === 'card-pack' ? '（从 JSON 读取）' : ''}</b>
-          <input value={draft.version} onChange={(event) => update('version', event.target.value)} disabled={draft.resourceType === 'card-pack'} required={draft.resourceType === 'community'} placeholder="例如 1.0.0" />
+          <b>版本</b>
+          <input value={draft.version} onChange={(event) => update('version', event.target.value)} required placeholder="例如 1.0.0" />
+        </label>
+        <label>
+          <b>作者</b>
+          <input value={draft.author} onChange={(event) => update('author', event.target.value)} required placeholder="请输入作者名称" />
         </label>
         <label className="adminEditorWide"><b>简介</b><textarea value={draft.description} onChange={(event) => update('description', event.target.value)} maxLength={500} rows={3} /></label>
         <label className="adminEditorWide">
@@ -234,6 +239,7 @@ export default function AdminPage() {
         source: full.source,
         resourceType: full.resourceType,
         version: full.version,
+        author: full.author,
         description: full.description || '',
         status: full.status,
         payloadText: JSON.stringify(full.payload, null, 2),

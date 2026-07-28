@@ -18,5 +18,10 @@ describe('marketplace admin UI', () => {
     expect(adminSource).toContain("method: 'DELETE'");
     expect(adminSource).toContain('读取 JSON 文件');
     expect(adminSource).toContain('已上架');
+    expect(adminSource).toContain('<b>版本</b>');
+    expect(adminSource).toContain('<b>作者</b>');
+    expect(adminSource).toContain('author: draft.author');
+    expect(adminSource).not.toContain('商城版本');
+    expect(adminSource).not.toContain('（从 JSON 读取）');
   });
 });
