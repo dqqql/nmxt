@@ -57,6 +57,11 @@ describe('card pack manager UI', () => {
     expect(managerSource).not.toContain('境界可选');
   });
 
+  it('keeps the selected pack heading free of technical ID and description copy', () => {
+    expect(managerSource).not.toContain('<span>{selectedPack.id}</span>');
+    expect(managerSource).not.toContain("selectedPack.description || '这个卡包没有填写说明。'");
+  });
+
   it('pins the main layout to the flexible final grid row with or without errors', () => {
     expect(cssSource).toMatch(/\.cardPackHeader\s*\{[^}]*grid-row:\s*1/s);
     expect(cssSource).toMatch(/\.cardPackErrors\s*\{[^}]*grid-row:\s*2/s);

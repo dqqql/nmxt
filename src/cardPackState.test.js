@@ -186,6 +186,26 @@ describe('card pack state', () => {
 
     expect(pack.resources).toHaveLength(20);
     expect(pack.talents).toHaveLength(2);
+    expect(pack.treasures).toHaveLength(1);
+  });
+
+  it('parses packaged treasures and exposes them to realm-choice pools', () => {
+    const pack = parseCardPackJson(JSON.stringify({
+      ...validPack,
+      treasures: [{
+        id: 'ember-lantern',
+        name: '余烬照夜灯',
+        text: '【气尽】驱散一处普通黑暗。',
+      }],
+    }), { baseOptions });
+    const runtime = buildRuntimeOptions(baseOptions, [pack]);
+
+    expect(runtime.treasures).toEqual([expect.objectContaining({
+      name: '余烬照夜灯',
+      text: '【气尽】驱散一处普通黑暗。',
+      _resourceId: 'tests.fire-pack:ember-lantern',
+      _packName: '火焰扩展',
+    })]);
   });
 
   it('upserts by stable pack id and removes without mutating other packs', () => {

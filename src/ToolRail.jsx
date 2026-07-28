@@ -4,6 +4,7 @@ import {
   BookOpenText,
   Boxes,
   Download,
+  LibraryBig,
   ListChecks,
   Map,
   Printer,
@@ -67,6 +68,7 @@ export default function ToolRail({
   onRandom,
   onOpenSave,
   onOpenCardPacks,
+  onOpenCommunityResources,
   extraPagesEnabled = false,
   onExtraPagesChange,
 }) {
@@ -164,6 +166,17 @@ export default function ToolRail({
               <span>
                 <b>卡包管理</b>
                 <small>导入、查看或删除扩展资源</small>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="toolRailSettingsAction"
+              onClick={() => runAndClose(onOpenCommunityResources)}
+            >
+              <LibraryBig size={17} strokeWidth={2.2} aria-hidden="true" />
+              <span>
+                <b>社区资源</b>
+                <small>导入并载入玩家共享卡片</small>
               </span>
             </button>
           </ToolMenu>

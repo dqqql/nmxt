@@ -27,6 +27,7 @@ import PageSix from './PageSix';
 import CardActionMenu from './CardActionMenu';
 import ToolRail from './ToolRail';
 import CardPackManager from './CardPackManager';
+import CommunityResourceManager from './CommunityResourceManager';
 import {
   buildRuntimeOptions,
   readStoredCardPacks,
@@ -34,6 +35,7 @@ import {
 } from './cardPackState';
 import {
   CARD_LIBRARY_CONFIG,
+  createCardKey,
   createManualCard,
   deleteLibraryCard,
   exchangeCards,
@@ -42,6 +44,10 @@ import {
   normalizeCardLibraryState,
   normalizeManualCards,
 } from './cardLibraryState';
+import {
+  readStoredCommunityResources,
+  writeStoredCommunityResources,
+} from './communityResourceState';
 import { attachPrintLifecycle, printSheetsWithBrowser } from './exportPdf';
 import {
   createMarkState,
@@ -139,6 +145,7 @@ const BASE_RESOURCE_OPTIONS = {
   punishmentPool,
 };
 const initialCardPacks = readStoredCardPacks();
+const initialCommunityResourcePacks = readStoredCommunityResources();
 const initialRuntimeOptions = buildRuntimeOptions(BASE_RESOURCE_OPTIONS, initialCardPacks);
 let sourceOptions = initialRuntimeOptions.source;
 let methodOptions = initialRuntimeOptions.method;
@@ -1568,7 +1575,18 @@ function PdfTable({ title, rows, prefill = [], className = '', children }) {
   );
 }
 
-function PageTwoCardGroup({ title, category, rows, cards = [], libraryView, onMove, onExchange, onAdd, className = '' }) {
+function PageTwoCardGroup({
+  title,
+  category,
+  rows,
+  cards = [],
+  libraryView,
+  onMove,
+  onExchange,
+  onAdd,
+  onDelete,
+  className = '',
+}) {
   const libraryTitle = CARD_LIBRARY_CONFIG[category]?.libraryTitle;
   return (
     <section className={`pageTwoCardGroup ${className}`.trim()} style={{ '--card-count': rows }}>
@@ -1596,6 +1614,11 @@ function PageTwoCardGroup({ title, category, rows, cards = [], libraryView, onMo
                     ...(libraryView.library.length ? [{
                       label: '交换',
                       onSelect: () => onExchange(category, card, 'slot'),
+                    }] : []),
+                    ...(card.manual ? [{
+                      label: '删除',
+                      destructive: true,
+                      onSelect: () => onDelete(category, card.key),
                     }] : []),
                   ]}
                 />
@@ -1767,6 +1790,7 @@ function PageTwo() {
     moveLibraryCard,
     beginLibraryExchange,
     openManualCardPrompt,
+    deleteCardFromLibrary,
   } = useSheet();
   const source = current.source;
   const dao = current.dao;
@@ -1801,10 +1825,11 @@ function PageTwo() {
             onMove={moveLibraryCard}
             onExchange={beginLibraryExchange}
             onAdd={openManualCardPrompt}
+            onDelete={deleteCardFromLibrary}
             className="pageTwoFourAcross"
           />
-          <PageTwoCardGroup title="秘法" category="arts" rows={rowsFor('秘法')} cards={prefillFor('秘法')} libraryView={libraryViews.arts} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} />
-          <PageTwoCardGroup title="灵宝" category="treasures" rows={rowsFor('灵宝')} cards={prefillFor('灵宝')} libraryView={libraryViews.treasures} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} className="pageTwoThreeAcross" />
+          <PageTwoCardGroup title="秘法" category="arts" rows={rowsFor('秘法')} cards={prefillFor('秘法')} libraryView={libraryViews.arts} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} onDelete={deleteCardFromLibrary} />
+          <PageTwoCardGroup title="灵宝" category="treasures" rows={rowsFor('灵宝')} cards={prefillFor('灵宝')} libraryView={libraryViews.treasures} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} onDelete={deleteCardFromLibrary} className="pageTwoThreeAcross" />
         </div>
         <div className="pageTwoColumn pageTwoColumnRight">
           <PageTwoCardGroup
@@ -1816,8 +1841,8 @@ function PageTwo() {
               { name: '大道效果', text: dao?.effect || '' },
             ]}
           />
-          <PageTwoCardGroup title="感悟" category="insights" rows={rowsFor('感悟')} cards={prefillFor('感悟')} libraryView={libraryViews.insights} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} />
-          <PageTwoCardGroup title="本源感悟" category="originInsights" rows={rowsFor('本源感悟')} cards={prefillFor('本源感悟')} libraryView={libraryViews.originInsights} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} />
+          <PageTwoCardGroup title="感悟" category="insights" rows={rowsFor('感悟')} cards={prefillFor('感悟')} libraryView={libraryViews.insights} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} onDelete={deleteCardFromLibrary} />
+          <PageTwoCardGroup title="本源感悟" category="originInsights" rows={rowsFor('本源感悟')} cards={prefillFor('本源感悟')} libraryView={libraryViews.originInsights} onMove={moveLibraryCard} onExchange={beginLibraryExchange} onAdd={openManualCardPrompt} onDelete={deleteCardFromLibrary} />
           <PageTwoCardGroup title="功法" rows={rowsFor('功法')} cards={prefillFor('功法')} className="pageTwoThreeAcross" />
         </div>
       </main>
@@ -4234,6 +4259,7 @@ function App() {
     readJsonStorage(EXTRA_PAGES_ENABLED_KEY, false) === true
   ));
   const [cardPacks, setCardPacks] = useState(() => initialCardPacks);
+  const [communityResourcePacks, setCommunityResourcePacks] = useState(() => initialCommunityResourcePacks);
   const runtimeOptions = useMemo(
     () => buildRuntimeOptions(BASE_RESOURCE_OPTIONS, cardPacks),
     [cardPacks],
@@ -4243,10 +4269,12 @@ function App() {
   daoOptions = runtimeOptions.dao;
   const runtimeTalentPool = runtimeOptions.talentPool || talentPool;
   const runtimePunishmentPool = runtimeOptions.punishmentPool || punishmentPool;
+  const runtimeTreasureOptions = runtimeOptions.treasures || [];
   LIBRARY.source.options = sourceOptions;
   LIBRARY.method.options = methodOptions;
   LIBRARY.dao.options = daoOptions;
   const [cardPackManagerOpen, setCardPackManagerOpen] = useState(false);
+  const [communityResourceManagerOpen, setCommunityResourceManagerOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
@@ -4331,6 +4359,10 @@ function App() {
     writeStoredCardPacks(nextPacks);
     setCardPacks(nextPacks);
   };
+  const updateCommunityResourcePacks = (nextPacks) => {
+    writeStoredCommunityResources(nextPacks);
+    setCommunityResourcePacks(nextPacks);
+  };
 
   const openFateDraw = (title) => {
     const plans = fateDraws[title];
@@ -4338,7 +4370,7 @@ function App() {
   };
   const closeFateDraw = () => setFateDraw(null);
   const openTalentEditor = (slotIndex) => setTalentEditorSlot(slotIndex);
-  const addCustomTalent = (slotIndex, entry) => {
+  const addCustomTalent = (slotIndex, entry, { silent = false } = {}) => {
     setDrawnTalents((currentTalents) => {
       const next = [...currentTalents];
       next[slotIndex] = {
@@ -4350,7 +4382,7 @@ function App() {
       return next;
     });
     setTalentEditorSlot(null);
-    showNotice('已添加手动天赋 / 天谴。');
+    if (!silent) showNotice('已添加手动天赋 / 天谴。');
   };
   const deleteTalentEntry = (slotIndex) => {
     setDrawnTalents((currentTalents) => currentTalents.filter((_, index) => index !== slotIndex));
@@ -4620,6 +4652,7 @@ function App() {
       method: current.method,
       dao: current.dao,
       upgradeCards,
+      treasureOptions: runtimeTreasureOptions,
     });
 
     setSelections((prev) => ({ ...prev, realm: nextIndex }));
@@ -4699,7 +4732,7 @@ function App() {
           limit: 1,
           target: 'treasures',
           sourceKind: 'treasure',
-          options: getTreasureOptions(stage),
+          options: [...getTreasureOptions(stage), ...runtimeTreasureOptions],
         }],
       });
   };
@@ -4821,6 +4854,51 @@ function App() {
       getCardLibraryView(category, cards, cardLibraries),
     ]),
   );
+  const loadCommunityResource = (resource) => {
+    if (resource.type === 'talent' || resource.type === 'punishment') {
+      const emptySlot = Array.from({ length: 4 }, (_, index) => index)
+        .find((index) => !drawnTalents[index]);
+      if (emptySlot == null) {
+        const message = '已满，无法载入';
+        showNotice(message);
+        return { ok: false, message };
+      }
+      addCustomTalent(emptySlot, {
+        kind: resource.type,
+        tier: resource.tier,
+        name: resource.name,
+        effect: resource.text,
+      }, { silent: true });
+      const message = `已载入：${resource.name}`;
+      showNotice(message);
+      return { ok: true, message };
+    }
+
+    const config = CARD_LIBRARY_CONFIG[resource.type];
+    const view = libraryViews[resource.type];
+    if (!config || !view) {
+      const message = '无法载入';
+      showNotice(message);
+      return { ok: false, message };
+    }
+    if (view.slotFull && view.libraryFull) {
+      const message = '已满，无法载入';
+      showNotice(message);
+      return { ok: false, message };
+    }
+
+    const card = createManualCard({ name: resource.name, text: resource.text });
+    setManualCards((state) => ({
+      ...state,
+      [resource.type]: [...(state[resource.type] || []), card],
+    }));
+    if (view.slotFull) {
+      setCardLibraries((state) => moveCard(state, createCardKey(resource.type, card), 'library'));
+    }
+    const message = `已载入：${resource.name}`;
+    showNotice(message);
+    return { ok: true, message };
+  };
   const moveLibraryCard = (category, key, location) => {
     const view = libraryViews[category];
     const destinationFull = location === 'library' ? view?.libraryFull : view?.slotFull;
@@ -4849,7 +4927,7 @@ function App() {
   };
   const deleteCardFromLibrary = (category, key) => {
     setCardLibraries((state) => deleteLibraryCard(state, key));
-    showNotice(`已从${CARD_LIBRARY_CONFIG[category].libraryTitle}删除。`);
+    showNotice(`已删除${CARD_LIBRARY_CONFIG[category].title}卡。`);
   };
   const openManualCardPrompt = (category) => setManualCardPrompt({ category });
   const addManualCard = (category, values) => {
@@ -5398,6 +5476,7 @@ function App() {
           onRandom={openRandomPreview}
           onOpenSave={() => setSaveOpen(true)}
           onOpenCardPacks={() => setCardPackManagerOpen(true)}
+          onOpenCommunityResources={() => setCommunityResourceManagerOpen(true)}
           extraPagesEnabled={extraPagesEnabled}
           onExtraPagesChange={setExtraPagesEnabled}
         />
@@ -5425,6 +5504,16 @@ function App() {
         onChange={updateCardPacks}
         onClose={() => {
           setCardPackManagerOpen(false);
+          requestAnimationFrame(() => document.querySelector('[aria-label="设置"]')?.focus());
+        }}
+      />
+      <CommunityResourceManager
+        open={communityResourceManagerOpen}
+        packs={communityResourcePacks}
+        onChange={updateCommunityResourcePacks}
+        onLoad={loadCommunityResource}
+        onClose={() => {
+          setCommunityResourceManagerOpen(false);
           requestAnimationFrame(() => document.querySelector('[aria-label="设置"]')?.focus());
         }}
       />

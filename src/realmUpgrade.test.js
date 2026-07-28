@@ -118,6 +118,22 @@ describe('realm upgrade rules', () => {
     expect(step.selectionPrompt.sections[1].options[0].name).toBe('玄龟甲');
   });
 
+  it('adds packaged treasures to treasure choices', () => {
+    const step = createUpgradeStep({
+      fromRealmName: '练气前期',
+      nextRealmName: '练气中期',
+      source,
+      method,
+      dao,
+      treasureOptions: [{ name: '余烬照夜灯', text: '驱散黑暗。' }],
+    });
+
+    expect(step.selectionPrompt.sections[1].options.at(-1)).toEqual({
+      name: '余烬照夜灯',
+      text: '驱散黑暗。',
+    });
+  });
+
   it('opens qi insight and qi dao method choices when reaching qi late', () => {
     const step = createUpgradeStep({
       fromRealmName: '练气中期',

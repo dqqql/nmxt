@@ -23,7 +23,7 @@ import './cardPackManager.css';
 const fateKindLabels = { talent: '天赋', punishment: '天谴' };
 
 function getPackItemCount(pack) {
-  return (pack?.resources?.length || 0) + (pack?.talents?.length || 0);
+  return (pack?.resources?.length || 0) + (pack?.talents?.length || 0) + (pack?.treasures?.length || 0);
 }
 
 function getPackEntries(pack) {
@@ -37,10 +37,18 @@ function getPackEntries(pack) {
       parent: { name: '天赋 / 天谴' },
       realm: entry.tier,
     })),
+    ...(pack?.treasures || []).map((entry) => ({
+      ...entry,
+      entryKind: 'treasure',
+      type: 'treasure',
+      parent: { name: '灵宝库' },
+      realm: '凡',
+    })),
   ];
 }
 
 function getEntryTypeLabel(entry) {
+  if (entry.entryKind === 'treasure') return '灵宝';
   return entry.entryKind === 'fate'
     ? fateKindLabels[entry.kind] || '天赋 / 天谴'
     : RESOURCE_TYPE_LABELS[entry.type] || entry.type;
@@ -256,9 +264,7 @@ export default function CardPackManager({
               <>
                 <section className="cardPackSummary">
                   <div>
-                    <span>{selectedPack.id}</span>
                     <h3>{selectedPack.name}</h3>
-                    <p>{selectedPack.description || '这个卡包没有填写说明。'}</p>
                   </div>
                   <button type="button" className="cardPackDelete" onClick={() => setPendingDelete(selectedPack)}>
                     <Trash2 size={16} aria-hidden="true" />删除卡包
@@ -308,12 +314,12 @@ export default function CardPackManager({
                       <>
                         <div className="cardPackBadges">
                           <span>{getEntryTypeLabel(selectedResource)}</span>
-                          <span>{selectedResource.entryKind === 'fate' ? `${selectedResource.tier}阶` : REALM_LABELS[selectedResource.realm] || selectedResource.realm}</span>
+                          <span>{selectedResource.entryKind === 'fate' ? `${selectedResource.tier}阶` : selectedResource.entryKind === 'treasure' ? '凡阶' : REALM_LABELS[selectedResource.realm] || selectedResource.realm}</span>
                           {selectedResource.acquisition === 'initial' ? <span>初始资源</span> : null}
                         </div>
                         <h4>{selectedResource.name}</h4>
                         <dl>
-                          <div><dt>{selectedResource.entryKind === 'fate' ? '卡池' : '父资源'}</dt><dd>{selectedResource.entryKind === 'fate' ? '天赋 / 天谴' : selectedResource.parent.name}</dd></div>
+                          <div><dt>{selectedResource.entryKind === 'fate' ? '卡池' : selectedResource.entryKind === 'treasure' ? '分类' : '父资源'}</dt><dd>{selectedResource.entryKind === 'fate' ? '天赋 / 天谴' : selectedResource.parent.name}</dd></div>
                           <div><dt>资源 ID</dt><dd><code>{selectedResource.id}</code></dd></div>
                           {selectedResource.buff ? <div><dt>增益</dt><dd>{selectedResource.buff}</dd></div> : null}
                           {selectedResource.grants?.length ? <div><dt>附带内容</dt><dd>{selectedResource.grants.join('、')}</dd></div> : null}

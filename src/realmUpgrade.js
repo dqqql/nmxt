@@ -211,6 +211,7 @@ export function createUpgradeStep({
   method,
   dao,
   upgradeCards = {},
+  treasureOptions = [],
 }) {
   if (nextRealmName === '练气中期') {
     return {
@@ -236,7 +237,7 @@ export function createUpgradeStep({
             limit: 1,
             target: 'treasures',
             sourceKind: 'treasure',
-            options: getTreasureOptions('qi'),
+            options: [...getTreasureOptions('qi'), ...treasureOptions],
           },
         ]),
       },
@@ -341,7 +342,7 @@ export function createUpgradeStep({
             limit: 1,
             target: 'treasures',
             sourceKind: 'treasure',
-            options: getTreasureOptions('foundation'),
+            options: [...getTreasureOptions('foundation'), ...treasureOptions],
           },
         ]),
       },
