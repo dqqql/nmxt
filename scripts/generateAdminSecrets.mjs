@@ -38,7 +38,7 @@ try {
   if (password.length < 12) throw new Error('管理员密码至少需要 12 个字符。');
   if (password !== confirmation) throw new Error('两次输入的密码不一致。');
 
-  const iterations = 210000;
+  const iterations = 100000;
   const salt = randomBytes(16);
   const hash = pbkdf2Sync(password, salt, iterations, 32, 'sha256');
   const passwordHash = `pbkdf2$${iterations}$${salt.toString('base64url')}$${hash.toString('base64url')}`;
