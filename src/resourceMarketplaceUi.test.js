@@ -28,6 +28,12 @@ describe('resource marketplace UI', () => {
     expect(marketplaceSource).toContain('{listing.name}');
   });
 
+  it('places the italic author beside the package icon', () => {
+    expect(marketplaceSource).toContain('<div className="marketplaceCardIdentity">');
+    expect(marketplaceSource).toContain('<em className="marketplaceAuthor">作者：{listing.author}</em>');
+    expect(marketplaceSource).not.toContain('<p className="marketplaceAuthor">');
+  });
+
   it('installs both package types directly into their existing managers', () => {
     expect(mainSource).toContain("listing.resourceType === 'card-pack'");
     expect(mainSource).toContain('upsertCardPack(cardPacks, pack)');

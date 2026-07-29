@@ -117,13 +117,14 @@
 
 .marketplaceGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
 
 .marketplaceCard {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 350px;
   padding: 18px;
   border: 1px solid #b9ad96;
@@ -143,10 +144,29 @@
   font-size: 12px;
 }
 
-.marketplaceCardIcon { margin: 18px 0 10px; color: #6c5b38; }
+.marketplaceCardIdentity {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  margin: 18px 0 10px;
+}
+
+.marketplaceCardIcon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #6c5b38;
+}
+
 .marketplaceCard h3 { margin: 0; font-size: 20px; }
 .marketplaceCard p { color: #666256; line-height: 1.55; }
-.marketplaceCard .marketplaceAuthor { margin: 6px 0 0; color: #3f4846; font-weight: 700; }
+.marketplaceCard .marketplaceAuthor {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #595f5d;
+  font-size: 14px;
+}
 
 .marketplaceCard dl {
   display: flex;
@@ -212,6 +232,10 @@
 .spinning { animation: marketplaceSpin .9s linear infinite; }
 @keyframes marketplaceSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinning { animation: none; } }
+
+@media (max-width: 900px) {
+  .marketplaceGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 @media (max-width: 700px) {
   .marketplaceOverlay { padding: 0; }

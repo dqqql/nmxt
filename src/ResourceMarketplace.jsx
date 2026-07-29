@@ -204,11 +204,13 @@ export default function ResourceMarketplace({
                       <span>{listing.source === 'official' ? '官方' : '第三方'}</span>
                       <span>{TYPE_LABELS[listing.resourceType]}</span>
                     </div>
-                    <div className="marketplaceCardIcon">
-                      {listing.resourceType === 'card-pack' ? <Boxes /> : <LibraryBig />}
+                    <div className="marketplaceCardIdentity">
+                      <div className="marketplaceCardIcon">
+                        {listing.resourceType === 'card-pack' ? <Boxes /> : <LibraryBig />}
+                      </div>
+                      <em className="marketplaceAuthor">作者：{listing.author}</em>
                     </div>
                     <h3>{listing.name}</h3>
-                    <p className="marketplaceAuthor">作者：{listing.author}</p>
                     <p>{listing.description || '暂无简介。'}</p>
                     <dl>
                       <div><dt>版本</dt><dd>{listing.version}</dd></div>
