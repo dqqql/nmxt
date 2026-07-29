@@ -171,7 +171,7 @@ export async function publicResources(context) {
        FROM resource_listings WHERE status = 'published'
        ORDER BY CASE source WHEN 'official' THEN 0 ELSE 1 END, updated_at DESC`,
     ).all();
-    return jsonResponse({ data: results.map((row) => rowToListing(row)) }, 200, { 'Cache-Control': 'public, max-age=60' });
+    return jsonResponse({ data: results.map((row) => rowToListing(row)) }, 200, { 'Cache-Control': 'no-store' });
   });
 }
 
@@ -182,7 +182,7 @@ export async function publicResource(context) {
       'SELECT * FROM resource_listings WHERE id = ? AND status = ?',
     ).bind(context.params.id, 'published').first();
     if (!row) throw Object.assign(new Error('资源不存在或已经下架。'), { status: 404 });
-    return jsonResponse({ data: rowToListing(row, true) }, 200, { 'Cache-Control': 'public, max-age=60' });
+    return jsonResponse({ data: rowToListing(row, true) }, 200, { 'Cache-Control': 'no-store' });
   });
 }
 

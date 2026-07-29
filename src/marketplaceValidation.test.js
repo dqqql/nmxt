@@ -6,7 +6,6 @@ describe('marketplace resource validation', () => {
     expect(validateMarketplaceDraft({
       source: 'third-party',
       resourceType: 'community',
-      status: 'published',
       version: '1.2',
       author: '手动作者',
       description: '玩家内容',
@@ -30,7 +29,6 @@ describe('marketplace resource validation', () => {
     expect(() => validateMarketplaceDraft({
       source: 'unknown',
       resourceType: 'community',
-      status: 'published',
       version: '',
       author: '',
       description: '',
@@ -42,7 +40,6 @@ describe('marketplace resource validation', () => {
     expect(validateMarketplaceDraft({
       source: 'official',
       resourceType: 'card-pack',
-      status: 'draft',
       version: '2.5.0',
       author: '后台填写作者',
       description: '',
@@ -53,6 +50,7 @@ describe('marketplace resource validation', () => {
         resources: [],
       },
     })).toMatchObject({
+      status: 'published',
       version: '2.5.0',
       author: '后台填写作者',
       payload: {

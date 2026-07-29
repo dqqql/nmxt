@@ -10,8 +10,6 @@ import { validateCommunityResourcePack } from './communityResourceState';
 
 export const MARKETPLACE_SOURCES = ['official', 'third-party'];
 export const MARKETPLACE_RESOURCE_TYPES = ['card-pack', 'community'];
-export const MARKETPLACE_STATUSES = ['draft', 'published'];
-
 const BASE_RESOURCE_OPTIONS = {
   source: sourceOptions,
   method: methodOptions,
@@ -40,9 +38,6 @@ export function validateMarketplaceDraft(input) {
   if (!MARKETPLACE_RESOURCE_TYPES.includes(input?.resourceType)) {
     fields.push({ path: 'resourceType', message: '资源类型必须是卡包或社区资源。' });
   }
-  if (!MARKETPLACE_STATUSES.includes(input?.status)) {
-    fields.push({ path: 'status', message: '状态必须是草稿或已上架。' });
-  }
   if (typeof input?.version !== 'string' || !input.version.trim()) {
     fields.push({ path: 'version', message: '版本不能为空。' });
   }
@@ -69,7 +64,7 @@ export function validateMarketplaceDraft(input) {
       return {
         source: input.source,
         resourceType: input.resourceType,
-        status: input.status,
+        status: 'published',
         version: input.version.trim(),
         name: payload.name,
         author: input.author.trim(),
@@ -86,7 +81,7 @@ export function validateMarketplaceDraft(input) {
     return {
       source: input.source,
       resourceType: input.resourceType,
-      status: input.status,
+      status: 'published',
       version: input.version.trim(),
       name: payload.name,
       author: input.author.trim(),

@@ -17,7 +17,10 @@ describe('marketplace admin UI', () => {
     expect(adminSource).toContain("method: draft.id ? 'PUT' : 'POST'");
     expect(adminSource).toContain("method: 'DELETE'");
     expect(adminSource).toContain('读取 JSON 文件');
-    expect(adminSource).toContain('已上架');
+    expect(adminSource).toContain('保存并发布');
+    expect(adminSource).not.toContain('保存草稿');
+    expect(adminSource).not.toContain('statusFilter');
+    expect(adminSource).not.toContain('按状态筛选');
     expect(adminSource).toContain('<b>版本</b>');
     expect(adminSource).toContain('<b>作者</b>');
     expect(adminSource).toContain('author: draft.author');

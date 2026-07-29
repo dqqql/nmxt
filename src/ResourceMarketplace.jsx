@@ -54,7 +54,7 @@ export default function ResourceMarketplace({
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/resources');
+      const response = await fetch('/api/resources', { cache: 'no-store' });
       const result = await readApiResult(response, '商城暂时无法访问。');
       setListings(Array.isArray(result.data) ? result.data : []);
     } catch (loadError) {
@@ -115,7 +115,7 @@ export default function ResourceMarketplace({
     setInstallingId(listing.id);
     setFeedback('');
     try {
-      const response = await fetch(`/api/resources/${encodeURIComponent(listing.id)}`);
+      const response = await fetch(`/api/resources/${encodeURIComponent(listing.id)}`, { cache: 'no-store' });
       const result = await readApiResult(response, '资源安装失败。');
       await onInstall(result.data);
       setFeedback(`已安装「${listing.name}」。`);

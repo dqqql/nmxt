@@ -6,6 +6,10 @@ const marketplaceSource = readFileSync(new URL('./ResourceMarketplace.jsx', impo
 const mainSource = readFileSync(new URL('./main.jsx', import.meta.url), 'utf8');
 
 describe('resource marketplace UI', () => {
+  it('always refreshes published listings instead of reusing a stale browser cache', () => {
+    expect(marketplaceSource).toContain("fetch('/api/resources', { cache: 'no-store' })");
+    expect(marketplaceSource).toContain("{ cache: 'no-store' }");
+  });
   it('moves resource management into a dedicated tool menu with marketplace first', () => {
     const resourceMenu = railSource.slice(
       railSource.indexOf("openMenu === 'resources'"),

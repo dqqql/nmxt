@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS resource_listings (
   id TEXT PRIMARY KEY,
   source TEXT NOT NULL CHECK (source IN ('official', 'third-party')),
   resource_type TEXT NOT NULL CHECK (resource_type IN ('card-pack', 'community')),
-  status TEXT NOT NULL CHECK (status IN ('draft', 'published')),
+  status TEXT NOT NULL DEFAULT 'published' CHECK (status = 'published'),
   version TEXT NOT NULL,
   name TEXT NOT NULL,
   author TEXT NOT NULL,

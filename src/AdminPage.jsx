@@ -23,7 +23,6 @@ const EMPTY_DRAFT = {
   version: '',
   author: '',
   description: '',
-  status: 'draft',
   payloadText: '',
 };
 
@@ -138,7 +137,6 @@ function ResourceEditor({ draft, onChange, onCancel, onSaved }) {
         version: draft.version,
         author: draft.author,
         description: draft.description,
-        status: draft.status,
         payload: JSON.parse(draft.payloadText),
       };
       const saved = await apiRequest(
@@ -193,7 +191,7 @@ function ResourceEditor({ draft, onChange, onCancel, onSaved }) {
       <footer>
         <button type="submit" className="adminPrimary" disabled={saving}>
           {saving ? <RefreshCw className="spinning" size={17} /> : <Save size={17} />}
-          {saving ? '正在保存' : '保存资源'}
+          {saving ? '正在发布' : '保存并发布'}
         </button>
       </footer>
     </form>
@@ -208,7 +206,6 @@ export default function AdminPage() {
   const [draft, setDraft] = useState(null);
   const [sourceFilter, setSourceFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
 
   const loadResources = async () => {
@@ -236,8 +233,7 @@ export default function AdminPage() {
   const visibleResources = useMemo(() => resources.filter((resource) => (
     (!sourceFilter || resource.source === sourceFilter)
     && (!typeFilter || resource.resourceType === typeFilter)
-    && (!statusFilter || resource.status === statusFilter)
-  )), [resources, sourceFilter, statusFilter, typeFilter]);
+  )), [resources, sourceFilter, typeFilter]);
 
   if (sessionState === 'loading') return <main className="adminLoading"><RefreshCw className="spinning" />正在验证管理员会话…</main>;
   if (sessionState === 'anonymous') return <LoginPanel onLogin={() => { setSessionState('authenticated'); loadResources(); }} />;
@@ -253,7 +249,6 @@ export default function AdminPage() {
         version: full.version,
         author: full.author,
         description: full.description || '',
-        status: full.status,
         payloadText: JSON.stringify(full.payload, null, 2),
       });
     } catch (editError) {
@@ -299,14 +294,13 @@ export default function AdminPage() {
           <div className="adminFilters">
             <select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)} aria-label="按来源筛选"><option value="">全部来源</option><option value="official">官方</option><option value="third-party">第三方</option></select>
             <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="按资源类型筛选"><option value="">全部类型</option><option value="card-pack">卡包</option><option value="community">社区资源</option></select>
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="按状态筛选"><option value="">全部状态</option><option value="draft">草稿</option><option value="published">已上架</option></select>
             <button type="button" onClick={loadResources}><RefreshCw size={16} />刷新</button>
           </div>
           {error ? <p className="adminError" role="alert">{error}</p> : null}
           {loading ? <div className="adminEmpty"><RefreshCw className="spinning" />正在载入…</div> : visibleResources.length ? (
             <div className="adminTableWrap">
               <table className="adminTable">
-                <thead><tr><th>资源</th><th>作者</th><th>来源</th><th>类型</th><th>版本</th><th>状态</th><th>内容</th><th><span className="srOnly">操作</span></th></tr></thead>
+                <thead><tr><th>资源</th><th>作者</th><th>来源</th><th>类型</th><th>版本</th><th>内容</th><th><span className="srOnly">操作</span></th></tr></thead>
                 <tbody>{visibleResources.map((resource) => (
                   <tr key={resource.id}>
                     <td><strong>{resource.name}</strong><small>{resource.description || '暂无简介'}</small></td>
@@ -314,7 +308,6 @@ export default function AdminPage() {
                     <td>{resource.source === 'official' ? '官方' : '第三方'}</td>
                     <td>{resource.resourceType === 'card-pack' ? '卡包' : '社区资源'}</td>
                     <td>{resource.version}</td>
-                    <td><span className={`adminStatus ${resource.status}`}>{resource.status === 'published' ? '已上架' : '草稿'}</span></td>
                     <td>{resource.itemCount} 项</td>
                     <td><div className="adminRowActions"><button type="button" onClick={() => editResource(resource)} aria-label={`编辑${resource.name}`}><Pencil size={16} /></button><button type="button" className="danger" onClick={() => setPendingDelete(resource)} aria-label={`删除${resource.name}`}><Trash2 size={16} /></button></div></td>
                   </tr>
