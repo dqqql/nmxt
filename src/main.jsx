@@ -67,6 +67,10 @@ import {
   toggleMarkGhost,
   updateKeyedMarkState,
 } from './interactiveState';
+import {
+  getCapacityBonusUnlockIndexes,
+  getSourceCapacityBonusForLabel,
+} from './sourceCapacityBonuses';
 import { createRandomCardState, fateValueToTitle } from './randomCardState';
 import {
   createManualFateEntry,
@@ -385,10 +389,17 @@ function useSheet() {
   return useContext(SheetContext);
 }
 
-function ClickableMark({ id, initialState = 'solid', ariaLabel = '方格', allowGhost = true }) {
+function ClickableMark({
+  id,
+  initialState = 'solid',
+  ariaLabel = '方格',
+  allowGhost = true,
+  forceUnlocked = false,
+}) {
   const { markStates, setMarkStates } = useSheet();
   const [localState, setLocalState] = useState(createMarkState(initialState));
-  const state = id ? (markStates[id] || createMarkState(initialState)) : localState;
+  const storedState = id ? (markStates[id] || createMarkState(initialState)) : localState;
+  const state = forceUnlocked ? { ...storedState, ghost: false } : storedState;
 
   const toggleFilled = () => {
     if (id) {
@@ -509,7 +520,12 @@ function ResourceIcon({ shape, filled }) {
 }
 
 const marks = (count, className = '', options = {}) => {
-  const { initialFilled = 0, allowGhost = true, groupId = '' } = options;
+  const {
+    initialFilled = 0,
+    allowGhost = true,
+    groupId = '',
+    forceUnlockedIndexes = [],
+  } = options;
   return (
   Array.from({ length: count }, (_, index) => (
     <ClickableMark
@@ -518,6 +534,7 @@ const marks = (count, className = '', options = {}) => {
       initialState={index < initialFilled ? 'filled' : className.includes('ghost') ? 'ghost' : 'solid'}
       ariaLabel={`方格 ${index + 1}`}
       allowGhost={allowGhost}
+      forceUnlocked={forceUnlockedIndexes.includes(index)}
     />
   ))
   );
@@ -1169,8 +1186,16 @@ function CounterBox({ title, filled, ghost, note, locked = false, overflowCounte
   );
 }
 
-function StatRow({ label, filled, ghost, note }) {
+function StatRow({ label, filled, ghost, note, capacityBonus = 0 }) {
+  const { markStates } = useSheet();
   const groupId = `p1-stat-${label}`;
+  const ghostGroupId = `${groupId}-ghost`;
+  const forceUnlockedIndexes = getCapacityBonusUnlockIndexes(
+    markStates,
+    ghostGroupId,
+    ghost,
+    capacityBonus,
+  );
   return (
     <div className={`statRow${note ? ' hasNote' : ''}`}>
       <span className="statLabel">
@@ -1178,7 +1203,7 @@ function StatRow({ label, filled, ghost, note }) {
       </span>
       <div className="statMarks">
         {marks(filled, '', { groupId: `${groupId}-solid` })}
-        {marks(ghost, 'ghost', { groupId: `${groupId}-ghost` })}
+        {marks(ghost, 'ghost', { groupId: ghostGroupId, forceUnlockedIndexes })}
       </div>
       <InlineNote
         text={note}
@@ -1409,6 +1434,7 @@ function PageOne() {
   const { current, fateState, fortuneOverflow, setFortuneOverflow, thresholdBonuses } = useSheet();
   const source = current.source;
   const origin = current.origin;
+  const sourceCapacityBonus = (label) => getSourceCapacityBonusForLabel(source, label);
 
   // 道源能力面板顶部用一行小标签显示增益，把主要空间留给能力正文。
   const sourceAbilityContent = source ? (
@@ -1485,10 +1511,10 @@ function PageOne() {
           <FateRibbon />
           <section className="pageOneStatusRow">
             <section className="panel statsPanel">
-              <StatRow label="正常血量" filled={6} ghost={4} />
-              <StatRow label="险境血量" filled={6} ghost={4} />
-              <StatRow label="灵气" filled={8} ghost={7} />
-              <StatRow label="储物格" filled={6} ghost={5} />
+              <StatRow label="正常血量" filled={6} ghost={4} capacityBonus={sourceCapacityBonus('正常血量')} />
+              <StatRow label="险境血量" filled={6} ghost={4} capacityBonus={sourceCapacityBonus('险境血量')} />
+              <StatRow label="灵气" filled={8} ghost={7} capacityBonus={sourceCapacityBonus('灵气')} />
+              <StatRow label="储物格" filled={6} ghost={5} capacityBonus={sourceCapacityBonus('储物格')} />
               <StatRow
                 label="损伤"
                 filled={3}

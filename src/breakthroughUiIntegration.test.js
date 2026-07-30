@@ -19,7 +19,7 @@ describe('breakthrough UI integration', () => {
     expect(mainSource).toContain('revertFoundationBreakthroughMarkEffects(store)');
     expect(mainSource).toContain('revertGoldenCoreBreakthroughMarkEffects(store)');
     expect(mainSource).toContain("applyQiCapacityDelta(store, amount)");
-    expect(mainSource).toContain('<StatRow label="灵气" filled={8} ghost={7} />');
+    expect(mainSource).toContain('<StatRow label="灵气" filled={8} ghost={7} capacityBonus={sourceCapacityBonus(\'灵气\')} />');
   });
 
   it('commits popup-backed choices only after confirmation and persists their controlled state', () => {
