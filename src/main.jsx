@@ -4387,7 +4387,8 @@ function App() {
     || (extraPagesEnabled && ['p5', 'p6'].includes(page.id))
   )), [extraPagesEnabled]);
   const printablePageTabs = useMemo(() => pageTabs.filter((page) => (
-    ['p1', 'p2', 'p3', 'p4'].includes(page.id)
+    page.id === 'background'
+    || ['p1', 'p2', 'p3', 'p4'].includes(page.id)
     || (extraPagesEnabled && ['p5', 'p6'].includes(page.id))
   )), [extraPagesEnabled]);
 

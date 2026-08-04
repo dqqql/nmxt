@@ -24,13 +24,17 @@ describe('optional fifth and sixth pages', () => {
     expect(mainSource).toContain('{visiblePageTabs.map((page) => (');
   });
 
-  it('prints only the first four pages by default and never prints the background page', () => {
+  it('prints the background page last, after the optional fifth and sixth pages', () => {
     const printableTabs = sourceBetween('const printablePageTabs', 'useEffect(() =>');
 
+    expect(printableTabs).toContain("page.id === 'background'");
     expect(printableTabs).toContain("['p1', 'p2', 'p3', 'p4'].includes(page.id)");
     expect(printableTabs).toContain("extraPagesEnabled && ['p5', 'p6'].includes(page.id)");
-    expect(printableTabs).not.toContain('background');
     expect(mainSource).toContain('<PrintPageRenderer pages={printablePageTabs} />');
+
+    const pageOrder = mainSource.match(/const pageTabs = \[([\s\S]*?)\n\];/)?.[1] || '';
+    expect(pageOrder.indexOf("{ id: 'background'"))
+      .toBeGreaterThan(pageOrder.indexOf("{ id: 'p6'"));
   });
 
   it('returns to page one if disabling extra pages hides the active tab', () => {
