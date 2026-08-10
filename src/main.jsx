@@ -86,6 +86,10 @@ import {
   getUnlockedMethodTechniques,
 } from './methodProgression';
 import {
+  getBloodlineSelectionText,
+  hydrateBloodlineSpellSnapshot,
+} from './beastBloodlineSpells';
+import {
   aggregateUpgradeChoices,
   applyAttributeIncrease,
   createUpgradeStep,
@@ -305,7 +309,7 @@ function createEmptyBreakthroughChoices() {
 
 function createEmptyCardSnapshot(defaultRealmIndex) {
   return {
-    version: 2,
+    version: 3,
     selections: { realm: defaultRealmIndex, origin: null, source: null, method: null, dao: null },
     texts: { ...defaultTexts },
     attributes: { ...defaultAttributes },
@@ -350,17 +354,22 @@ function normalizeDrawnTalents(entries) {
 function normalizeCardSnapshot(snapshot, defaultRealmIndex) {
   const empty = createEmptyCardSnapshot(defaultRealmIndex);
   if (!snapshot) return empty;
+  const markStates = snapshot.markStates || empty.markStates;
+  const mergedTexts = { ...empty.texts, ...(snapshot.texts || {}) };
+  const texts = (snapshot.version ?? 0) < 3
+    ? hydrateBloodlineSpellSnapshot(mergedTexts, markStates, defaultTexts.followerMoveEffect1)
+    : mergedTexts;
 
   return {
     ...empty,
     ...snapshot,
     selections: { ...empty.selections, ...(snapshot.selections || {}) },
-    texts: { ...empty.texts, ...(snapshot.texts || {}) },
+    texts,
     attributes: { ...empty.attributes, ...(snapshot.attributes || {}) },
     diceEffects: snapshot.diceEffects || empty.diceEffects,
     thresholdBonuses: { ...empty.thresholdBonuses, ...(snapshot.thresholdBonuses || {}) },
     specialQuestionnaires: normalizeSpecialQuestionnaireAnswers(snapshot.specialQuestionnaires),
-    markStates: snapshot.markStates || empty.markStates,
+    markStates,
     upgradeChoices: snapshot.upgradeChoices || empty.upgradeChoices,
     breakthroughChoices: {
       ...empty.breakthroughChoices,
@@ -395,6 +404,8 @@ function ClickableMark({
   ariaLabel = '方格',
   allowGhost = true,
   forceUnlocked = false,
+  className = '',
+  onToggle,
 }) {
   const { markStates, setMarkStates } = useSheet();
   const [localState, setLocalState] = useState(createMarkState(initialState));
@@ -402,11 +413,14 @@ function ClickableMark({
   const state = forceUnlocked ? { ...storedState, ghost: false } : storedState;
 
   const toggleFilled = () => {
+    const nextFilled = !state.filled;
     if (id) {
       setMarkStates((store) => updateKeyedMarkState(store, id, initialState, toggleMarkFilled));
+      onToggle?.(nextFilled);
       return;
     }
     setLocalState(toggleMarkFilled);
+    onToggle?.(nextFilled);
   };
 
   const toggleGhost = (event) => {
@@ -427,10 +441,22 @@ function ClickableMark({
   return (
     <button
       type="button"
-      className={`mark ${state.filled ? 'filled' : ''} ${state.ghost ? 'ghost' : ''}`.trim()}
+      className={`mark ${state.filled ? 'filled' : ''} ${state.ghost ? 'ghost' : ''} ${className}`.trim()}
       onClick={toggleFilled}
       onContextMenu={toggleGhost}
       aria-label={ariaLabel}
+      aria-pressed={state.filled}
+    />
+  );
+}
+
+function CornerMark({ id, ariaLabel }) {
+  return (
+    <ClickableMark
+      id={id}
+      ariaLabel={ariaLabel}
+      allowGhost={false}
+      className="gridCornerMark"
     />
   );
 }
@@ -696,13 +722,14 @@ function InlineNote({
   text,
   className = '',
   stacked = false,
+  lineBreak = false,
   autoFit = false,
   fitOptions,
   separator = ' / ',
 }) {
   if (!text) return null;
   const lines = text.split('\n').map(formatNoteLine).filter(Boolean);
-  const content = stacked ? lines.map((line) => <span key={line}>{line}</span>) : lines.join(separator);
+  const content = stacked || lineBreak ? lines.map((line) => <span key={line}>{line}</span>) : lines.join(separator);
 
   if (autoFit) {
     return (
@@ -1186,7 +1213,16 @@ function CounterBox({ title, filled, ghost, note, locked = false, overflowCounte
   );
 }
 
-function StatRow({ label, filled, ghost, note, capacityBonus = 0 }) {
+function StatRow({
+  label,
+  filled,
+  ghost,
+  note,
+  noteLineBreak = false,
+  noteClassName = '',
+  capacityHint = '',
+  capacityBonus = 0,
+}) {
   const { markStates } = useSheet();
   const groupId = `p1-stat-${label}`;
   const ghostGroupId = `${groupId}-ghost`;
@@ -1197,7 +1233,7 @@ function StatRow({ label, filled, ghost, note, capacityBonus = 0 }) {
     capacityBonus,
   );
   return (
-    <div className={`statRow${note ? ' hasNote' : ''}`}>
+    <div className={`statRow${note ? ' hasNote' : ''}${capacityHint ? ' hasCapacityHint' : ''}`}>
       <span className="statLabel">
         <span>{label}</span>
       </span>
@@ -1207,11 +1243,15 @@ function StatRow({ label, filled, ghost, note, capacityBonus = 0 }) {
       </div>
       <InlineNote
         text={note}
-        className="statNote"
+        className={`statNote ${noteClassName}`.trim()}
         autoFit
+        lineBreak={noteLineBreak}
         separator="，"
         fitOptions={{ minRatio: 0.78, minPx: 10.5 }}
       />
+      {capacityHint ? (
+        <span className="capacityEditHint printControl" aria-hidden="true">{capacityHint}</span>
+      ) : null}
     </div>
   );
 }
@@ -1511,7 +1551,13 @@ function PageOne() {
           <FateRibbon />
           <section className="pageOneStatusRow">
             <section className="panel statsPanel">
-              <StatRow label="正常血量" filled={6} ghost={4} capacityBonus={sourceCapacityBonus('正常血量')} />
+              <StatRow
+                label="正常血量"
+                filled={6}
+                ghost={4}
+                capacityBonus={sourceCapacityBonus('正常血量')}
+                capacityHint="可右键切换虚实格以调整上限"
+              />
               <StatRow label="险境血量" filled={6} ghost={4} capacityBonus={sourceCapacityBonus('险境血量')} />
               <StatRow label="灵气" filled={8} ghost={7} capacityBonus={sourceCapacityBonus('灵气')} />
               <StatRow label="储物格" filled={6} ghost={5} capacityBonus={sourceCapacityBonus('储物格')} />
@@ -1519,7 +1565,9 @@ function PageOne() {
                 label="损伤"
                 filled={3}
                 ghost={0}
-                note={'（受到 1 次重伤时扣除 1 格）\n扣除完后，血量格上限仅剩险境血量格'}
+                note={'受到1次重伤\n或每次进入险境血量时扣除1格'}
+                noteLineBreak
+                noteClassName="damageNote"
               />
               <StatRow
                 label="调息"
@@ -1637,7 +1685,13 @@ function PageTwoCardGroup({
             <article
               key={card?.key || `${title}-${index}`}
               className={`pageTwoCard${card ? ' filled' : ' empty'}${libraryView ? ' interactiveCardSurface' : ''}`}
+              data-grid-cell="p2-card"
+              data-grid-location={category || title}
             >
+              <CornerMark
+                id={`p2-${category || title}-${index}-corner`}
+                ariaLabel={`${title}第 ${index + 1} 格左上角标记`}
+              />
               <h3>{card?.name || '名称'}</h3>
               <AutoFitText className="pageTwoCardText" fitOptions={{ minRatio: 0.48, minPx: 8 }}>
                 {card?.text || ''}
@@ -1688,12 +1742,23 @@ function PdfCheck({ label, double = false }) {
   );
 }
 
-function PdfClickableCheck({ id, label, double = false }) {
+function PdfClickableCheck({ id, label, ariaLabel = '', double = false, exclusiveGroup = '', onToggle }) {
   const groupId = id || `pdf-check-${label || 'blank'}`;
+  const { setMarkStates } = useSheet();
+  const handleToggle = (filled) => {
+    if (exclusiveGroup && filled) {
+      setMarkStates((store) => Object.fromEntries(Object.entries(store).map(([key, value]) => (
+        key.startsWith(`${exclusiveGroup}-`) && key !== `${groupId}:0`
+          ? [key, { ...value, filled: false }]
+          : [key, value]
+      ))));
+    }
+    onToggle?.(filled);
+  };
   return (
     <span className="pdfCheckLine interactive">
-      <ClickableMark id={`${groupId}:0`} ariaLabel={label ? `${label} 标记 1` : '标记'} />
-      {double ? <ClickableMark id={`${groupId}:1`} ariaLabel={label ? `${label} 标记 2` : '标记 2'} /> : null}
+      <ClickableMark id={`${groupId}:0`} ariaLabel={ariaLabel || (label ? `${label} 标记 1` : '标记')} onToggle={handleToggle} />
+      {double ? <ClickableMark id={`${groupId}:1`} ariaLabel={label ? `${label} 标记 2` : '标记 2'} onToggle={handleToggle} /> : null}
       {label ? <span>{label}</span> : null}
     </span>
   );
@@ -1786,8 +1851,12 @@ function PdfTextInput({ field, label }) {
 
 function EditableFeatureTable({ rows, namePrefix, effectPrefix, className = '' }) {
   const { texts, setText } = useSheet();
+  const isBeastSpellEditor = className.split(/\s+/).includes('followerMoves');
   return (
-    <div className={`featureRows editableFeatureTable ${className}`.trim()}>
+    <div
+      className={`featureRows editableFeatureTable ${className}`.trim()}
+      data-editable-region={isBeastSpellEditor ? 'beast-spell-editor' : undefined}
+    >
       <div className="featureTableHead">
         <span />
         <span>名称</span>
@@ -1805,6 +1874,7 @@ function EditableFeatureTable({ rows, namePrefix, effectPrefix, className = '' }
               value={texts[nameField] || ''}
               onChange={(event) => setText(nameField, event.target.value)}
               aria-label={`${label}名称`}
+              data-editable-field={isBeastSpellEditor ? 'beast-spell-name' : undefined}
             />
             <PrintValue value={texts[nameField] || ''} className="featurePrintValue" />
             <textarea
@@ -1812,6 +1882,7 @@ function EditableFeatureTable({ rows, namePrefix, effectPrefix, className = '' }
               value={texts[effectField] || ''}
               onChange={(event) => setText(effectField, event.target.value)}
               aria-label={`${label}效果`}
+              data-editable-field={isBeastSpellEditor ? 'beast-spell-effect' : undefined}
             />
             <PrintValue value={texts[effectField] || ''} className="featurePrintValue" />
           </div>
@@ -1890,7 +1961,7 @@ function PageTwo() {
 }
 
 function PageThree() {
-  const { current, upgradeCards, markStates } = useSheet();
+  const { current, upgradeCards, markStates, texts, setText } = useSheet();
   const formationFeatureRows = ['固定特征壹', '固定特征贰', '临时特征壹', '临时特征贰', '临时特征叁', '临时特征肆'];
   const followerMoveRows = ['普攻', '初始神通', '神通壹', '神通贰', '神通叁', '秘法壹'];
   const learnedMethodNames = getLearnedMethodNames(current, upgradeCards);
@@ -1899,6 +1970,15 @@ function PageThree() {
   const hasBeastMethod = learnedMethodNames.includes('兽修');
   const showsFollowerPanel = hasFormationMethod || hasPuppetMethod || hasBeastMethod;
   const hasSelectedBeastFollower = Boolean(markStates['p3-follower-kind-beast:0']?.filled);
+  const fillBeastBloodlineSpell = (bloodlineId, selected) => {
+    const currentSpell = {
+      name: texts.followerMoveName1 || '',
+      text: texts.followerMoveEffect1 || '',
+    };
+    const nextSpell = getBloodlineSelectionText(currentSpell, bloodlineId, selected);
+    if (nextSpell.name !== currentSpell.name) setText('followerMoveName1', nextSpell.name);
+    if (nextSpell.text !== currentSpell.text) setText('followerMoveEffect1', nextSpell.text);
+  };
 
   return (
     <div className="sheet pdfSheet">
@@ -2012,11 +2092,17 @@ function PageThree() {
             <section className="pdfBlock bloodlineBlock">
               <div className="pdfTableTitle">灵兽血脉</div>
               <div className="bloodlineNote">你的兽修精进时<br />灵兽的血脉就会进行一次血脉升级<br />创建你的本命灵兽时<br />选择血脉并获取增益</div>
-              <div className="bloodlineTable">
+              <div className="bloodlineTable" role="group" aria-label="灵兽血脉（单选）">
                 <div><span /><b>名称</b><b>初始能力</b><b>进阶能力</b></div>
                 {['凶杀血脉', '灵法血脉', '铁骨血脉', '愈灵血脉', '缚影血脉', '追风血脉'].map((name, index) => (
                   <div key={name}>
-                    <PdfClickableCheck id={`p3-bloodline-${index}`} label="" />
+                    <PdfClickableCheck
+                      id={`p3-bloodline-${index}`}
+                      label=""
+                      ariaLabel={`${name}选择`}
+                      exclusiveGroup="p3-bloodline"
+                      onToggle={(selected) => fillBeastBloodlineSpell(`p3-bloodline-${index}`, selected)}
+                    />
                     <span>{name}</span>
                     <span>{['所有伤害 +1', '首次使用神通不扣除主人灵气格', '血量格 +1', '习得神通 - 疗愈', '习得神通 - 缚身', '在一个场景中一次，可携带主人进行一次远距离移动'][index]}</span>
                     <span>{['具有优势时，破置值 -1', '可以从道源神通中学习一个', '首次受到的中度伤害无效', '退场时主人不会受到伤害', '对具有异常状态的敌人检定具有优势', '不受缓速影响'][index]}</span>
@@ -5099,7 +5185,7 @@ function App() {
   }, [current.method, defaultRealmIndex, upgradeCards.initialInsights.length, upgradePrompt]);
   const fateState = getFateState(selectedFateTitle);
   const createCardSnapshot = () => ({
-    version: 2,
+    version: 3,
     selections,
     texts,
     attributes,
