@@ -1,6 +1,15 @@
 @font-face {
-  font-family: "Niming KingHwa OldSong";
-  src: url("/fonts/kinghwa-old-song.woff2") format("woff2");
+  font-family: "Niming KingHwa OldSong Subset";
+  src: url("/fonts/kinghwa-old-song-gb2312-ed19104931f9.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+  unicode-range: U+0000-024F, U+2000-27BF, U+3000-303F, U+31C0-31EF, U+3400-9FFF, U+F900-FAFF, U+FF00-FFEF;
+}
+
+@font-face {
+  font-family: "Niming KingHwa OldSong Full";
+  src: url("/fonts/kinghwa-old-song-full-v1.woff2") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 400;
@@ -8,7 +17,7 @@
 
 @font-face {
   font-family: "Niming Jiangxi Zhuokai";
-  src: url("/fonts/jiangxi-zhuokai-2.0.woff2") format("woff2");
+  src: url("/fonts/jiangxi-zhuokai-2.0-full-v1.woff2") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 400;
@@ -28,7 +37,7 @@
   --sheet-width: min(1660px, calc(100vw - 48px));
   --sheet-min-width: 1180px;
   --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
-  --font-old-song: "Niming KingHwa OldSong", "_KingHwa_OldSong", "KingHwaOldSong", "京華老宋体", "京华老宋", var(--font-serif);
+  --font-old-song: "Niming KingHwa OldSong Subset", "Niming KingHwa OldSong Full", "_KingHwa_OldSong", "KingHwaOldSong", "京華老宋体", "京华老宋", var(--font-serif);
   --font-jiangcheng-kai: "Niming Jiangxi Zhuokai", "江城楷", "江西拙楷2.0", "jiangxizhuokai", "KaiTi", "STKaiti", cursive;
   --page-tab-width: 66px;
   --tool-rail-width: 68px;
