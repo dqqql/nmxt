@@ -51,7 +51,8 @@
 .adminDeleteOverlay > div { width: min(440px, 100%); padding: 26px; border: 1px solid #9b8c6e; background: #fffdf8; }
 .adminDeleteOverlay footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 .adminDeleteOverlay footer button:first-child { background: transparent; color: #353b3a; }
-button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #b6842e; outline-offset: 2px; }
+:is(.adminShell, .adminLoginShell) button:focus-visible { outline: 2px solid #16864d; outline-offset: 2px; }
+:is(.adminShell, .adminLoginShell) :is(input, select, textarea):focus-visible { border-color: #16864d; outline: 2px solid #16864d; outline-offset: -2px; }
 @media (max-width: 800px) {
   .adminTopbar span { display: none; }
   .adminWorkspace, .adminEditor { width: 100%; margin: 0; border-right: 0; border-left: 0; }
