@@ -20,11 +20,17 @@ describe('save archive JSON import', () => {
     expect(modal).toContain('onChange={onJsonImport}');
   });
 
-  it('parses the selected file, preserves the current portrait, and closes the archive on success', () => {
+  it('creates and activates a named save slot while preserving the current portrait', () => {
     const app = functionBody('App');
 
     expect(app).toContain('const importedSnapshot = parseCardJson(await file.text())');
-    expect(app).toContain('restoreCardSnapshot({ ...importedSnapshot, portrait })');
+    expect(app).toContain('const nextSnapshot = { ...importedSnapshot, portrait }');
+    expect(app).toContain('const nextArchive = startNewSaveSlot(saveSlots');
+    expect(app).toContain('currentSnapshot: createCardSnapshot()');
+    expect(app).toContain('name: importedSnapshot.texts?.name');
+    expect(app).toContain('persistSaveSlots(nextArchive.slots)');
+    expect(app).toContain('setActiveSlot(nextArchive.activeSlotId)');
+    expect(app).toContain('restoreCardSnapshot(nextSnapshot)');
     expect(app).toContain('setSaveOpen(false)');
     expect(app).toContain("showNotice('角色卡导入。')");
   });

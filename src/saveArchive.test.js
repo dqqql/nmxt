@@ -129,6 +129,44 @@ describe('save archive helpers', () => {
     });
   });
 
+  it('uses a supplied character name for an imported save slot', () => {
+    const original = createSaveSlot({
+      snapshot,
+      name: '旧角色',
+      id: () => 'slot-1',
+    });
+    const importedSnapshot = { texts: { name: '云舒' } };
+
+    const result = startNewSaveSlot([original], {
+      activeSlotId: 'slot-1',
+      currentSnapshot: snapshot,
+      emptySnapshot: importedSnapshot,
+      name: importedSnapshot.texts.name,
+      id: () => 'slot-2',
+    });
+
+    expect(result.activeSlotId).toBe('slot-2');
+    expect(result.slots[0]).toMatchObject({
+      id: 'slot-2',
+      name: '云舒',
+      snapshot: importedSnapshot,
+    });
+  });
+
+  it('uses the normal save limit error when creating an imported slot', () => {
+    const slots = Array.from({ length: SAVE_SLOT_LIMIT }, (_, index) => createSaveSlot({
+      snapshot,
+      name: `角色 ${index + 1}`,
+      id: () => `slot-${index}`,
+    }));
+
+    expect(() => startNewSaveSlot(slots, {
+      currentSnapshot: snapshot,
+      emptySnapshot: { texts: { name: '云舒' } },
+      name: '云舒',
+    })).toThrow('存档上限为 10 个');
+  });
+
   it('updates only an existing active slot snapshot before switching away', () => {
     const slots = [
       createSaveSlot({ snapshot: { texts: { name: '旧一' } }, name: '一', id: () => 'a' }),

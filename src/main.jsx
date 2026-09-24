@@ -5541,7 +5541,16 @@ function App() {
 
     try {
       const importedSnapshot = parseCardJson(await file.text());
-      restoreCardSnapshot({ ...importedSnapshot, portrait });
+      const nextSnapshot = { ...importedSnapshot, portrait };
+      const nextArchive = startNewSaveSlot(saveSlots, {
+        activeSlotId: activeSaveSlotId,
+        currentSnapshot: createCardSnapshot(),
+        emptySnapshot: nextSnapshot,
+        name: importedSnapshot.texts?.name,
+      });
+      persistSaveSlots(nextArchive.slots);
+      setActiveSlot(nextArchive.activeSlotId);
+      restoreCardSnapshot(nextSnapshot);
       setSaveOpen(false);
       showNotice('角色卡导入。');
     } catch (error) {

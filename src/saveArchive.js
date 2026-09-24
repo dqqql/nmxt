@@ -93,6 +93,7 @@ export function startNewSaveSlot(slots = [], {
   activeSlotId = null,
   currentSnapshot,
   emptySnapshot,
+  name,
   now = defaultNow,
   id = defaultId,
 } = {}) {
@@ -107,7 +108,7 @@ export function startNewSaveSlot(slots = [], {
   });
   const nextSlot = createSaveSlot({
     snapshot: emptySnapshot,
-    name: `存档 ${preservedSlots.length + 1}`,
+    name: name || `存档 ${preservedSlots.length + 1}`,
     now,
     id,
   });
