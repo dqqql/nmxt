@@ -60,7 +60,7 @@ import {
   removeMarketplaceInstall,
   writeMarketplaceInstalls,
 } from './marketplaceState';
-import { attachPrintLifecycle, printSheetsWithBrowser } from './exportPdf';
+import { attachPrintLifecycle, getExportFileName, printSheetsWithBrowser } from './exportPdf';
 import {
   createMarkState,
   toggleMarkFilled,
@@ -5508,7 +5508,10 @@ function App() {
 
     try {
       const printRoot = document.querySelector('.printPageStack');
-      await printSheetsWithBrowser({ root: printRoot || document });
+      await printSheetsWithBrowser({
+        root: printRoot || document,
+        fileName: getExportFileName(texts.name),
+      });
     } catch (error) {
       console.error('打印导出失败', error);
       setExportError(error?.message || '打印导出失败，请查看控制台错误。');

@@ -115,6 +115,7 @@ export async function printSheetsWithBrowser(options = {}) {
   const root = options.root
     || getOwnerDocument(null)?.querySelector?.('.printPageStack')
     || getOwnerDocument(null);
+  const ownerDocument = getOwnerDocument(root);
 
   if (!root) {
     throw new Error('Print root is not available.');
@@ -126,5 +127,16 @@ export async function printSheetsWithBrowser(options = {}) {
   await waitForPrintAssets(root, {
     requestAnimationFrame: options.requestAnimationFrame,
   });
-  printWindow.print();
+
+  const previousTitle = ownerDocument?.title;
+  if (ownerDocument && options.fileName) {
+    ownerDocument.title = options.fileName;
+  }
+  try {
+    printWindow.print();
+  } finally {
+    if (ownerDocument && options.fileName) {
+      ownerDocument.title = previousTitle;
+    }
+  }
 }

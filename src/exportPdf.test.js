@@ -17,6 +17,7 @@ function makeClassList() {
 function makePrintRoot({ images = [], controls = [], printValues = [] } = {}) {
   return {
     ownerDocument: {
+      title: '逆命仙途车卡器',
       fonts: { ready: Promise.resolve('fonts-ready') },
     },
     querySelectorAll: vi.fn((selector) => {
@@ -75,6 +76,20 @@ describe('printSheetsWithBrowser', () => {
     expect(image.addEventListener).toHaveBeenCalledWith('error', expect.any(Function), { once: true });
     expect(requestAnimationFrame).toHaveBeenCalledTimes(2);
     expect(print).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the character name as the PDF title while printing and restores the page title', async () => {
+    const root = makePrintRoot();
+    const titlesSeenWhilePrinting = [];
+
+    await printSheetsWithBrowser({
+      root,
+      window: { print: () => titlesSeenWhilePrinting.push(root.ownerDocument.title) },
+      fileName: getExportFileName('云舒'),
+    });
+
+    expect(titlesSeenWhilePrinting).toEqual(['云舒.pdf']);
+    expect(root.ownerDocument.title).toBe('逆命仙途车卡器');
   });
 });
 
